@@ -1,8 +1,19 @@
 defmodule Poison do
+  defexception SyntaxError, message: "Unexpected input"
+
   def parse(string) when is_binary(string) do
     { value, rest } = value(skip_whitespace(string))
     if rest != "" or skip_whitespace(rest) != "", do: throw(:invalid)
-    value
+    { :ok, value }
+  catch :invalid ->
+    { :error, :invalid }
+  end
+
+  def parse!(string) do
+    case parse(string) do
+      { :ok, value } -> value
+      { :error, :invalid } -> raise SyntaxError
+    end
   end
 
   defp value("\"" <> rest),    do: string_start(rest)
@@ -14,7 +25,7 @@ defmodule Poison do
 
   lc char inlist '-0123456789' do
     defp value(<< unquote(char), rest :: binary >>) do
-      start_number(rest, unquote(char))
+      number_start(rest, unquote(char))
     end
   end
 
@@ -22,44 +33,40 @@ defmodule Poison do
 
   ## Numbers
 
-  defp start_number(<< ?0, _ :: binary >>, ?-) do
-    throw(:invalid)
+  defp number_start(_, ?0) do
+    raise SyntaxError, token: ?0
   end
 
   lc char inlist '0123456789' do
-    defp start_number(<< unquote(char), _rest :: binary >>, ?0) do
-      throw(:invalid)
-    end
-
-    defp start_number(<< unquote(char), rest :: binary >>, first) do
-      number_int(rest, << first, unquote(char) >>)
+    defp number_start(<< unquote(char), rest :: binary >>, first) do
+      number_continue(rest, << first, unquote(char) >>)
     end
   end
 
-  defp start_number("", ?-), do: throw(:invalid)
+  defp number_start("", ?-), do: throw(:invalid)
 
-  defp start_number("", first) do
+  defp number_start("", first) do
     { first - ?0, "" }
   end
 
   lc char inlist '0123456789' do
-    defp number_int(<< unquote(char), rest :: binary >>, acc) do
-      number_int(rest, << acc :: binary, unquote(char) >>)
+    defp number_continue(<< unquote(char), rest :: binary >>, acc) do
+      number_continue(rest, << acc :: binary, unquote(char) >>)
     end
   end
 
-  defp number_int(<< e, rest :: binary >>, acc) when e in 'eE' do
+  defp number_continue(<< e, rest :: binary >>, acc) when e in 'eE' do
     { exp, rest } = number_exp(rest, "")
-    { trunc(binary_to_float(<< acc :: binary, ".0e", exp :: binary >>)), rest }
+    { binary_to_float(<< acc :: binary, ".0e", exp :: binary >>), rest }
   end
 
-  defp number_int(<< ?., rest :: binary >>, acc) do
+  defp number_continue(<< ?., rest :: binary >>, acc) do
     { frac, exp, rest } = number_frac(rest, "")
     number = binary_to_float(<< acc :: binary, ?., frac :: binary, ?e, exp :: binary >>)
     { number, rest }
   end
 
-  defp number_int(rest, acc) do
+  defp number_continue(rest, acc) do
     { binary_to_integer(acc), rest }
   end
 
@@ -80,11 +87,17 @@ defmodule Poison do
 
   lc char inlist '-0123456789' do
     defp number_exp(<< unquote(char), rest :: binary >>, acc) do
-      number_exp(rest, << acc :: binary, unquote(char) >>)
+      number_exp_continue(rest, << acc :: binary, unquote(char) >>)
     end
   end
 
-  defp number_exp(rest, acc) do
+  lc char inlist '0123456789' do
+    defp number_exp_continue(<< unquote(char), rest :: binary >>, acc) do
+      number_exp_continue(rest, << acc :: binary, unquote(char) >>)
+    end
+  end
+
+  defp number_exp_continue(rest, acc) do
     { acc, rest }
   end
 
@@ -158,7 +171,7 @@ defmodule Poison do
 
   defp skip_whitespace(""), do: ""
 
-  lc ws inlist ' \n\t\r' do
+  lc ws inlist '\s\n\t\r' do
     defp skip_whitespace(<< unquote(ws), rest :: binary >>) do
       skip_whitespace(rest)
     end

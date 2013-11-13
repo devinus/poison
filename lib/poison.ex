@@ -62,7 +62,7 @@ defmodule Poison do
   end
 
   defp object_maybe_leave("}" <> rest, acc) do
-    { :lists.reverse(acc), rest }
+    { acc, rest }
   end
 
   defp object_maybe_leave(_, _), do: throw(:invalid)
@@ -191,13 +191,24 @@ defmodule Poison do
     { acc, rest }
   end
 
-  lc { char, escape } inlist Enum.zip('"nrt\\/fb', '"\n\r\t\\/\f\b') do
-    defp string_continue(<< ?\\, unquote(char), rest :: binary >>, acc) do
-      string_continue(rest, [ acc, unquote(escape) ])
+  defp string_continue("\\" <> rest, acc) do
+    string_escape(rest, acc)
+  end
+
+  defp string_continue(string, acc) do
+    n = string_chunk_size(string, 0)
+    << chunk :: [ binary, size(n) ], rest :: binary >> = string
+    string_continue(rest, [ acc, chunk ])
+  end
+
+  lc { seq, char } inlist Enum.zip('"ntr\\/fb', '"\n\t\r\\/\f\b') do
+    defp string_escape(<< unquote(seq), rest :: binary >>, acc) do
+      string_continue(rest, [ acc, unquote(char) ])
     end
   end
 
-  defp string_continue(<< "\\u", a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary >>, acc)
+  # http://www.ietf.org/rfc/rfc2781.txt
+  defp string_escape(<< ?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary >>, acc)
       when a1 in [?d, ?D] and a2 in [?d, ?D] do
     first  = list_to_integer([ a1, b1, c1, d1 ], 16)
     second = list_to_integer([ a2, b2, c2, d2 ], 16)
@@ -205,14 +216,8 @@ defmodule Poison do
     string_continue(rest, [ acc, << codepoint :: utf8 >> ])
   end
 
-  defp string_continue(<< "\\u", a, b, c, d, rest :: binary >>, acc) do
-    string_continue(rest, [ acc, << list_to_integer([a, b, c, d], 16) :: utf8 >> ])
-  end
-
-  defp string_continue(string, acc) do
-    n = string_chunk_size(string, 0)
-    << chunk :: [ binary, size(n) ], rest :: binary >> = string
-    string_continue(rest, [ acc, chunk ])
+  defp string_escape(<< ?u, seq :: [ binary, size(4) ], rest :: binary >>, acc) do
+    string_continue(rest, [ acc, << binary_to_integer(seq, 16) :: utf8 >> ])
   end
 
   defp string_chunk_size("\"" <> _, acc), do: acc
@@ -236,9 +241,9 @@ defmodule Poison do
 
   defp skip_whitespace(""), do: ""
 
-  # defp skip_whitespace("    " <> rest) do
-  #   skip_whitespace(rest)
-  # end
+  defp skip_whitespace("    " <> rest) do
+    skip_whitespace(rest)
+  end
 
   lc ws inlist '\s\n\t\r' do
     defp skip_whitespace(<< unquote(ws), rest :: binary >>) do

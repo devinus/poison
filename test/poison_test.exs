@@ -8,6 +8,7 @@ defmodule PoisonTest do
     assert_raise SyntaxError, fn -> parse!("-") end
     assert_raise SyntaxError, fn -> parse!("01") end
     assert_raise SyntaxError, fn -> parse!("1e") end
+    assert_raise SyntaxError, fn -> parse!("1e-") end
 
     assert parse!("0") == 0
     assert parse!("1") == 1
@@ -23,6 +24,7 @@ defmodule PoisonTest do
   end
 
   test "strings" do
-  	assert parse!(%s{"\\u2028\\u2029"}) == "\x{2028}\x{2029}"
+    assert parse!(%s{"\\u2603"}) == "☃"
+    assert parse!(%s{"\\u2028\\u2029"}) == "\x{2028}\x{2029}"
   end
 end

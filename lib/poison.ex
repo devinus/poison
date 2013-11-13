@@ -147,7 +147,7 @@ defmodule Poison do
 
   defp number_continue_exp("-" <> rest, int, nil) do
     { exp, rest } = number_digits(rest)
-    { trunc(binary_to_float(int <> ".0e-" <> exp)), rest }
+    { binary_to_float(int <> ".0e-" <> exp), rest }
   end
 
   defp number_continue_exp(string, int, nil) do

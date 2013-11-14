@@ -1,10 +1,17 @@
 defmodule Poison do
-  @compile :native
+  @moduledoc """
+  A JSON parser modelled after ECMA 404.
 
-  use Bitwise
+  See: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+  """
+
+  @compile :native
 
   defexception SyntaxError, message: "Unexpected input"
 
+  @type t :: float | integer | String.t | Keyword.t
+
+  @spec parse(String.t) :: { :ok, t } | { :error, :invalid }
   def parse(string) when is_binary(string) do
     { value, rest } = value(skip_whitespace(string))
     if rest != "" and skip_whitespace(rest) != "", do: throw(:invalid)
@@ -13,6 +20,7 @@ defmodule Poison do
     { :error, :invalid }
   end
 
+  @spec parse(String.t) :: t
   def parse!(string) do
     case parse(string) do
       { :ok, value } -> value
@@ -35,7 +43,7 @@ defmodule Poison do
 
   defp value(_), do: throw(:invalid)
 
-  ## Objects
+  # Objects
 
   defp object_start(string) do
     object_pairs(skip_whitespace(string), [])
@@ -47,9 +55,11 @@ defmodule Poison do
     object_maybe_leave(skip_whitespace(rest), [ { name, value } | acc ])
   end
 
-  defp object_pairs("}" <> rest, _) do
+  defp object_pairs("}" <> rest, []) do
     { [], rest }
   end
+
+  defp object_pairs(_, _), do: throw(:invalid)
 
   defp object_pair_value(":" <> rest) do
     value(skip_whitespace(rest))
@@ -62,12 +72,12 @@ defmodule Poison do
   end
 
   defp object_maybe_leave("}" <> rest, acc) do
-    { acc, rest }
+    { :lists.reverse(acc), rest }
   end
 
   defp object_maybe_leave(_, _), do: throw(:invalid)
 
-  ## Arrays
+  # Arrays
 
   defp array_start(string) do
     array_values(skip_whitespace(string), [])
@@ -92,7 +102,7 @@ defmodule Poison do
 
   defp array_maybe_leave(_, _), do: throw(:invalid)
 
-  ## Numbers
+  # Numbers
 
   defp number_start("-" <> rest) do
     { number, rest } = number_start(rest)
@@ -150,6 +160,10 @@ defmodule Poison do
     { binary_to_float(int <> ".0e-" <> exp), rest }
   end
 
+  defp number_continue_exp("+" <> rest, int, frac) do
+    number_continue_exp(rest, int, frac)
+  end
+
   defp number_continue_exp(string, int, nil) do
     { exp, rest } = number_digits(string)
     { trunc(binary_to_float(int <> ".0e" <> exp)), rest }
@@ -180,7 +194,7 @@ defmodule Poison do
   defp number_digits_count(_, 0),   do: throw(:invalid)
   defp number_digits_count(_, acc), do: acc
 
-  ## Strings
+  # Strings
 
   defp string_start(string) do
     { iolist, rest } = string_continue(string, "")
@@ -195,6 +209,8 @@ defmodule Poison do
     string_escape(rest, acc)
   end
 
+  defp string_continue("", _), do: throw(:invalid)
+
   defp string_continue(string, acc) do
     n = string_chunk_size(string, 0)
     << chunk :: [ binary, size(n) ], rest :: binary >> = string
@@ -208,17 +224,20 @@ defmodule Poison do
   end
 
   # http://www.ietf.org/rfc/rfc2781.txt
+  # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
   defp string_escape(<< ?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary >>, acc)
       when a1 in [?d, ?D] and a2 in [?d, ?D] do
-    first  = list_to_integer([ a1, b1, c1, d1 ], 16)
-    second = list_to_integer([ a2, b2, c2, d2 ], 16)
-    codepoint = 0x10000 + ((first &&& 0x07ff) * 0x400) + (second &&& 0x03ff)
+    hi = list_to_integer([ a1, b1, c1, d1 ], 16)
+    lo = list_to_integer([ a2, b2, c2, d2 ], 16)
+    codepoint = 0x10000 + ((hi - 0xD800) * 0x400) + (lo - 0xDC00);
     string_continue(rest, [ acc, << codepoint :: utf8 >> ])
   end
 
   defp string_escape(<< ?u, seq :: [ binary, size(4) ], rest :: binary >>, acc) do
     string_continue(rest, [ acc, << binary_to_integer(seq, 16) :: utf8 >> ])
   end
+
+  defp string_escape(_, _), do: throw(:invalid)
 
   defp string_chunk_size("\"" <> _, acc), do: acc
   defp string_chunk_size("\\" <> _, acc), do: acc
@@ -237,7 +256,7 @@ defmodule Poison do
   defp string_codepoint_size(codepoint) when codepoint < 0x10000, do: 3
   defp string_codepoint_size(_),                                  do: 4
 
-  ## Whitespace
+  # Whitespace
 
   defp skip_whitespace(""), do: ""
 

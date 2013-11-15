@@ -18,6 +18,7 @@ defmodule PoisonTest do
     assert parse!("0.1") == 0.1
     assert parse!("-0.1") == -0.1
     assert parse!("0e0") == 0
+    assert parse!("0E0") == 0
     assert parse!("1e0") == 1
     assert parse!("1E0") == 1
     assert parse!("1.0e0") == 1.0

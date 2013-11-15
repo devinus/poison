@@ -109,74 +109,65 @@ defmodule Poison do
     { -number, rest }
   end
 
+  defp number_start("0" <> rest) do
+    number_frac(rest, [?0])
+  end
+
+  defp number_start(string) do
+    number_int(string, [])
+  end
+
   lc char inlist '123456789' do
-    defp number_start(<< unquote(char), _ :: binary >> = string) do
-      number_continue(string)
+    defp number_int(<< unquote(char), _ :: binary >> = string, acc) do
+      { digits, rest } = number_digits(string)
+      number_frac(rest, [acc, digits])
     end
   end
 
-  defp number_start("0." <> _ = string) do
-    number_continue(string)
+  defp number_int(_, _), do: throw(:invalid)
+
+  defp number_frac("." <> rest, acc) do
+    { digits, rest } = number_digits(rest)
+    number_exp(rest, true, [acc, ?., digits])
   end
 
-  defp number_start("0e" <> _ = string) do
-    number_continue(string)
+  defp number_frac(string, acc) do
+    number_exp(string, false, acc)
   end
 
-  defp number_start("0" <> rest) do
-    { 0, rest }
+  defp number_exp(<< e, rest :: binary >>, true, acc) when e in 'eE' do
+    number_exp_continue(rest, true, [acc, ?e])
   end
 
-  defp number_start(_), do: throw(:invalid)
-
-  defp number_continue(string) do
-    { int, rest } = number_digits(string)
-    number_maybe_frac(rest, int)
+  defp number_exp(<< e, rest :: binary >>, false, acc) when e in 'eE' do
+    number_exp_continue(rest, true, [acc, ".0e"])
   end
 
-  defp number_maybe_frac("." <> rest, int) do
-    { frac, rest } = number_digits(rest)
-    number_maybe_exp(rest, int, frac)
+  defp number_exp(string, frac, acc) do
+    { number_complete(acc, frac), string }
   end
 
-  defp number_maybe_frac(string, int) do
-    number_maybe_exp(string, int, nil)
+  defp number_exp_continue("-" <> rest, _frac, acc) do
+    { digits, rest } = number_digits(rest)
+    { number_complete([acc, ?-, digits], true), rest }
   end
 
-  defp number_maybe_exp(<< e, rest :: binary >>, int, frac) when e in 'eE' do
-    number_continue_exp(rest, int, frac)
+  defp number_exp_continue("+" <> rest, frac, acc) do
+    { digits, rest } = number_digits(rest)
+    { number_complete([acc, digits], true), rest }
   end
 
-  defp number_maybe_exp(string, int, nil) do
-    { binary_to_integer(int), string }
+  defp number_exp_continue(string, frac, acc) do
+    { digits, rest } = number_digits(string)
+    { number_complete([acc, digits], frac), rest }
   end
 
-  defp number_maybe_exp(string, int, frac) do
-    { binary_to_float(int <> "." <> frac), string }
+  defp number_complete(iolist, false) do
+    binary_to_integer(iolist_to_binary(iolist))
   end
 
-  defp number_continue_exp("-" <> rest, int, nil) do
-    { exp, rest } = number_digits(rest)
-    { binary_to_float(int <> ".0e-" <> exp), rest }
-  end
-
-  defp number_continue_exp("+" <> rest, int, frac) do
-    number_continue_exp(rest, int, frac)
-  end
-
-  defp number_continue_exp(string, int, nil) do
-    { exp, rest } = number_digits(string)
-    { trunc(binary_to_float(int <> ".0e" <> exp)), rest }
-  end
-
-  defp number_continue_exp("-" <> rest, int, frac) do
-    { exp, rest } = number_digits(rest)
-    { binary_to_float(int <> "." <> frac <> "e-" <> exp), rest }
-  end
-
-  defp number_continue_exp(string, int, frac) do
-    { exp, rest } = number_digits(string)
-    { binary_to_float(int <> "." <> frac <> "e" <> exp), rest }
+  defp number_complete(iolist, true) do
+    binary_to_float(iolist_to_binary(iolist))
   end
 
   defp number_digits(string) do
@@ -197,7 +188,7 @@ defmodule Poison do
   # Strings
 
   defp string_start(string) do
-    { iolist, rest } = string_continue(string, "")
+    { iolist, rest } = string_continue(string, [])
     { iolist_to_binary(iolist), rest }
   end
 
@@ -258,7 +249,7 @@ defmodule Poison do
 
   # Whitespace
 
-  defp skip_whitespace(""), do: ""
+  # defp skip_whitespace(""), do: ""
 
   defp skip_whitespace("    " <> rest) do
     skip_whitespace(rest)

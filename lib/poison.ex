@@ -135,31 +135,28 @@ defmodule Poison do
     number_exp(string, false, acc)
   end
 
-  defp number_exp(<< e, rest :: binary >>, true, acc) when e in 'eE' do
-    number_exp_continue(rest, true, [acc, ?e])
-  end
-
-  defp number_exp(<< e, rest :: binary >>, false, acc) when e in 'eE' do
-    number_exp_continue(rest, true, [acc, ".0e"])
+  defp number_exp(<< e, rest :: binary >>, frac, acc) when e in 'eE' do
+    e = if frac, do: ?e, else: ".0e"
+    number_exp_continue(rest, [acc, e])
   end
 
   defp number_exp(string, frac, acc) do
     { number_complete(acc, frac), string }
   end
 
-  defp number_exp_continue("-" <> rest, _frac, acc) do
+  defp number_exp_continue("-" <> rest, acc) do
     { digits, rest } = number_digits(rest)
     { number_complete([acc, ?-, digits], true), rest }
   end
 
-  defp number_exp_continue("+" <> rest, frac, acc) do
+  defp number_exp_continue("+" <> rest, acc) do
     { digits, rest } = number_digits(rest)
     { number_complete([acc, digits], true), rest }
   end
 
-  defp number_exp_continue(string, frac, acc) do
+  defp number_exp_continue(string, acc) do
     { digits, rest } = number_digits(string)
-    { number_complete([acc, digits], frac), rest }
+    { number_complete([acc, digits], true), rest }
   end
 
   defp number_complete(iolist, false) do

@@ -6,6 +6,7 @@ defmodule PoisonTest do
 
   test "numbers" do
     assert_raise SyntaxError, fn -> parse!("-") end
+    assert_raise SyntaxError, fn -> parse!("--1") end
     assert_raise SyntaxError, fn -> parse!("01") end
     assert_raise SyntaxError, fn -> parse!(".1") end
     assert_raise SyntaxError, fn -> parse!("1.") end

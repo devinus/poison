@@ -35,10 +35,8 @@ defmodule Poison do
   defp value("true" <> rest),  do: { true, rest }
   defp value("false" <> rest), do: { false, rest }
 
-  lc char inlist '-0123456789' do
-    defp value(<< unquote(char), _ :: binary >> = string) do
-      number_start(string)
-    end
+  defp value(<< char, _ :: binary >> = string) when char in '-0123456789' do
+    number_start(string)
   end
 
   defp value(_), do: throw(:invalid)
@@ -51,8 +49,17 @@ defmodule Poison do
 
   defp object_pairs("\"" <> rest, acc) do
     { name, rest } = string_start(rest)
-    { value, rest } = object_pair_value(skip_whitespace(rest))
-    object_maybe_leave(skip_whitespace(rest), [ { name, value } | acc ])
+    { value, rest } = case skip_whitespace(rest) do
+      ":" <> rest -> value(skip_whitespace(rest))
+      _ -> throw(:invalid)
+    end
+
+    acc = [ { name, value } | acc ]
+    case skip_whitespace(rest) do
+      "," <> rest -> object_pairs(skip_whitespace(rest), acc)
+      "}" <> rest -> { acc, rest }
+      _ -> throw(:invalid)
+    end
   end
 
   defp object_pairs("}" <> rest, []) do
@@ -60,22 +67,6 @@ defmodule Poison do
   end
 
   defp object_pairs(_, _), do: throw(:invalid)
-
-  defp object_pair_value(":" <> rest) do
-    value(skip_whitespace(rest))
-  end
-
-  defp object_pair_value(_), do: throw(:invalid)
-
-  defp object_maybe_leave("," <> rest, acc) do
-    object_pairs(skip_whitespace(rest), acc)
-  end
-
-  defp object_maybe_leave("}" <> rest, acc) do
-    { :lists.reverse(acc), rest }
-  end
-
-  defp object_maybe_leave(_, _), do: throw(:invalid)
 
   # Arrays
 
@@ -89,24 +80,21 @@ defmodule Poison do
 
   defp array_values(string, acc) do
     { value, rest } = value(string)
-    array_maybe_leave(skip_whitespace(rest), [ value | acc ])
+    acc = [ value | acc ]
+    case skip_whitespace(rest) do
+      "," <> rest -> array_values(skip_whitespace(rest), acc)
+      "]" <> rest -> { acc, rest }
+      _ -> throw(:invalid)
+    end
   end
-
-  defp array_maybe_leave("," <> rest, acc) do
-    array_values(skip_whitespace(rest), acc)
-  end
-
-  defp array_maybe_leave("]" <> rest, acc) do
-    { :lists.reverse(acc), rest }
-  end
-
-  defp array_maybe_leave(_, _), do: throw(:invalid)
 
   # Numbers
 
   defp number_start("-" <> rest) do
-    { number, rest } = number_start(rest)
-    { -number, rest }
+    case rest do
+      "0" <> rest -> number_frac(rest, ["-0"])
+      rest -> number_int(rest, [?-])
+    end
   end
 
   defp number_start("0" <> rest) do
@@ -117,11 +105,9 @@ defmodule Poison do
     number_int(string, [])
   end
 
-  lc char inlist '123456789' do
-    defp number_int(<< unquote(char), _ :: binary >> = string, acc) do
-      { digits, rest } = number_digits(string)
-      number_frac(rest, [acc, digits])
-    end
+  defp number_int(<< char, _ :: binary >> = string, acc) when char in '123456789' do
+    { digits, rest } = number_digits(string)
+    number_frac(rest, [acc, digits])
   end
 
   defp number_int(_, _), do: throw(:invalid)
@@ -137,26 +123,22 @@ defmodule Poison do
 
   defp number_exp(<< e, rest :: binary >>, frac, acc) when e in 'eE' do
     e = if frac, do: ?e, else: ".0e"
-    number_exp_continue(rest, [acc, e])
+    acc = case rest do
+      "-" <> rest ->
+        { digits, rest } = number_digits(rest)
+        [acc, e, ?-, digits]
+      "+" <> rest ->
+        { digits, rest } = number_digits(rest)
+        [acc, e, digits]
+      rest ->
+        { digits, rest } = number_digits(rest)
+        [acc, e, digits]
+    end
+    { number_complete(acc, true), rest }
   end
 
   defp number_exp(string, frac, acc) do
     { number_complete(acc, frac), string }
-  end
-
-  defp number_exp_continue("-" <> rest, acc) do
-    { digits, rest } = number_digits(rest)
-    { number_complete([acc, ?-, digits], true), rest }
-  end
-
-  defp number_exp_continue("+" <> rest, acc) do
-    { digits, rest } = number_digits(rest)
-    { number_complete([acc, digits], true), rest }
-  end
-
-  defp number_exp_continue(string, acc) do
-    { digits, rest } = number_digits(string)
-    { number_complete([acc, digits], true), rest }
   end
 
   defp number_complete(iolist, false) do
@@ -173,10 +155,8 @@ defmodule Poison do
     { digits, rest }
   end
 
-  lc char inlist '0123456789' do
-    defp number_digits_count(<< unquote(char), rest :: binary >>, acc) do
-      number_digits_count(rest, acc + 1)
-    end
+  defp number_digits_count(<< char, rest :: binary >>, acc) when char in '0123456789' do
+    number_digits_count(rest, acc + 1)
   end
 
   defp number_digits_count(_, 0),   do: throw(:invalid)
@@ -246,16 +226,12 @@ defmodule Poison do
 
   # Whitespace
 
-  # defp skip_whitespace(""), do: ""
-
   defp skip_whitespace("    " <> rest) do
     skip_whitespace(rest)
   end
 
-  lc ws inlist '\s\n\t\r' do
-    defp skip_whitespace(<< unquote(ws), rest :: binary >>) do
-      skip_whitespace(rest)
-    end
+  defp skip_whitespace(<< char, rest :: binary >>) when char in '\s\n\t\r' do
+    skip_whitespace(rest)
   end
 
   defp skip_whitespace(string) do

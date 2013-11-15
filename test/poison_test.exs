@@ -70,6 +70,7 @@ defmodule PoisonTest do
   end
 
   test "whitespace" do
+    assert_raise SyntaxError, fn -> parse!("") end
     assert_raise SyntaxError, fn -> parse!("    ") end
 
     assert parse!("  [  ]  ") == []

@@ -1,6 +1,6 @@
 defmodule Poison do
   @moduledoc """
-  A JSON parser modelled after ECMA 404.
+  An ECMA 404 conforming JSON parser.
 
   See: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
   """
@@ -14,8 +14,10 @@ defmodule Poison do
   @spec parse(String.t) :: { :ok, t } | { :error, :invalid }
   def parse(string) when is_binary(string) do
     { value, rest } = value(skip_whitespace(string))
-    if rest != "" and skip_whitespace(rest) != "", do: throw(:invalid)
-    { :ok, value }
+    case skip_whitespace(rest) do
+      "" -> { :ok, value }
+      _ -> throw(:invalid)
+    end
   catch :invalid ->
     { :error, :invalid }
   end
@@ -41,7 +43,7 @@ defmodule Poison do
 
   defp value(_), do: throw(:invalid)
 
-  # Objects
+  ## Objects
 
   defp object_start(string) do
     object_pairs(skip_whitespace(string), [])
@@ -57,7 +59,7 @@ defmodule Poison do
     acc = [ { name, value } | acc ]
     case skip_whitespace(rest) do
       "," <> rest -> object_pairs(skip_whitespace(rest), acc)
-      "}" <> rest -> { acc, rest }
+      "}" <> rest -> { :lists.reverse(acc), rest }
       _ -> throw(:invalid)
     end
   end
@@ -68,7 +70,7 @@ defmodule Poison do
 
   defp object_pairs(_, _), do: throw(:invalid)
 
-  # Arrays
+  ## Arrays
 
   defp array_start(string) do
     array_values(skip_whitespace(string), [])
@@ -83,12 +85,12 @@ defmodule Poison do
     acc = [ value | acc ]
     case skip_whitespace(rest) do
       "," <> rest -> array_values(skip_whitespace(rest), acc)
-      "]" <> rest -> { acc, rest }
+      "]" <> rest -> { :lists.reverse(acc), rest }
       _ -> throw(:invalid)
     end
   end
 
-  # Numbers
+  ## Numbers
 
   defp number_start("-" <> rest) do
     case rest do
@@ -162,7 +164,7 @@ defmodule Poison do
   defp number_digits_count(_, 0),   do: throw(:invalid)
   defp number_digits_count(_, acc), do: acc
 
-  # Strings
+  ## Strings
 
   defp string_start(string) do
     { iolist, rest } = string_continue(string, [])
@@ -224,7 +226,7 @@ defmodule Poison do
   defp string_codepoint_size(codepoint) when codepoint < 0x10000, do: 3
   defp string_codepoint_size(_),                                  do: 4
 
-  # Whitespace
+  ## Whitespace
 
   defp skip_whitespace("    " <> rest) do
     skip_whitespace(rest)

@@ -7,26 +7,42 @@ defmodule Poison do
 
   @compile :native
 
-  defexception SyntaxError, message: "Unexpected input"
+  defexception SyntaxError, token: nil do
+    def message(__MODULE__[token: token]) do
+      if token do
+        "Unexpected token: #{token}"
+      else
+        "Unexpected end of input"
+      end
+    end
+  end
 
   @type t :: float | integer | String.t | Keyword.t
 
   @spec parse(String.t) :: { :ok, t } | { :error, :invalid }
+    | { :error, :invalid, String.t }
   def parse(string) when is_binary(string) do
     { value, rest } = value(skip_whitespace(string))
     case skip_whitespace(rest) do
       "" -> { :ok, value }
-      _ -> throw(:invalid)
+      other -> syntax_error(other)
     end
-  catch :invalid ->
-    { :error, :invalid }
+  catch
+    :invalid ->
+      { :error, :invalid }
+    { :invalid, token } ->
+      { :error, :invalid, token }
   end
 
   @spec parse(String.t) :: t
   def parse!(string) do
     case parse(string) do
-      { :ok, value } -> value
-      { :error, :invalid } -> raise SyntaxError
+      { :ok, value } ->
+        value
+      { :error, :invalid } ->
+        raise SyntaxError
+      { :error, :invalid, token } ->
+        raise SyntaxError, token: token
     end
   end
 
@@ -41,7 +57,7 @@ defmodule Poison do
     number_start(string)
   end
 
-  defp value(_), do: throw(:invalid)
+  defp value(other), do: syntax_error(other)
 
   ## Objects
 
@@ -53,14 +69,14 @@ defmodule Poison do
     { name, rest } = string_start(rest)
     { value, rest } = case skip_whitespace(rest) do
       ":" <> rest -> value(skip_whitespace(rest))
-      _ -> throw(:invalid)
+      other -> syntax_error(other)
     end
 
     acc = [ { name, value } | acc ]
     case skip_whitespace(rest) do
       "," <> rest -> object_pairs(skip_whitespace(rest), acc)
       "}" <> rest -> { :lists.reverse(acc), rest }
-      _ -> throw(:invalid)
+      other -> syntax_error(other)
     end
   end
 
@@ -68,7 +84,7 @@ defmodule Poison do
     { [], rest }
   end
 
-  defp object_pairs(_, _), do: throw(:invalid)
+  defp object_pairs(other, _), do: syntax_error(other)
 
   ## Arrays
 
@@ -82,11 +98,12 @@ defmodule Poison do
 
   defp array_values(string, acc) do
     { value, rest } = value(string)
+
     acc = [ value | acc ]
     case skip_whitespace(rest) do
       "," <> rest -> array_values(skip_whitespace(rest), acc)
       "]" <> rest -> { :lists.reverse(acc), rest }
-      _ -> throw(:invalid)
+      other -> syntax_error(other)
     end
   end
 
@@ -112,7 +129,7 @@ defmodule Poison do
     number_frac(rest, [acc, digits])
   end
 
-  defp number_int(_, _), do: throw(:invalid)
+  defp number_int(other, _), do: syntax_error(other)
 
   defp number_frac("." <> rest, acc) do
     { digits, rest } = number_digits(rest)
@@ -161,8 +178,8 @@ defmodule Poison do
     number_digits_count(rest, acc + 1)
   end
 
-  defp number_digits_count(_, 0),   do: throw(:invalid)
-  defp number_digits_count(_, acc), do: acc
+  defp number_digits_count(other, 0), do: syntax_error(other)
+  defp number_digits_count(_, acc),   do: acc
 
   ## Strings
 
@@ -199,7 +216,7 @@ defmodule Poison do
       when a1 in [?d, ?D] and a2 in [?d, ?D] do
     hi = list_to_integer([ a1, b1, c1, d1 ], 16)
     lo = list_to_integer([ a2, b2, c2, d2 ], 16)
-    codepoint = 0x10000 + ((hi - 0xD800) * 0x400) + (lo - 0xDC00);
+    codepoint = 0x10000 + ((hi - 0xD800) * 0x400) + (lo - 0xDC00)
     string_continue(rest, [ acc, << codepoint :: utf8 >> ])
   end
 
@@ -207,7 +224,7 @@ defmodule Poison do
     string_continue(rest, [ acc, << binary_to_integer(seq, 16) :: utf8 >> ])
   end
 
-  defp string_escape(_, _), do: throw(:invalid)
+  defp string_escape(other, _), do: syntax_error(other)
 
   defp string_chunk_size("\"" <> _, acc), do: acc
   defp string_chunk_size("\\" <> _, acc), do: acc
@@ -228,15 +245,21 @@ defmodule Poison do
 
   ## Whitespace
 
-  defp skip_whitespace("    " <> rest) do
-    skip_whitespace(rest)
-  end
+  defp skip_whitespace("    " <> rest), do: skip_whitespace(rest)
 
   defp skip_whitespace(<< char, rest :: binary >>) when char in '\s\n\t\r' do
     skip_whitespace(rest)
   end
 
-  defp skip_whitespace(string) do
-    string
+  defp skip_whitespace(string), do: string
+
+  ## Errors
+
+  defp syntax_error(<< token :: utf8, _ :: binary >>) do
+    throw({ :invalid, << token >> })
+  end
+
+  defp syntax_error(_) do
+    throw(:invalid)
   end
 end

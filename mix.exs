@@ -4,7 +4,7 @@ defmodule Poison.Mixfile do
   def project do
     [ app: :poison,
       version: "0.0.1",
-      elixir: "~> 0.11.0",
+      elixir: "~> 0.12.0",
       deps: deps ]
   end
 

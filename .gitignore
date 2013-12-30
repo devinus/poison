@@ -1,5 +1,6 @@
 .DS_Store
 /ebin
 /deps
+/_build
 erl_crash.dump
 *.ez

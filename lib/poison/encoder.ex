@@ -12,7 +12,8 @@ defmodule Poison.Encode do
   end
 
   def encode_value(thing) when is_list(thing) do
-    [ ?[, join((lc _ inlist thing, do: encode_value(thing)), ?,), ?] ]
+    IO.inspect join(thing, ?,)
+    [ ?[, join((lc x inlist thing, do: encode_value(x)), ?,), ?] ]
   end
 
   def encode_value(nil),   do: "nil"

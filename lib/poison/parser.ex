@@ -17,6 +17,8 @@ defmodule Poison.Parser do
 
   @compile :native
 
+  alias Poison.SyntaxError
+
   @type t :: float | integer | String.t | Keyword.t
 
   @spec parse(String.t) :: { :ok, t } | { :error, :invalid }

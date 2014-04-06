@@ -8,11 +8,11 @@ defmodule Poison.Encode do
   def encode_value(false), do: "false"
 
   def encode_value(thing) when is_atom(thing) do
-    [ ?", atom_to_binary(thing), ?" ]
+    encode_string(atom_to_binary(thing))
   end
 
   def encode_value(thing) when is_binary(thing) do
-    [ ?", thing, ?" ]
+    encode_string(thing)
   end
 
   def encode_value(thing) when is_integer(thing) do
@@ -35,22 +35,22 @@ defmodule Poison.Encode do
     encode_value(Poison.Encoder.encode(thing))
   end
 
-  defp encode_object(key, value, acc) do
-    [[encode_value(key), ?:, encode_value(value)] | acc]
+  defp encode_object(name, value, acc) do
+    [[encode_string(key), ?:, encode_value(value)] | acc]
+  end
+
+  defp encode_string(string) when is_binary(string) do
+    [ ?", string, ?" ]
   end
 
   defp join([], _joiner), do: []
 
-  defp join(collection, joiner) do
-    join(collection, joiner, [])
+  defp join([head], _joiner) do
+    [head]
   end
 
-  defp join([head], _joiner, acc) do
-    :lists.reverse [head | acc]
-  end
-
-  defp join([head | rest], joiner, acc) do
-    join(rest, joiner, [joiner, head | acc])
+  defp join([head | rest], joiner) do
+    [head, joiner | join(rest, joiner)]
   end
 end
 

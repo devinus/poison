@@ -1,4 +1,14 @@
-defmodule Poison do
+defexception Poison.SyntaxError, token: nil do
+  def message(__MODULE__[token: nil]) do
+    "Unexpected end of input"
+  end
+
+  def message(__MODULE__[token: token]) do
+    "Unexpected token: #{token}"
+  end
+end
+
+defmodule Poison.Parser do
   @moduledoc """
   An ECMA 404 conforming JSON parser.
 
@@ -6,16 +16,6 @@ defmodule Poison do
   """
 
   @compile :native
-
-  defexception SyntaxError, token: nil do
-    def message(__MODULE__[token: token]) do
-      if token do
-        "Unexpected token: #{token}"
-      else
-        "Unexpected end of input"
-      end
-    end
-  end
 
   @type t :: float | integer | String.t | Keyword.t
 
@@ -46,9 +46,9 @@ defmodule Poison do
     end
   end
 
-  defp value("\"" <> rest),    do: string_start(rest)
-  defp value("{" <> rest),     do: object_start(rest)
-  defp value("[" <> rest),     do: array_start(rest)
+  defp value("\"" <> rest),    do: string_continue(rest, [])
+  defp value("{" <> rest),     do: object_pairs(skip_whitespace(rest), [])
+  defp value("[" <> rest),     do: array_values(skip_whitespace(rest), [])
   defp value("null" <> rest),  do: { nil, rest }
   defp value("true" <> rest),  do: { true, rest }
   defp value("false" <> rest), do: { false, rest }
@@ -61,12 +61,8 @@ defmodule Poison do
 
   ## Objects
 
-  defp object_start(string) do
-    object_pairs(skip_whitespace(string), [])
-  end
-
   defp object_pairs("\"" <> rest, acc) do
-    { name, rest } = string_start(rest)
+    { name, rest } = string_continue(rest, [])
     { value, rest } = case skip_whitespace(rest) do
       ":" <> rest -> value(skip_whitespace(rest))
       other -> syntax_error(other)
@@ -75,22 +71,18 @@ defmodule Poison do
     acc = [ { name, value } | acc ]
     case skip_whitespace(rest) do
       "," <> rest -> object_pairs(skip_whitespace(rest), acc)
-      "}" <> rest -> { :lists.reverse(acc), rest }
+      "}" <> rest -> { :maps.from_list(acc), rest }
       other -> syntax_error(other)
     end
   end
 
   defp object_pairs("}" <> rest, []) do
-    { [], rest }
+    { :maps.new, rest }
   end
 
   defp object_pairs(other, _), do: syntax_error(other)
 
   ## Arrays
-
-  defp array_start(string) do
-    array_values(skip_whitespace(string), [])
-  end
 
   defp array_values("]" <> rest, _) do
     { [], rest }
@@ -125,15 +117,15 @@ defmodule Poison do
   end
 
   defp number_int(<< char, _ :: binary >> = string, acc) when char in '123456789' do
-    { digits, rest } = number_digits(string)
-    number_frac(rest, [acc, digits])
+    { first, digits, rest } = number_digits(string)
+    number_frac(rest, [acc, first, digits])
   end
 
   defp number_int(other, _), do: syntax_error(other)
 
   defp number_frac("." <> rest, acc) do
-    { digits, rest } = number_digits(rest)
-    number_exp(rest, true, [acc, ?., digits])
+    { first, digits, rest } = number_digits(rest)
+    number_exp(rest, true, [acc, ?., first, digits])
   end
 
   defp number_frac(string, acc) do
@@ -142,22 +134,26 @@ defmodule Poison do
 
   defp number_exp(<< e, rest :: binary >>, frac, acc) when e in 'eE' do
     e = if frac, do: ?e, else: ".0e"
-    acc = case rest do
-      "-" <> rest ->
-        { digits, rest } = number_digits(rest)
-        [acc, e, ?-, digits]
-      "+" <> rest ->
-        { digits, rest } = number_digits(rest)
-        [acc, e, digits]
-      rest ->
-        { digits, rest } = number_digits(rest)
-        [acc, e, digits]
-    end
-    { number_complete(acc, true), rest }
+    number_exp_continue(rest, acc, e)
   end
 
   defp number_exp(string, frac, acc) do
     { number_complete(acc, frac), string }
+  end
+
+  defp number_exp_continue("-" <> rest, acc, e) do
+    { first, digits, rest } = number_digits(rest)
+    { number_complete([acc, e, ?-, first, digits], true), rest }
+  end
+
+  defp number_exp_continue("+" <> rest, acc, e) do
+    { first, digits, rest } = number_digits(rest)
+    { number_complete([acc, e, first, digits], true), rest }
+  end
+
+  defp number_exp_continue(rest, acc, e) do
+    { first, digits, rest } = number_digits(rest)
+    { number_complete([acc, e, first, digits], true), rest }
   end
 
   defp number_complete(iolist, false) do
@@ -168,28 +164,24 @@ defmodule Poison do
     binary_to_float(iolist_to_binary(iolist))
   end
 
-  defp number_digits(string) do
-    count = number_digits_count(string, 0)
-    << digits :: [ binary, size(count) ], rest :: binary >> = string
-    { digits, rest }
+  defp number_digits(<< char, rest :: binary >>) when char in '0123456789' do
+    count = number_digits_count(rest, 0)
+    << digits :: [ binary, size(count) ], rest :: binary >> = rest
+    { char, digits, rest }
   end
+
+  defp number_digits(other), do: syntax_error(other)
 
   defp number_digits_count(<< char, rest :: binary >>, acc) when char in '0123456789' do
     number_digits_count(rest, acc + 1)
   end
 
-  defp number_digits_count(other, 0), do: syntax_error(other)
-  defp number_digits_count(_, acc),   do: acc
+  defp number_digits_count(_, acc), do: acc
 
   ## Strings
 
-  defp string_start(string) do
-    { iolist, rest } = string_continue(string, [])
-    { iolist_to_binary(iolist), rest }
-  end
-
   defp string_continue("\"" <> rest, acc) do
-    { acc, rest }
+    { iolist_to_binary(acc), rest }
   end
 
   defp string_continue("\\" <> rest, acc) do
@@ -212,8 +204,12 @@ defmodule Poison do
 
   # http://www.ietf.org/rfc/rfc2781.txt
   # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
+  # http://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
   defp string_escape(<< ?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary >>, acc)
-      when a1 in [?d, ?D] and a2 in [?d, ?D] do
+    when a1 in [?d, ?D] and a2 in [?d, ?D]
+    and (b1 in [?8, ?9, ?a, ?b, ?A, ?B])
+    and (b2 in ?c..?f or b2 in ?C..?F) \
+  do
     hi = list_to_integer([ a1, b1, c1, d1 ], 16)
     lo = list_to_integer([ a2, b2, c2, d2 ], 16)
     codepoint = 0x10000 + ((hi - 0xD800) * 0x400) + (lo - 0xDC00)
@@ -239,7 +235,7 @@ defmodule Poison do
 
   defp string_chunk_size(_, acc), do: acc
 
-  defp string_codepoint_size(codepoint) when codepoint < 0x8000,  do: 2
+  defp string_codepoint_size(codepoint) when codepoint < 0x800,   do: 2
   defp string_codepoint_size(codepoint) when codepoint < 0x10000, do: 3
   defp string_codepoint_size(_),                                  do: 4
 

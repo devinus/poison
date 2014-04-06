@@ -3,20 +3,7 @@ defmodule Poison.Encode do
     iolist_to_binary(encode_value(thing))
   end
 
-  def encode_value([ { _key, _value } | _] = thing) do
-    pairs = lc { key, value } inlist thing do
-      [encode_value(key), ?:, encode_value(value)]
-    end
-
-    [ ?{, join(pairs, ?,), ?} ]
-  end
-
-  def encode_value(thing) when is_list(thing) do
-    IO.inspect join(thing, ?,)
-    [ ?[, join((lc x inlist thing, do: encode_value(x)), ?,), ?] ]
-  end
-
-  def encode_value(nil),   do: "nil"
+  def encode_value(nil),   do: "null"
   def encode_value(true),  do: "true"
   def encode_value(false), do: "false"
 
@@ -33,7 +20,23 @@ defmodule Poison.Encode do
   end
 
   def encode_value(thing) when is_float(thing) do
-    iolist_to_binary(:io_lib_format.fwrite_g(thing))
+    :io_lib_format.fwrite_g(thing)
+  end
+
+  def encode_value(thing) when is_map(thing) do
+    [ ?{, join(:maps.fold(&encode_object/3, [], thing), ?,), ?} ]
+  end
+
+  def encode_value(thing) when is_list(thing) do
+    [ ?[, join((lc x inlist thing, do: encode_value(x)), ?,), ?] ]
+  end
+
+  def encode_value(thing) do
+    encode_value(Poison.Encoder.encode(thing))
+  end
+
+  defp encode_object(key, value, acc) do
+    [[encode_value(key), ?:, encode_value(value)] | acc]
   end
 
   defp join([], _joiner), do: []
@@ -47,6 +50,10 @@ defmodule Poison.Encode do
   end
 
   defp join([head | rest], joiner, acc) do
-    join(rest, joiner, [head, joiner | acc])
+    join(rest, joiner, [joiner, head | acc])
   end
+end
+
+defprotocol Poison.Encoder do
+  def encode(value)
 end

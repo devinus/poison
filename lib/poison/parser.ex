@@ -17,14 +17,17 @@ defmodule Poison.Parser do
 
   @compile :native
 
+  use Bitwise
+
   alias Poison.SyntaxError
 
   @type t :: float | integer | String.t | Keyword.t
 
   @spec parse(String.t) :: { :ok, t } | { :error, :invalid }
     | { :error, :invalid, String.t }
-  def parse(string) when is_binary(string) do
-    { value, rest } = value(skip_whitespace(string))
+  def parse(string, options \\ []) when is_binary(string) do
+    keys = options[:keys] || :strings
+    { value, rest } = value(skip_whitespace(string), keys)
     case skip_whitespace(rest) do
       "" -> { :ok, value }
       other -> syntax_error(other)
@@ -37,8 +40,8 @@ defmodule Poison.Parser do
   end
 
   @spec parse(String.t) :: t
-  def parse!(string) do
-    case parse(string) do
+  def parse!(string, options \\ []) do
+    case parse(string, options) do
       { :ok, value } ->
         value
       { :error, :invalid } ->
@@ -48,54 +51,58 @@ defmodule Poison.Parser do
     end
   end
 
-  defp value("\"" <> rest),    do: string_continue(rest, [])
-  defp value("{" <> rest),     do: object_pairs(skip_whitespace(rest), [])
-  defp value("[" <> rest),     do: array_values(skip_whitespace(rest), [])
-  defp value("null" <> rest),  do: { nil, rest }
-  defp value("true" <> rest),  do: { true, rest }
-  defp value("false" <> rest), do: { false, rest }
+  defp value("\"" <> rest, _keys),    do: string_continue(rest, [])
+  defp value("{" <> rest, keys),      do: object_pairs(skip_whitespace(rest), keys, [])
+  defp value("[" <> rest, keys),      do: array_values(skip_whitespace(rest), keys, [])
+  defp value("null" <> rest, _keys),  do: { nil, rest }
+  defp value("true" <> rest, _keys),  do: { true, rest }
+  defp value("false" <> rest, _keys), do: { false, rest }
 
-  defp value(<< char, _ :: binary >> = string) when char in '-0123456789' do
+  defp value(<< char, _ :: binary >> = string, _keys) when char in '-0123456789' do
     number_start(string)
   end
 
-  defp value(other), do: syntax_error(other)
+  defp value(other, _keys), do: syntax_error(other)
 
   ## Objects
 
-  defp object_pairs("\"" <> rest, acc) do
+  defp object_pairs("\"" <> rest, keys, acc) do
     { name, rest } = string_continue(rest, [])
     { value, rest } = case skip_whitespace(rest) do
-      ":" <> rest -> value(skip_whitespace(rest))
+      ":" <> rest -> value(skip_whitespace(rest), keys)
       other -> syntax_error(other)
     end
 
-    acc = [ { name, value } | acc ]
+    acc = [ { object_name(name, keys), value } | acc ]
     case skip_whitespace(rest) do
-      "," <> rest -> object_pairs(skip_whitespace(rest), acc)
+      "," <> rest -> object_pairs(skip_whitespace(rest), keys, acc)
       "}" <> rest -> { :maps.from_list(acc), rest }
       other -> syntax_error(other)
     end
   end
 
-  defp object_pairs("}" <> rest, []) do
+  defp object_pairs("}" <> rest, _, []) do
     { :maps.new, rest }
   end
 
-  defp object_pairs(other, _), do: syntax_error(other)
+  defp object_pairs(other, _, _), do: syntax_error(other)
+
+  defp object_name(name, :strings), do: name
+  defp object_name(name, :atoms),   do: binary_to_atom(name)
+  defp object_name(name, :atoms!),  do: binary_to_existing_atom(name)
 
   ## Arrays
 
-  defp array_values("]" <> rest, _) do
+  defp array_values("]" <> rest, _, _) do
     { [], rest }
   end
 
-  defp array_values(string, acc) do
-    { value, rest } = value(string)
+  defp array_values(string, keys, acc) do
+    { value, rest } = value(string, keys)
 
     acc = [ value | acc ]
     case skip_whitespace(rest) do
-      "," <> rest -> array_values(skip_whitespace(rest), acc)
+      "," <> rest -> array_values(skip_whitespace(rest), keys, acc)
       "]" <> rest -> { :lists.reverse(acc), rest }
       other -> syntax_error(other)
     end

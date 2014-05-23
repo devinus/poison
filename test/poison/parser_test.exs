@@ -2,7 +2,7 @@ defmodule Poison.ParserTest do
   use ExUnit.Case
 
   import Poison.Parser
-  alias Poison.Parser.SyntaxError
+  alias Poison.SyntaxError
 
   test "numbers" do
     assert_raise SyntaxError, fn -> parse!("-") end
@@ -52,13 +52,13 @@ defmodule Poison.ParserTest do
     assert_raise SyntaxError, fn -> parse!(~s({"foo"})) end
     assert_raise SyntaxError, fn -> parse!(~s({"foo": "bar",})) end
 
-    assert parse!("{}") == []
-    assert parse!(~s({"foo": "bar"})) == [{ "foo", "bar" }]
+    assert parse!("{}") == %{}
+    assert parse!(~s({"foo": "bar"})) == %{"foo" => "bar"}
 
-    expected = [{ "foo", "bar" }, { "baz", "quux" }]
+    expected = %{"foo" => "bar", "baz" => "quux"}
     assert parse!(~s({"foo": "bar", "baz": "quux"})) == expected
 
-    expected = [{ "foo", [{ "bar", "baz" }] }]
+    expected = %{"foo" => %{"bar" => "baz"}}
     assert parse!(~s({"foo": {"bar": "baz"}})) == expected
   end
 
@@ -69,7 +69,7 @@ defmodule Poison.ParserTest do
     assert parse!("[]") == []
     assert parse!("[1, 2, 3]") == [1, 2, 3]
     assert parse!(~s(["foo", "bar", "baz"])) == ["foo", "bar", "baz"]
-    assert parse!(~s([{"foo": "bar"}])) == [[{ "foo", "bar" }]]
+    assert parse!(~s([{"foo": "bar"}])) == [%{"foo" => "bar"}]
   end
 
   test "whitespace" do
@@ -77,11 +77,11 @@ defmodule Poison.ParserTest do
     assert_raise SyntaxError, fn -> parse!("    ") end
 
     assert parse!("  [  ]  ") == []
-    assert parse!("  {  }  ") == []
+    assert parse!("  {  }  ") == %{}
 
     assert parse!("  [  1  ,  2  ,  3  ]  ") == [1, 2, 3]
 
-    expected = [{ "foo", "bar" }, { "baz", "quux" }]
+    expected = %{"foo" => "bar", "baz" => "quux"}
     assert parse!(~s(  {  "foo"  :  "bar"  ,  "baz"  :  "quux"  }  )) == expected
   end
 end

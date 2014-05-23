@@ -1,6 +1,6 @@
 defmodule Poison.Encode do
   def encode(thing) do
-    iolist_to_binary(encode_value(thing))
+    iodata_to_binary(encode_value(thing))
   end
 
   def encode_value(nil),   do: "null"
@@ -28,7 +28,7 @@ defmodule Poison.Encode do
   end
 
   def encode_value(thing) when is_list(thing) do
-    [ ?[, join((lc x inlist thing, do: encode_value(x)), ?,), ?] ]
+    [ ?[, join((for x <- thing, do: encode_value(x)), ?,), ?] ]
   end
 
   def encode_value(thing) do
@@ -36,7 +36,7 @@ defmodule Poison.Encode do
   end
 
   defp encode_object(name, value, acc) do
-    [[encode_string(key), ?:, encode_value(value)] | acc]
+    [[encode_string(name), ?:, encode_value(value)] | acc]
   end
 
   defp encode_string(string) when is_binary(string) do

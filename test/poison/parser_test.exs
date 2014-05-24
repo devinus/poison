@@ -84,4 +84,12 @@ defmodule Poison.ParserTest do
     expected = %{"foo" => "bar", "baz" => "quux"}
     assert parse!(~s(  {  "foo"  :  "bar"  ,  "baz"  :  "quux"  }  )) == expected
   end
+
+  test "atom keys" do
+    hash = :erlang.phash2(:crypto.rand_bytes(8))
+    assert_raise ArgumentError, fn -> parse!(~s({"key#{hash}": null}), keys: :atoms!) end
+
+    assert parse!(~s({"foo": "bar"}), keys: :atoms) == %{foo: "bar"}
+    assert parse!(~s({"foo": "bar"}), keys: :atoms!) == %{foo: "bar"}
+  end
 end

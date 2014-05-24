@@ -21,13 +21,12 @@ defmodule Poison.Parser do
 
   alias Poison.SyntaxError
 
-  @type t :: float | integer | String.t | Keyword.t
+  @type t :: list | float | integer | String.t | Map.t
 
-  @spec parse(String.t) :: { :ok, t } | { :error, :invalid }
+  @spec parse(String.t, Keyword.t) :: { :ok, t } | { :error, :invalid }
     | { :error, :invalid, String.t }
   def parse(string, options \\ []) when is_binary(string) do
-    keys = options[:keys] || :strings
-    { value, rest } = value(skip_whitespace(string), keys)
+    { value, rest } = value(skip_whitespace(string), options[:keys])
     case skip_whitespace(rest) do
       "" -> { :ok, value }
       other -> syntax_error(other)
@@ -39,7 +38,7 @@ defmodule Poison.Parser do
       { :error, :invalid, token }
   end
 
-  @spec parse(String.t) :: t
+  @spec parse!(String.t, Keyword.t) :: t | no_return
   def parse!(string, options \\ []) do
     case parse(string, options) do
       { :ok, value } ->
@@ -87,9 +86,9 @@ defmodule Poison.Parser do
 
   defp object_pairs(other, _, _), do: syntax_error(other)
 
-  defp object_name(name, :strings), do: name
   defp object_name(name, :atoms),   do: binary_to_atom(name)
   defp object_name(name, :atoms!),  do: binary_to_existing_atom(name)
+  defp object_name(name, _keys),    do: name
 
   ## Arrays
 

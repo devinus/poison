@@ -1,21 +1,23 @@
 defprotocol Poison.Encoder do
-  def encode(value)
+  @fallback_to_any true
+
+  def encode(value, options)
 end
 
 defimpl Poison.Encoder, for: Atom do
-  def encode(nil),   do: "null"
-  def encode(true),  do: "true"
-  def encode(false), do: "false"
+  def encode(nil, _),   do: "null"
+  def encode(true, _),  do: "true"
+  def encode(false, _), do: "false"
 
-  def encode(atom) do
-    Poison.Encoder.encode(atom_to_binary(atom))
+  def encode(atom, options) do
+    Poison.Encoder.encode(atom_to_binary(atom), options)
   end
 end
 
 defimpl Poison.Encoder, for: BitString do
-  def encode(""), do: "\"\""
+  def encode("", _), do: "\"\""
 
-  def encode(string) do
+  def encode(string, _options) do
     [ ?", escape(string, []), ?" ]
   end
 
@@ -25,7 +27,7 @@ defimpl Poison.Encoder, for: BitString do
 
   for { char, seq } <- Enum.zip('"\n\t\r\\/\f\b', '"ntr\\/fb') do
     defp escape(<< unquote(char), rest :: binary >>, acc) do
-      escape(rest, [ acc, ?\\, unquote(seq) ])
+      escape(rest, [ acc, unquote("\\" <> <<seq>>) ])
     end
   end
 
@@ -51,13 +53,13 @@ defimpl Poison.Encoder, for: BitString do
 end
 
 defimpl Poison.Encoder, for: Integer do
-  def encode(integer) do
+  def encode(integer, _options) do
     integer_to_binary(integer)
   end
 end
 
 defimpl Poison.Encoder, for: Float do
-  def encode(float) do
+  def encode(float, _options) do
     :io_lib_format.fwrite_g(float)
   end
 end
@@ -65,47 +67,49 @@ end
 defimpl Poison.Encoder, for: Map do
   alias Poison.Encoder
 
-  def encode(map) when map_size(map) < 1, do: "{}"
+  def encode(map, _) when map_size(map) < 1, do: "{}"
 
-  def encode(map) do
-    [ ?{, tl(:maps.fold(&encode_pair/3, [], map)), ?} ]
+  def encode(map, options) do
+    fun = &[?,, encode_name(&1, options), ?:, Encoder.encode(&2, options) | &3]
+    [ ?{, tl(:maps.fold(fun, [], map)), ?} ]
   end
 
-  defp encode_pair(name, value, acc) do
-    [?,, encode_name(name), ?:, Encoder.encode(value) | acc]
+  defp encode_name(name, options) when is_binary(name) do
+    Encoder.encode(name, options)
   end
 
-  defp encode_name(name) when is_binary(name) do
-    Encoder.encode(name)
-  end
-
-  defp encode_name(name) do
-    Encoder.encode(to_string(name))
+  defp encode_name(name, options) do
+    Encoder.encode(to_string(name), options)
   end
 end
 
 defimpl Poison.Encoder, for: List do
   alias Poison.Encoder
 
-  def encode([]), do: "[]"
+  def encode([], _), do: "[]"
 
-  def encode([head]) do
-    [ ?[, Encoder.encode(head), ?] ]
+  def encode([head], options) do
+    [ ?[, Encoder.encode(head, options), ?] ]
   end
 
-  def encode([head | rest]) do
-    [ ?[, Encoder.encode(head), (for v <- rest, do: [?,, Encoder.encode(v)]), ?] ]
+  def encode([head | rest], options) do
+    tail = for value <- rest, do: [?,, Encoder.encode(value, options)]
+    [ ?[, Encoder.encode(head, options), tail, ?] ]
   end
 end
 
 defimpl Poison.Encoder, for: [Range, Stream.Lazy] do
-  def encode(stream) do
-    Poison.Encoder.encode(Enum.to_list(stream))
+  def encode(stream, options) do
+    Poison.Encoder.encode(Enum.to_list(stream), options)
   end
 end
 
-defmodule Poison do
+defimpl Poison.Encoder, for: Any do
+  def encode(%{ __struct__: _ } = struct, options) do
+    Poison.Encoder.encode(Map.delete(struct, :__struct__), options)
+  end
+
   def encode(value) do
-    Poison.Encoder.encode(value)
+    raise(Protocol.UndefinedError, protocol: @protocol, value: value)
   end
 end

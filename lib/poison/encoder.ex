@@ -10,7 +10,7 @@ defimpl Poison.Encoder, for: Atom do
   def encode(false, _), do: "false"
 
   def encode(atom, options) do
-    Poison.Encoder.encode(atom_to_binary(atom), options)
+    Poison.Encoder.BitString.encode(atom_to_binary(atom), options)
   end
 end
 
@@ -75,11 +75,11 @@ defimpl Poison.Encoder, for: Map do
   end
 
   defp encode_name(name, options) when is_binary(name) do
-    Encoder.encode(name, options)
+    Encoder.BitString.encode(name, options)
   end
 
   defp encode_name(name, options) do
-    Encoder.encode(to_string(name), options)
+    Encoder.BitString.encode(to_string(name), options)
   end
 end
 
@@ -100,13 +100,13 @@ end
 
 defimpl Poison.Encoder, for: [Range, Stream.Lazy] do
   def encode(stream, options) do
-    Poison.Encoder.encode(Enum.to_list(stream), options)
+    Poison.Encoder.List.encode(Enum.to_list(stream), options)
   end
 end
 
 defimpl Poison.Encoder, for: Any do
   def encode(%{ __struct__: _ } = struct, options) do
-    Poison.Encoder.encode(Map.delete(struct, :__struct__), options)
+    Poison.Encoder.Map.encode(Map.delete(struct, :__struct__), options)
   end
 
   def encode(value) do

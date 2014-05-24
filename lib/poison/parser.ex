@@ -1,10 +1,14 @@
-defexception Poison.SyntaxError, token: nil do
-  def message(__MODULE__[token: nil]) do
-    "Unexpected end of input"
-  end
+defmodule Poison.SyntaxError do
+  defexception [:message, :token]
 
-  def message(__MODULE__[token: token]) do
-    "Unexpected token: #{token}"
+  def exception(opts) do
+    message = if token = opts[:token] do
+      "Unexpected token: #{token}"
+    else
+      "Unexpected end of input"
+    end
+
+    %Poison.SyntaxError{message: message, token: token}
   end
 end
 

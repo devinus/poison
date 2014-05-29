@@ -1,3 +1,15 @@
+defmodule Poison.EncodeError do
+  defexception value: nil, message: nil
+
+  def message(%{value: value, message: nil}) do
+    "unable to encode value: #{inspect value}"
+  end
+
+  def message(%{message: message}) do
+    message
+  end
+end
+
 defprotocol Poison.Encoder do
   @fallback_to_any true
 
@@ -10,7 +22,7 @@ defimpl Poison.Encoder, for: Atom do
   def encode(false, _), do: "false"
 
   def encode(atom, options) do
-    Poison.Encoder.BitString.encode(atom_to_binary(atom), options)
+    Poison.Encoder.BitString.encode(Atom.to_string(atom), options)
   end
 end
 
@@ -54,7 +66,7 @@ end
 
 defimpl Poison.Encoder, for: Integer do
   def encode(integer, _options) do
-    integer_to_binary(integer)
+    Integer.to_string(integer)
   end
 end
 
@@ -66,6 +78,7 @@ end
 
 defimpl Poison.Encoder, for: Map do
   alias Poison.Encoder
+  alias Poison.EncodeError
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
@@ -74,12 +87,16 @@ defimpl Poison.Encoder, for: Map do
     [ ?{, tl(:maps.fold(fun, [], map)), ?} ]
   end
 
-  defp encode_name(name, options) when is_binary(name) do
-    Encoder.BitString.encode(name, options)
-  end
-
   defp encode_name(name, options) do
-    Encoder.BitString.encode(to_string(name), options)
+    cond do
+      is_binary(name) ->
+        Encoder.BitString.encode(name, options)
+      is_atom(name) ->
+        Encoder.Atom.encode(name, options)
+      true ->
+        raise EncodeError, value: name,
+          message: "keys must be atoms or strings, got: #{inspect name}"
+    end
   end
 end
 
@@ -98,7 +115,7 @@ defimpl Poison.Encoder, for: List do
   end
 end
 
-defimpl Poison.Encoder, for: [Range, Stream.Lazy] do
+defimpl Poison.Encoder, for: [Range, Stream] do
   def encode(stream, options) do
     Poison.Encoder.List.encode(Enum.to_list(stream), options)
   end
@@ -109,7 +126,7 @@ defimpl Poison.Encoder, for: Any do
     Poison.Encoder.Map.encode(Map.delete(struct, :__struct__), options)
   end
 
-  def encode(value) do
-    raise(Protocol.UndefinedError, protocol: @protocol, value: value)
+  def encode(value, _options) do
+    raise Poison.EncodeError, value: value
   end
 end

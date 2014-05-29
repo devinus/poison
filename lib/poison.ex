@@ -1,6 +1,6 @@
 defmodule Poison do
   alias Poison.Encoder
-  alias Poison.Decoder
+  alias Poison.Decode
   alias Poison.Parser
 
   @spec encode(Encoder.t) :: { :ok, String.t } | { :error, any }
@@ -20,13 +20,13 @@ defmodule Poison do
     | { :error, :invalid, String.t }
   def decode(string, options \\ []) do
     case Parser.parse(string, options) do
-      { :ok, value } -> { :ok, Decoder.decode(value, options) }
+      { :ok, value } -> { :ok, Decode.decode(value, options) }
       error -> error
     end
   end
 
   @spec decode!(iodata) :: Parser.t | no_return
   def decode!(string, options \\ []) do
-    Decoder.decode(Parser.parse!(string, options), options)
+    Decode.decode(Parser.parse!(string, options), options)
   end
 end

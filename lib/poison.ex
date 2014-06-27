@@ -13,7 +13,7 @@ defmodule Poison do
 
   @spec encode(Encoder.t) :: String.t | no_return
   def encode!(value, options \\ []) do
-    iodata_to_binary(Encoder.encode(value, options))
+    IO.iodata_to_binary(Encoder.encode(value, options))
   end
 
   @spec decode(String.t) :: { :ok, Parser.t } | { :error, :invalid }

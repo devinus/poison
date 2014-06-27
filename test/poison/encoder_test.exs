@@ -38,6 +38,6 @@ defmodule Posion.EncoderTest do
   end
 
   defp to_json(value) do
-    iodata_to_binary(Poison.Encoder.encode(value, []))
+    IO.iodata_to_binary(Poison.Encoder.encode(value, []))
   end
 end

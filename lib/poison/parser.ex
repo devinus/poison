@@ -32,13 +32,13 @@ defmodule Poison.Parser do
   def parse(string, options \\ []) when is_binary(string) do
     { value, rest } = value(skip_whitespace(string), options[:keys])
     case skip_whitespace(rest) do
-      "" -> { :ok, value }
+      "" -> {:ok, value}
       other -> syntax_error(other)
     end
   catch
     :invalid ->
       { :error, :invalid }
-    { :invalid, token } ->
+    {:invalid, token} ->
       { :error, :invalid, token }
   end
 
@@ -61,7 +61,7 @@ defmodule Poison.Parser do
   defp value("true" <> rest, _keys),  do: { true, rest }
   defp value("false" <> rest, _keys), do: { false, rest }
 
-  defp value(<< char, _ :: binary >> = string, _keys) when char in '-0123456789' do
+  defp value(<<char, _ :: binary>> = string, _keys) when char in '-0123456789' do
     number_start(string)
   end
 
@@ -76,7 +76,7 @@ defmodule Poison.Parser do
       other -> syntax_error(other)
     end
 
-    acc = [ { object_name(name, keys), value } | acc ]
+    acc = [{object_name(name, keys), value} | acc]
     case skip_whitespace(rest) do
       "," <> rest -> object_pairs(skip_whitespace(rest), keys, acc)
       "}" <> rest -> { :maps.from_list(acc), rest }
@@ -103,7 +103,7 @@ defmodule Poison.Parser do
   defp array_values(string, keys, acc) do
     { value, rest } = value(string, keys)
 
-    acc = [ value | acc ]
+    acc = [value | acc]
     case skip_whitespace(rest) do
       "," <> rest -> array_values(skip_whitespace(rest), keys, acc)
       "]" <> rest -> { :lists.reverse(acc), rest }
@@ -128,7 +128,7 @@ defmodule Poison.Parser do
     number_int(string, [])
   end
 
-  defp number_int(<< char, _ :: binary >> = string, acc) when char in '123456789' do
+  defp number_int(<<char, _ :: binary>> = string, acc) when char in '123456789' do
     { first, digits, rest } = number_digits(string)
     number_frac(rest, [acc, first, digits])
   end
@@ -144,7 +144,7 @@ defmodule Poison.Parser do
     number_exp(string, false, acc)
   end
 
-  defp number_exp(<< e, rest :: binary >>, frac, acc) when e in 'eE' do
+  defp number_exp(<<e, rest :: binary>>, frac, acc) when e in 'eE' do
     e = if frac, do: ?e, else: ".0e"
     number_exp_continue(rest, acc, e)
   end
@@ -176,15 +176,15 @@ defmodule Poison.Parser do
     String.to_float(IO.iodata_to_binary(iolist))
   end
 
-  defp number_digits(<< char, rest :: binary >>) when char in '0123456789' do
+  defp number_digits(<<char, rest :: binary>>) when char in '0123456789' do
     count = number_digits_count(rest, 0)
-    << digits :: [ binary, size(count) ], rest :: binary >> = rest
-    { char, digits, rest }
+    <<digits :: binary-size(count), rest :: binary>> = rest
+    {char, digits, rest}
   end
 
   defp number_digits(other), do: syntax_error(other)
 
-  defp number_digits_count(<< char, rest :: binary >>, acc) when char in '0123456789' do
+  defp number_digits_count(<<char, rest :: binary>>, acc) when char in '0123456789' do
     number_digits_count(rest, acc + 1)
   end
 
@@ -204,32 +204,32 @@ defmodule Poison.Parser do
 
   defp string_continue(string, acc) do
     n = string_chunk_size(string, 0)
-    << chunk :: [ binary, size(n) ], rest :: binary >> = string
-    string_continue(rest, [ acc, chunk ])
+    <<chunk :: binary-size(n), rest :: binary>> = string
+    string_continue(rest, [acc, chunk])
   end
 
   for { seq, char } <- Enum.zip('"ntr\\/fb', '"\n\t\r\\/\f\b') do
-    defp string_escape(<< unquote(seq), rest :: binary >>, acc) do
-      string_continue(rest, [ acc, unquote(char) ])
+    defp string_escape(<<unquote(seq), rest :: binary>>, acc) do
+      string_continue(rest, [acc, unquote(char)])
     end
   end
 
   # http://www.ietf.org/rfc/rfc2781.txt
   # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
   # http://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
-  defp string_escape(<< ?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary >>, acc)
-    when a1 in [?d, ?D] and a2 in [?d, ?D]
-    and (b1 in [?8, ?9, ?a, ?b, ?A, ?B])
+  defp string_escape(<<?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary>>, acc)
+    when a1 in 'dD' and a2 in 'dD'
+    and (b1 in '89abAB')
     and (b2 in ?c..?f or b2 in ?C..?F) \
   do
-    hi = List.to_integer([ a1, b1, c1, d1 ], 16)
-    lo = List.to_integer([ a2, b2, c2, d2 ], 16)
+    hi = List.to_integer([a1, b1, c1, d1], 16)
+    lo = List.to_integer([a2, b2, c2, d2], 16)
     codepoint = 0x10000 + ((hi - 0xD800) * 0x400) + (lo - 0xDC00)
-    string_continue(rest, [ acc, << codepoint :: utf8 >> ])
+    string_continue(rest, [acc, <<codepoint :: utf8>>])
   end
 
-  defp string_escape(<< ?u, seq :: [ binary, size(4) ], rest :: binary >>, acc) do
-    string_continue(rest, [ acc, << String.to_integer(seq, 16) :: utf8 >> ])
+  defp string_escape(<<?u, seq :: binary-size(4), rest :: binary>>, acc) do
+    string_continue(rest, [acc, <<String.to_integer(seq, 16) :: utf8>> ])
   end
 
   defp string_escape(other, _), do: syntax_error(other)
@@ -237,11 +237,11 @@ defmodule Poison.Parser do
   defp string_chunk_size("\"" <> _, acc), do: acc
   defp string_chunk_size("\\" <> _, acc), do: acc
 
-  defp string_chunk_size(<< char, rest :: binary >>, acc) when char < 0x80 do
+  defp string_chunk_size(<<char, rest :: binary>>, acc) when char < 0x80 do
     string_chunk_size(rest, acc + 1)
   end
 
-  defp string_chunk_size(<< codepoint :: utf8, rest :: binary >>, acc) do
+  defp string_chunk_size(<<codepoint :: utf8, rest :: binary>>, acc) do
     string_chunk_size(rest, acc + string_codepoint_size(codepoint))
   end
 
@@ -255,7 +255,7 @@ defmodule Poison.Parser do
 
   defp skip_whitespace("    " <> rest), do: skip_whitespace(rest)
 
-  defp skip_whitespace(<< char, rest :: binary >>) when char in '\s\n\t\r' do
+  defp skip_whitespace(<<char, rest :: binary>>) when char in '\s\n\t\r' do
     skip_whitespace(rest)
   end
 
@@ -263,8 +263,8 @@ defmodule Poison.Parser do
 
   ## Errors
 
-  defp syntax_error(<< token :: utf8, _ :: binary >>) do
-    throw({ :invalid, << token >> })
+  defp syntax_error(<<token :: utf8, _ :: binary>>) do
+    throw({ :invalid, <<token>> })
   end
 
   defp syntax_error(_) do

@@ -19,6 +19,7 @@ defmodule Posion.EncoderTest do
   end
 
   test "objects" do
+    assert to_json(%{}) == "{}"
     assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
     assert to_json(%{"foo" => "bar"})  == ~s({"foo":"bar"})
 
@@ -28,7 +29,8 @@ defmodule Posion.EncoderTest do
   end
 
   test "arrays" do
-    assert to_json([1, 2, 3]) == ~s([1,2,3])
+    assert to_json([]) == "[]"
+    assert to_json([1, 2, 3]) == "[1,2,3]"
   end
 
   test "unencodable" do

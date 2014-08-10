@@ -30,34 +30,32 @@ defimpl Poison.Encoder, for: BitString do
   def encode("", _), do: "\"\""
 
   def encode(string, _options) do
-    [ ?", escape(string, []), ?" ]
+    [?", escape(string), ?"]
   end
 
-  defp escape("", acc) do
-    acc
-  end
+  defp escape(""), do: []
 
-  for { char, seq } <- Enum.zip('"\n\t\r\\/\f\b', '"ntr\\/fb') do
-    defp escape(<< unquote(char), rest :: binary >>, acc) do
-      escape(rest, [ acc, unquote("\\" <> <<seq>>) ])
+  for {char, seq} <- Enum.zip('"\n\t\r\\/\f\b', '"ntr\\/fb') do
+    defp escape(<<unquote(char), rest :: binary>>) do
+      [unquote("\\" <> <<seq>>) | escape(rest)]
     end
   end
 
-  defp escape(string, acc) do
+  defp escape(string) do
     size = chunk_size(string, 0)
-    << chunk :: [ binary, size(size) ], rest :: binary >> = string
-    escape(rest, [ acc, chunk ])
+    <<chunk :: binary-size(size), rest :: binary>> = string
+    [chunk | escape(rest)]
   end
 
-  defp chunk_size(<< char, _rest :: binary >>, acc) when char in '"\n\t\r\\/\f\b' do
+  defp chunk_size(<<char, _rest :: binary>>, acc) when char in '"\n\t\r\\/\f\b' do
     acc
   end
 
-  defp chunk_size(<< char, rest :: binary >>, acc) when char < 0x80 do
+  defp chunk_size(<<char, rest :: binary>>, acc) when char < 0x80 do
     chunk_size(rest, acc + 1)
   end
 
-  defp chunk_size(<< codepoint :: utf8, rest :: binary >>, acc) do
+  defp chunk_size(<<codepoint :: utf8, rest :: binary>>, acc) do
     chunk_size(rest, acc + byte_size(codepoint))
   end
 
@@ -84,7 +82,7 @@ defimpl Poison.Encoder, for: Map do
 
   def encode(map, options) do
     fun = &[?,, encode_name(&1, options), ?:, Encoder.encode(&2, options) | &3]
-    [ ?{, tl(:maps.fold(fun, [], map)), ?} ]
+    [?{, tl(:maps.fold(fun, [], map)), ?}]
   end
 
   defp encode_name(name, options) do
@@ -106,12 +104,12 @@ defimpl Poison.Encoder, for: List do
   def encode([], _), do: "[]"
 
   def encode([head], options) do
-    [ ?[, Encoder.encode(head, options), ?] ]
+    [?[, Encoder.encode(head, options), ?]]
   end
 
   def encode([head | rest], options) do
     tail = for value <- rest, do: [?,, Encoder.encode(value, options)]
-    [ ?[, Encoder.encode(head, options), tail, ?] ]
+    [?[, Encoder.encode(head, options), tail, ?]]
   end
 end
 
@@ -122,7 +120,7 @@ defimpl Poison.Encoder, for: [Range, Stream] do
 end
 
 defimpl Poison.Encoder, for: Any do
-  def encode(%{ __struct__: _ } = struct, options) do
+  def encode(%{__struct__: _} = struct, options) do
     Poison.Encoder.Map.encode(Map.delete(struct, :__struct__), options)
   end
 

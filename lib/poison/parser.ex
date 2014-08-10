@@ -255,6 +255,8 @@ defmodule Poison.Parser do
 
   defp skip_whitespace("    " <> rest), do: skip_whitespace(rest)
 
+  defp skip_whitespace("  " <> rest), do: skip_whitespace(rest)
+
   defp skip_whitespace(<<char>> <> rest) when char in '\s\n\t\r' do
     skip_whitespace(rest)
   end

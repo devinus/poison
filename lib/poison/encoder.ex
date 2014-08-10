@@ -87,10 +87,18 @@ defimpl Poison.Encoder, for: BitString do
   end
 
   defp chunk_size(<<codepoint :: utf8>> <> rest, mode, acc) do
-    chunk_size(rest, mode, acc + byte_size(<<codepoint :: utf8>>))
+    chunk_size(rest, mode, acc + codepoint_size(codepoint))
   end
 
   defp chunk_size(_, _, acc), do: acc
+
+  defp codepoint_size(codepoint) do
+    cond do
+      codepoint < 0x800   -> 2
+      codepoint < 0x10000 -> 3
+      true                -> 4
+    end
+  end
 
   defp seq(char) do
     case Integer.to_string(char, 16) do

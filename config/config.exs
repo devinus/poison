@@ -14,6 +14,9 @@ use Mix.Config
 #       level: :info,
 #       format: "$time $metadata[$level] $message\n"
 
+config :poison,
+  native: :erlang.system_info(:hipe_architecture) != :undefined
+
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
 # by uncommenting the line below and defining dev.exs, test.exs and such.

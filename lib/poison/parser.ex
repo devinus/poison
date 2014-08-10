@@ -19,7 +19,9 @@ defmodule Poison.Parser do
   See: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
   """
 
-  @compile :native
+  if Application.get_env(:poison, :native) do
+    @compile :native
+  end
 
   use Bitwise
 

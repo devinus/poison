@@ -3,12 +3,12 @@ defmodule Poison do
   alias Poison.Decode
   alias Poison.Parser
 
-  @spec encode(Encoder.t) :: { :ok, String.t } | { :error, any }
+  @spec encode(Encoder.t) :: { :ok, String.t } | { :error, { :invalid, any } }
   def encode(value, options \\ []) do
     { :ok, encode!(value, options) }
   rescue
-    exception ->
-      { :error, Exception.message(exception) }
+    exception in [Poison.EncodeError] ->
+      { :error, { :invalid,  exception.value } }
   end
 
   @spec encode(Encoder.t) :: String.t | no_return
@@ -17,7 +17,7 @@ defmodule Poison do
   end
 
   @spec decode(String.t) :: { :ok, Parser.t } | { :error, :invalid }
-    | { :error, :invalid, String.t }
+    | { :error, { :invalid, String.t } }
   def decode(string, options \\ []) do
     case Parser.parse(string, options) do
       { :ok, value } -> { :ok, Decode.decode(value, options) }

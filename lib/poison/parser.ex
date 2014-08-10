@@ -28,7 +28,7 @@ defmodule Poison.Parser do
   @type t :: nil | true | false | list | float | integer | String.t | Map.t
 
   @spec parse(String.t, Keyword.t) :: {:ok, t} | {:error, :invalid}
-    | {:error, :invalid, String.t}
+    | {:error, {:invalid, String.t}}
   def parse(string, options \\ []) when is_binary(string) do
     {value, rest} = value(skip_whitespace(string), options[:keys])
     case skip_whitespace(rest) do
@@ -39,7 +39,7 @@ defmodule Poison.Parser do
     :invalid ->
       {:error, :invalid}
     {:invalid, token} ->
-      {:error, :invalid, token}
+      {:error, {:invalid, token}}
   end
 
   @spec parse!(String.t, Keyword.t) :: t | no_return
@@ -49,7 +49,7 @@ defmodule Poison.Parser do
         value
       {:error, :invalid} ->
         raise SyntaxError
-      {:error, :invalid, token} ->
+      {:error, {:invalid, token}} ->
         raise SyntaxError, token: token
     end
   end

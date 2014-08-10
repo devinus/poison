@@ -27,9 +27,10 @@ defmodule Poison.Parser do
 
   @type t :: nil | true | false | list | float | integer | String.t | Map.t
 
-  @spec parse(String.t, Keyword.t) :: {:ok, t} | {:error, :invalid}
+  @spec parse(iodata, Keyword.t) :: {:ok, t} | {:error, :invalid}
     | {:error, :invalid, String.t}
-  def parse(string, options \\ []) when is_binary(string) do
+  def parse(iodata, options \\ []) do
+    string = IO.iodata_to_binary(iodata)
     {value, rest} = value(skip_whitespace(string), options[:keys])
     case skip_whitespace(rest) do
       "" -> {:ok, value}
@@ -42,9 +43,9 @@ defmodule Poison.Parser do
       {:error, :invalid, token}
   end
 
-  @spec parse!(String.t, Keyword.t) :: t | no_return
-  def parse!(string, options \\ []) do
-    case parse(string, options) do
+  @spec parse!(iodata, Keyword.t) :: t
+  def parse!(iodata, options \\ []) do
+    case parse(iodata, options) do
       {:ok, value} ->
         value
       {:error, :invalid} ->

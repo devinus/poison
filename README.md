@@ -9,7 +9,8 @@ Poison uses extensive [sub binary matching][1], a **hand-rolled parser** using
 several techniques that are [known to benefit HiPE][2] for native compilation,
 [IO list][3] encoding and **single-pass** decoding.
 
-Preliminary benchmarking has put Poison's performance on par with `jiffy`.
+Preliminary benchmarking has sometimes put Poison's performance closer to
+`jiffy`, and always faster than existing Elixir libraries.
 
 ```elixir
 defmodule Person do

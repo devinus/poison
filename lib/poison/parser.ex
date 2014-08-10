@@ -27,29 +27,29 @@ defmodule Poison.Parser do
 
   @type t :: nil | true | false | list | float | integer | String.t | Map.t
 
-  @spec parse(String.t, Keyword.t) :: { :ok, t } | { :error, :invalid }
-    | { :error, :invalid, String.t }
+  @spec parse(String.t, Keyword.t) :: {:ok, t} | {:error, :invalid}
+    | {:error, :invalid, String.t}
   def parse(string, options \\ []) when is_binary(string) do
-    { value, rest } = value(skip_whitespace(string), options[:keys])
+    {value, rest} = value(skip_whitespace(string), options[:keys])
     case skip_whitespace(rest) do
       "" -> {:ok, value}
       other -> syntax_error(other)
     end
   catch
     :invalid ->
-      { :error, :invalid }
+      {:error, :invalid}
     {:invalid, token} ->
-      { :error, :invalid, token }
+      {:error, :invalid, token}
   end
 
   @spec parse!(String.t, Keyword.t) :: t | no_return
   def parse!(string, options \\ []) do
     case parse(string, options) do
-      { :ok, value } ->
+      {:ok, value} ->
         value
-      { :error, :invalid } ->
+      {:error, :invalid} ->
         raise SyntaxError
-      { :error, :invalid, token } ->
+      {:error, :invalid, token} ->
         raise SyntaxError, token: token
     end
   end
@@ -57,9 +57,9 @@ defmodule Poison.Parser do
   defp value("\"" <> rest, _keys),    do: string_continue(rest, [])
   defp value("{" <> rest, keys),      do: object_pairs(skip_whitespace(rest), keys, [])
   defp value("[" <> rest, keys),      do: array_values(skip_whitespace(rest), keys, [])
-  defp value("null" <> rest, _keys),  do: { nil, rest }
-  defp value("true" <> rest, _keys),  do: { true, rest }
-  defp value("false" <> rest, _keys), do: { false, rest }
+  defp value("null" <> rest, _keys),  do: {nil, rest}
+  defp value("true" <> rest, _keys),  do: {true, rest}
+  defp value("false" <> rest, _keys), do: {false, rest}
 
   defp value(<<char, _ :: binary>> = string, _keys) when char in '-0123456789' do
     number_start(string)
@@ -70,8 +70,8 @@ defmodule Poison.Parser do
   ## Objects
 
   defp object_pairs("\"" <> rest, keys, acc) do
-    { name, rest } = string_continue(rest, [])
-    { value, rest } = case skip_whitespace(rest) do
+    {name, rest} = string_continue(rest, [])
+    {value, rest} = case skip_whitespace(rest) do
       ":" <> rest -> value(skip_whitespace(rest), keys)
       other -> syntax_error(other)
     end
@@ -79,13 +79,13 @@ defmodule Poison.Parser do
     acc = [{object_name(name, keys), value} | acc]
     case skip_whitespace(rest) do
       "," <> rest -> object_pairs(skip_whitespace(rest), keys, acc)
-      "}" <> rest -> { :maps.from_list(acc), rest }
+      "}" <> rest -> {:maps.from_list(acc), rest}
       other -> syntax_error(other)
     end
   end
 
   defp object_pairs("}" <> rest, _, []) do
-    { :maps.new, rest }
+    {:maps.new, rest}
   end
 
   defp object_pairs(other, _, _), do: syntax_error(other)
@@ -97,16 +97,16 @@ defmodule Poison.Parser do
   ## Arrays
 
   defp array_values("]" <> rest, _, _) do
-    { [], rest }
+    {[], rest}
   end
 
   defp array_values(string, keys, acc) do
-    { value, rest } = value(string, keys)
+    {value, rest} = value(string, keys)
 
     acc = [value | acc]
     case skip_whitespace(rest) do
       "," <> rest -> array_values(skip_whitespace(rest), keys, acc)
-      "]" <> rest -> { :lists.reverse(acc), rest }
+      "]" <> rest -> {:lists.reverse(acc), rest}
       other -> syntax_error(other)
     end
   end
@@ -129,14 +129,14 @@ defmodule Poison.Parser do
   end
 
   defp number_int(<<char, _ :: binary>> = string, acc) when char in '123456789' do
-    { first, digits, rest } = number_digits(string)
+    {first, digits, rest} = number_digits(string)
     number_frac(rest, [acc, first, digits])
   end
 
   defp number_int(other, _), do: syntax_error(other)
 
   defp number_frac("." <> rest, acc) do
-    { first, digits, rest } = number_digits(rest)
+    {first, digits, rest} = number_digits(rest)
     number_exp(rest, true, [acc, ?., first, digits])
   end
 
@@ -144,28 +144,28 @@ defmodule Poison.Parser do
     number_exp(string, false, acc)
   end
 
-  defp number_exp(<<e, rest :: binary>>, frac, acc) when e in 'eE' do
+  defp number_exp(<<e>> <> rest, frac, acc) when e in 'eE' do
     e = if frac, do: ?e, else: ".0e"
     number_exp_continue(rest, acc, e)
   end
 
   defp number_exp(string, frac, acc) do
-    { number_complete(acc, frac), string }
+    {number_complete(acc, frac), string}
   end
 
   defp number_exp_continue("-" <> rest, acc, e) do
-    { first, digits, rest } = number_digits(rest)
-    { number_complete([acc, e, ?-, first, digits], true), rest }
+    {first, digits, rest} = number_digits(rest)
+    {number_complete([acc, e, ?-, first, digits], true), rest}
   end
 
   defp number_exp_continue("+" <> rest, acc, e) do
-    { first, digits, rest } = number_digits(rest)
-    { number_complete([acc, e, first, digits], true), rest }
+    {first, digits, rest} = number_digits(rest)
+    {number_complete([acc, e, first, digits], true), rest}
   end
 
   defp number_exp_continue(rest, acc, e) do
-    { first, digits, rest } = number_digits(rest)
-    { number_complete([acc, e, first, digits], true), rest }
+    {first, digits, rest} = number_digits(rest)
+    {number_complete([acc, e, first, digits], true), rest}
   end
 
   defp number_complete(iolist, false) do
@@ -176,7 +176,7 @@ defmodule Poison.Parser do
     String.to_float(IO.iodata_to_binary(iolist))
   end
 
-  defp number_digits(<<char, rest :: binary>>) when char in '0123456789' do
+  defp number_digits(<<char>> <> rest) when char in '0123456789' do
     count = number_digits_count(rest, 0)
     <<digits :: binary-size(count), rest :: binary>> = rest
     {char, digits, rest}
@@ -184,7 +184,7 @@ defmodule Poison.Parser do
 
   defp number_digits(other), do: syntax_error(other)
 
-  defp number_digits_count(<<char, rest :: binary>>, acc) when char in '0123456789' do
+  defp number_digits_count(<<char>> <> rest, acc) when char in '0123456789' do
     number_digits_count(rest, acc + 1)
   end
 
@@ -193,7 +193,7 @@ defmodule Poison.Parser do
   ## Strings
 
   defp string_continue("\"" <> rest, acc) do
-    { IO.iodata_to_binary(acc), rest }
+    {IO.iodata_to_binary(acc), rest}
   end
 
   defp string_continue("\\" <> rest, acc) do
@@ -208,8 +208,8 @@ defmodule Poison.Parser do
     string_continue(rest, [acc, chunk])
   end
 
-  for { seq, char } <- Enum.zip('"ntr\\/fb', '"\n\t\r\\/\f\b') do
-    defp string_escape(<<unquote(seq), rest :: binary>>, acc) do
+  for {seq, char} <- Enum.zip('"\\ntr/fb', '"\\\n\t\r/\f\b') do
+    defp string_escape(<<unquote(seq)>> <> rest, acc) do
       string_continue(rest, [acc, unquote(char)])
     end
   end
@@ -217,18 +217,18 @@ defmodule Poison.Parser do
   # http://www.ietf.org/rfc/rfc2781.txt
   # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
   # http://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
-  defp string_escape(<<?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2, rest :: binary>>, acc)
+  defp string_escape(<<?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2>> <> rest, acc)
     when a1 in 'dD' and a2 in 'dD'
     and (b1 in '89abAB')
     and (b2 in ?c..?f or b2 in ?C..?F) \
   do
     hi = List.to_integer([a1, b1, c1, d1], 16)
     lo = List.to_integer([a2, b2, c2, d2], 16)
-    codepoint = 0x10000 + ((hi - 0xD800) * 0x400) + (lo - 0xDC00)
+    codepoint = 0x10000 + ((hi &&& 0x03FF) <<< 10) + (lo &&& 0x03FF)
     string_continue(rest, [acc, <<codepoint :: utf8>>])
   end
 
-  defp string_escape(<<?u, seq :: binary-size(4), rest :: binary>>, acc) do
+  defp string_escape(<<?u, seq :: binary-size(4)>> <> rest, acc) do
     string_continue(rest, [acc, <<String.to_integer(seq, 16) :: utf8>> ])
   end
 
@@ -237,11 +237,11 @@ defmodule Poison.Parser do
   defp string_chunk_size("\"" <> _, acc), do: acc
   defp string_chunk_size("\\" <> _, acc), do: acc
 
-  defp string_chunk_size(<<char, rest :: binary>>, acc) when char < 0x80 do
+  defp string_chunk_size(<<char>> <> rest, acc) when char < 0x80 do
     string_chunk_size(rest, acc + 1)
   end
 
-  defp string_chunk_size(<<codepoint :: utf8, rest :: binary>>, acc) do
+  defp string_chunk_size(<<codepoint :: utf8>> <> rest, acc) do
     string_chunk_size(rest, acc + string_codepoint_size(codepoint))
   end
 
@@ -255,7 +255,7 @@ defmodule Poison.Parser do
 
   defp skip_whitespace("    " <> rest), do: skip_whitespace(rest)
 
-  defp skip_whitespace(<<char, rest :: binary>>) when char in '\s\n\t\r' do
+  defp skip_whitespace(<<char>> <> rest) when char in '\s\n\t\r' do
     skip_whitespace(rest)
   end
 
@@ -264,7 +264,7 @@ defmodule Poison.Parser do
   ## Errors
 
   defp syntax_error(<<token :: utf8, _ :: binary>>) do
-    throw({ :invalid, <<token>> })
+    throw({:invalid, <<token>>})
   end
 
   defp syntax_error(_) do

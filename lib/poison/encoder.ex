@@ -27,39 +27,79 @@ defimpl Poison.Encoder, for: Atom do
 end
 
 defimpl Poison.Encoder, for: BitString do
+  use Bitwise
+
   def encode("", _), do: "\"\""
 
-  def encode(string, _options) do
-    [?", escape(string), ?"]
+  def encode(string, options) do
+    [?", escape(string, options[:escape]), ?"]
   end
 
-  defp escape(""), do: []
+  defp escape("", _), do: []
 
-  for {char, seq} <- Enum.zip('"\n\t\r\\/\f\b', '"ntr\\/fb') do
-    defp escape(<<unquote(char), rest :: binary>>) do
-      [unquote("\\" <> <<seq>>) | escape(rest)]
+  for {char, seq} <- Enum.zip('"\\\n\t\r\f\b', '"\\ntrfb') do
+    defp escape(<<unquote(char), rest :: binary>>, mode) do
+      [unquote("\\" <> <<seq>>) | escape(rest, mode)]
     end
   end
 
-  defp escape(string) do
-    size = chunk_size(string, 0)
-    <<chunk :: binary-size(size), rest :: binary>> = string
-    [chunk | escape(rest)]
+  defp escape(<<char, rest :: binary>>, mode) when char < 0x1F do
+    [seq(char) | escape(rest, mode)]
   end
 
-  defp chunk_size(<<char, _rest :: binary>>, acc) when char in '"\n\t\r\\/\f\b' do
+  defp escape(<<char :: utf8, rest :: binary>>, :unicode) when char in 0x80..0xFFFF do
+    [seq(char) | escape(rest, :unicode)]
+  end
+
+  # http://en.wikipedia.org/wiki/UTF-16#Example_UTF-16_encoding_procedure
+  # http://unicodebook.readthedocs.org/unicode_encodings.html#utf-16-surrogate-pairs
+  defp escape(<<char :: utf8, rest :: binary>>, :unicode) when char > 0xFFFF do
+    code = char - 0x10000
+    [seq(0xD800 ||| (code >>> 10)),
+     seq(0xDC00 ||| (code &&& 0x3FF))
+     | escape(rest, :unicode)]
+  end
+
+  defp escape(<<char :: utf8>> <> rest, :javascript) when char in [0x2028, 0x2029] do
+    [seq(char) | escape(rest, :javascript)]
+  end
+
+  defp escape(string, mode) do
+    size = chunk_size(string, mode, 0)
+    <<chunk :: binary-size(size), rest :: binary>> = string
+    [chunk | escape(rest, mode)]
+  end
+
+  defp chunk_size(<<char>> <> _, _mode, acc) when char < 0x1F or char == ?\\ do
     acc
   end
 
-  defp chunk_size(<<char, rest :: binary>>, acc) when char < 0x80 do
-    chunk_size(rest, acc + 1)
+  defp chunk_size(<<char>> <> rest, mode, acc) when char < 0x80 do
+    chunk_size(rest, mode, acc + 1)
   end
 
-  defp chunk_size(<<codepoint :: utf8, rest :: binary>>, acc) do
-    chunk_size(rest, acc + byte_size(codepoint))
+  defp chunk_size(<<_ :: utf8>> <> _, :unicode, acc) do
+    acc
   end
 
-  defp chunk_size(_, acc), do: acc
+  defp chunk_size(<<char :: utf8>> <> _, :javascript, acc) when char in [0x2028, 0x2029] do
+    acc
+  end
+
+  defp chunk_size(<<codepoint :: utf8>> <> rest, mode, acc) do
+    chunk_size(rest, mode, acc + byte_size(<<codepoint :: utf8>>))
+  end
+
+  defp chunk_size(_, _, acc), do: acc
+
+  defp seq(char) do
+    case Integer.to_string(char, 16) do
+      s when byte_size(s) < 2 -> ["\\u000", s]
+      s when byte_size(s) < 3 -> ["\\u00", s]
+      s when byte_size(s) < 4 -> ["\\u0", s]
+      s -> ["\\u", s]
+    end
+  end
 end
 
 defimpl Poison.Encoder, for: Integer do
@@ -76,25 +116,13 @@ end
 
 defimpl Poison.Encoder, for: Map do
   alias Poison.Encoder
-  alias Poison.EncodeError
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
-    fun = &[?,, encode_name(&1, options), ?:, Encoder.encode(&2, options) | &3]
+    fun = &[?,, Encoder.BitString.encode(to_string(&1), options), ?:,
+                Encoder.encode(&2, options) | &3]
     [?{, tl(:maps.fold(fun, [], map)), ?}]
-  end
-
-  defp encode_name(name, options) do
-    cond do
-      is_binary(name) ->
-        Encoder.BitString.encode(name, options)
-      is_atom(name) ->
-        Encoder.Atom.encode(name, options)
-      true ->
-        raise EncodeError, value: name,
-          message: "keys must be atoms or strings, got: #{inspect name}"
-    end
   end
 end
 
@@ -121,7 +149,7 @@ end
 
 defimpl Poison.Encoder, for: Any do
   def encode(%{__struct__: _} = struct, options) do
-    Poison.Encoder.Map.encode(Map.delete(struct, :__struct__), options)
+    Poison.Encoder.Map.encode(Map.from_struct(struct), options)
   end
 
   def encode(value, _options) do

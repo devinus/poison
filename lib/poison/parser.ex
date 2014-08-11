@@ -30,7 +30,7 @@ defmodule Poison.Parser do
   @type t :: nil | true | false | list | float | integer | String.t | Map.t
 
   @spec parse(iodata, Keyword.t) :: {:ok, t} | {:error, :invalid}
-    | {:error, :invalid, String.t}
+    | {:error, {:invalid, String.t}}
   def parse(iodata, options \\ []) do
     string = IO.iodata_to_binary(iodata)
     {value, rest} = value(skip_whitespace(string), options[:keys])
@@ -42,7 +42,7 @@ defmodule Poison.Parser do
     :invalid ->
       {:error, :invalid}
     {:invalid, token} ->
-      {:error, :invalid, token}
+      {:error, {:invalid, token}}
   end
 
   @spec parse!(iodata, Keyword.t) :: t
@@ -52,7 +52,7 @@ defmodule Poison.Parser do
         value
       {:error, :invalid} ->
         raise SyntaxError
-      {:error, :invalid, token} ->
+      {:error, {:invalid, token}} ->
         raise SyntaxError, token: token
     end
   end

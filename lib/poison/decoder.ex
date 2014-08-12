@@ -40,7 +40,10 @@ defmodule Poison.Decode do
   end
 
   defp transform_struct(value, _keys, as, options) do
-    map = for {k, v} <- value, do: {String.to_existing_atom(k), v}
+    map = for k <- Map.keys(Map.from_struct(as.__struct__)) do
+      {k, value[Atom.to_string(k)]}
+    end
+
     Poison.Decoder.decode(struct(as, map), options)
   end
 end

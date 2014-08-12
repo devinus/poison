@@ -48,4 +48,9 @@ defmodule Posion.DecoderTest do
     expected = %{"people" => ["Devin Torres (27)"]}
     assert actual == expected
   end
+
+  test "decoding into structs with key subset" do
+    person = %{"name" => "Devin Torres", "age" => 27, "dob" => "1987-01-29"}
+    assert decode(person, as: Person) == "Devin Torres (27)"
+  end
 end

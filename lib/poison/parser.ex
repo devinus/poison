@@ -93,13 +93,13 @@ defmodule Poison.Parser do
 
   defp object_pairs(other, _, _), do: syntax_error(other)
 
-  defp object_name(name, :atoms),   do: String.to_atom(name)
-  defp object_name(name, :atoms!),  do: String.to_existing_atom(name)
-  defp object_name(name, _keys),    do: name
+  defp object_name(name, :atoms),  do: String.to_atom(name)
+  defp object_name(name, :atoms!), do: String.to_existing_atom(name)
+  defp object_name(name, _keys),   do: name
 
   ## Arrays
 
-  defp array_values("]" <> rest, _, _) do
+  defp array_values("]" <> rest, _, []) do
     {[], rest}
   end
 
@@ -268,7 +268,7 @@ defmodule Poison.Parser do
 
   ## Errors
 
-  defp syntax_error(<<token :: utf8, _ :: binary>>) do
+  defp syntax_error(<<token :: utf8>> <> _) do
     throw({:invalid, <<token>>})
   end
 

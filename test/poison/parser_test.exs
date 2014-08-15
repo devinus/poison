@@ -65,6 +65,7 @@ defmodule Poison.ParserTest do
   test "arrays" do
     assert_raise SyntaxError, fn -> parse!("[") end
     assert_raise SyntaxError, fn -> parse!("[,") end
+    assert_raise SyntaxError, fn -> parse!("[1,]") end
 
     assert parse!("[]") == []
     assert parse!("[1, 2, 3]") == [1, 2, 3]

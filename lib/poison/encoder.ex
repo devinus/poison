@@ -38,22 +38,22 @@ defimpl Poison.Encoder, for: BitString do
   defp escape("", _), do: []
 
   for {char, seq} <- Enum.zip('"\\\n\t\r\f\b', '"\\ntrfb') do
-    defp escape(<<unquote(char), rest :: binary>>, mode) do
+    defp escape(<<unquote(char)>> <> rest, mode) do
       [unquote("\\" <> <<seq>>) | escape(rest, mode)]
     end
   end
 
-  defp escape(<<char, rest :: binary>>, mode) when char < 0x1F do
+  defp escape(<<char>> <> rest, mode) when char < 0x1F do
     [seq(char) | escape(rest, mode)]
   end
 
-  defp escape(<<char :: utf8, rest :: binary>>, :unicode) when char in 0x80..0xFFFF do
+  defp escape(<<char :: utf8>> <> rest, :unicode) when char in 0x80..0xFFFF do
     [seq(char) | escape(rest, :unicode)]
   end
 
   # http://en.wikipedia.org/wiki/UTF-16#Example_UTF-16_encoding_procedure
   # http://unicodebook.readthedocs.org/unicode_encodings.html#utf-16-surrogate-pairs
-  defp escape(<<char :: utf8, rest :: binary>>, :unicode) when char > 0xFFFF do
+  defp escape(<<char :: utf8>> <> rest, :unicode) when char > 0xFFFF do
     code = char - 0x10000
     [seq(0xD800 ||| (code >>> 10)),
      seq(0xDC00 ||| (code &&& 0x3FF))
@@ -149,9 +149,30 @@ defimpl Poison.Encoder, for: List do
   end
 end
 
-defimpl Poison.Encoder, for: [Range, Stream] do
-  def encode(stream, options) do
-    Poison.Encoder.List.encode(Enum.to_list(stream), options)
+defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
+  def encode(collection, options) do
+    list = Enum.flat_map(collection, &[?,, Poison.Encoder.encode(&1, options)])
+
+    case list do
+      [] -> "[]"
+      [_ | tail] -> [?[, tail, ?]]
+    end
+  end
+end
+
+defimpl Poison.Encoder, for: HashDict do
+  alias Poison.Encoder
+
+  def encode(dict, options) do
+    list = Enum.flat_map(dict, fn {key, value} ->
+      [?,, Encoder.BitString.encode(to_string(key), options), ?:,
+           Encoder.encode(value, options)]
+    end)
+
+    case list do
+      [] -> "{}"
+      [_ | tail] -> [?{, tail, ?}]
+    end
   end
 end
 

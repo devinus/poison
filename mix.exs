@@ -1,11 +1,15 @@
 defmodule Poison.Mixfile do
   use Mix.Project
 
+  @version File.read!("VERSION") |> String.strip
+
   def project do
-    [ app: :poison,
-      version: "0.0.1",
-      elixir: "~> 0.15.1",
-      deps: deps ]
+    [app: :poison,
+     version: @version,
+     elixir: "~> 0.15.1",
+     description: "An experimental Elixir JSON library",
+     deps: deps,
+     package: package]
   end
 
   # Configuration for the OTP application
@@ -26,5 +30,12 @@ defmodule Poison.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     []
+  end
+
+  defp package do
+    [files: ~w(lib mix.exs README.md LICENSE UNLICENSE),
+     contributors: ["Devin Torres"],
+     licenses: ["Unlicense"],
+     links: %{"GitHub" => "https://github.com/devinus/execjs"}]
   end
 end

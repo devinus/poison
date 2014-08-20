@@ -1,7 +1,7 @@
 # Poison
 
 Poison is a new JSON library for Elixir focusing on wicked-fast **speed**
-without sacrificing **simplicity** or **completeness**.
+without sacrificing **simplicity**, **completeness**, or **correctness**.
 
 Poison takes several approaches to be the fastest JSON library for Elixir.
 
@@ -57,6 +57,12 @@ defimpl Poison.Encoder, for: Person do
   end
 end
 ```
+
+## License
+
+Poison is released into the public domain (see `UNLICENSE`).
+Poison is also optionally available under the ISC License (see `LICENSE`),
+meant especially for jurisdictions that do not recognize public domain works.
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf

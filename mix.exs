@@ -36,6 +36,6 @@ defmodule Poison.Mixfile do
     [files: ~w(lib mix.exs README.md LICENSE UNLICENSE),
      contributors: ["Devin Torres"],
      licenses: ["Unlicense"],
-     links: %{"GitHub" => "https://github.com/devinus/execjs"}]
+     links: %{"GitHub" => "https://github.com/devinus/poison"}]
   end
 end

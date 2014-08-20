@@ -139,6 +139,11 @@ defimpl Poison.Encoder, for: List do
 
   def encode([], _), do: "[]"
 
+  def encode([{k, _} | _ ] = lst, options) when is_atom(k) do
+    lst = Enum.into lst, %{}
+    [Encoder.encode(lst, options)]
+  end
+
   def encode([head], options) do
     [?[, Encoder.encode(head, options), ?]]
   end

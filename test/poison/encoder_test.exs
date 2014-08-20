@@ -74,6 +74,17 @@ defmodule Posion.EncoderTest do
     """
   end
 
+  test "Keyword" do
+    kw = Keyword.new
+    assert to_json(kw) == "[]"
+
+    kw = kw |> Keyword.put(:foo, "bar") |> Keyword.put(:baz, "quux")
+    assert to_json(kw) in ~w"""
+    {"foo":"bar","baz":"quux"}
+    {"baz":"quux","foo":"bar"}
+    """
+  end
+
   test "EncodeError" do
     assert_raise EncodeError, fn ->
       to_json(self)

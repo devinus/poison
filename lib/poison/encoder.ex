@@ -128,9 +128,22 @@ defimpl Poison.Encoder, for: Map do
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
-    fun = &[?,, Encoder.BitString.encode(to_string(&1), options), ?:,
+    fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
                 Encoder.encode(&2, options) | &3]
     [?{, tl(:maps.fold(fun, [], map)), ?}]
+  end
+
+  defp encode_name(name) when is_binary(name) do
+    name
+  end
+
+  defp encode_name(name) when is_atom(name) do
+    Atom.to_string(name)
+  end
+
+  defp encode_name(name) do
+    raise Poison.EncodeError, value: name,
+      message: "expected string or atom key, got: #{inspect name}"
   end
 end
 

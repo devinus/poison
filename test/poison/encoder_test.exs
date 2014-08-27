@@ -35,8 +35,6 @@ defmodule Posion.EncoderTest do
     assert to_json(%{}) == "{}"
     assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
     assert to_json(%{"foo" => "bar"})  == ~s({"foo":"bar"})
-
-    assert to_json(%{42.0 => "foo"}) == ~s({"42.0":"foo"})
   end
 
   test "List" do
@@ -78,6 +76,10 @@ defmodule Posion.EncoderTest do
   test "EncodeError" do
     assert_raise EncodeError, fn ->
       to_json(self)
+    end
+
+    assert_raise EncodeError, fn ->
+      assert to_json(%{42.0 => "foo"})
     end
   end
 

@@ -24,6 +24,7 @@ defmodule Posion.EncoderTest do
     assert to_json("hello\nworld") == ~s("hello\\nworld")
     assert to_json("\nhello\nworld\n") == ~s("\\nhello\\nworld\\n")
 
+    assert to_json("\"") == ~s("\\"")
     assert to_json("\0") == ~s("\\u0000")
     assert to_json("☃", escape: :unicode) == ~s("\\u2603")
     assert to_json("𝄞", escape: :unicode) == ~s("\\uD834\\uDD1E")
@@ -81,6 +82,6 @@ defmodule Posion.EncoderTest do
   end
 
   defp to_json(value, options \\ []) do
-    IO.iodata_to_binary(Poison.Encoder.encode(value, options))
+    Poison.Encoder.encode(value, options) |> IO.iodata_to_binary
   end
 end

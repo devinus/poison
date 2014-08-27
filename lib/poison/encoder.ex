@@ -70,7 +70,7 @@ defimpl Poison.Encoder, for: BitString do
     [chunk | escape(rest, mode)]
   end
 
-  defp chunk_size(<<char>> <> _, _mode, acc) when char < 0x1F or char == ?\\ do
+  defp chunk_size(<<char>> <> _, _mode, acc) when char < 0x1F or char in [?", ?\\] do
     acc
   end
 

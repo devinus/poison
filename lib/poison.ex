@@ -3,7 +3,16 @@ defmodule Poison do
   alias Poison.Decode
   alias Poison.Parser
 
-  @spec encode(Encoder.t) :: {:ok, iodata} | {:error, {:invalid, any}}
+  @doc """
+  Encode a value to JSON.
+
+  iex> Poison.encode([1, 2, 3])
+  {:ok, [91, "1", [[44, "2"], [44, "3"]], 93]}
+  iex> Poison.encode([1, 2, 3], string: true)
+  {:ok, "[1,2,3]"}
+  """
+  @spec encode(Encoder.t, Keyword.t) :: {:ok, iodata} | {:ok, String.t}
+    | {:error, {:invalid, any}}
   def encode(value, options \\ []) do
     {:ok, encode!(value, options)}
   rescue
@@ -11,11 +20,30 @@ defmodule Poison do
       {:error, {:invalid,  exception.value}}
   end
 
-  @spec encode(Encoder.t) :: iodata
+  @doc """
+  Encode a value to JSON, raises an exception on error.
+
+  iex> Poison.encode!([1, 2, 3])
+  [91, "1", [[44, "2"], [44, "3"]], 93]
+  iex> Poison.encode!([1, 2, 3], string: true)
+  "[1,2,3]"
+  """
+  @spec encode!(Encoder.t, Keyword.t) :: iodata | String.t | no_return
   def encode!(value, options \\ []) do
-    Encoder.encode(value, options)
+    iodata = Encoder.encode(value, options)
+    if options[:string] do
+      iodata |> IO.iodata_to_binary
+    else
+      iodata
+    end
   end
 
+  @doc """
+  Decode JSON to a value.
+
+  iex> Poison.decode("[1,2,3]")
+  {:ok, [1, 2, 3]}
+  """
   @spec decode(iodata) :: {:ok, Parser.t} | {:error, :invalid}
     | {:error, {:invalid, String.t}}
   def decode(iodata, options \\ []) do
@@ -25,7 +53,13 @@ defmodule Poison do
     end
   end
 
-  @spec decode!(iodata) :: Parser.t
+  @doc """
+  Decode JSON to a value, raises an exception on error.
+
+  iex> Poison.decode!("[1,2,3]")
+  [1, 2, 3]
+  """
+  @spec decode!(iodata, Keyword.t) :: Parser.t | no_return
   def decode!(iodata, options \\ []) do
     Decode.decode(Parser.parse!(iodata, options), options)
   end

@@ -28,7 +28,7 @@ defmodule Poison do
   iex> Poison.encode!([1, 2, 3], string: true)
   "[1,2,3]"
   """
-  @spec encode!(Encoder.t, Keyword.t) :: iodata | String.t | no_return
+  @spec encode!(Encoder.t, Keyword.t) :: iodata | no_return
   def encode!(value, options \\ []) do
     iodata = Encoder.encode(value, options)
     if options[:string] do

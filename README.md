@@ -10,7 +10,7 @@ several techniques that are [known to benefit HiPE][2] for native compilation,
 [IO list][3] encoding and **single-pass** decoding.
 
 Preliminary benchmarking has sometimes put Poison's performance closer to
-`jiffy`, and always faster than existing Elixir libraries.
+`jiffy`, and almost always faster than existing Elixir libraries.
 
 ```elixir
 defmodule Person do

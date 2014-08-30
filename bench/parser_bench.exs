@@ -17,15 +17,15 @@ defmodule ParserBench do
   end
 
   # UTF8 escaping
-  bench "UTF8 escaping (Poison)", [utf8: gen_utf8] do
+  bench "UTF8 unescaping (Poison)", [utf8: gen_utf8] do
     Poison.Parser.parse!(utf8)
   end
 
-  bench "UTF8 escaping (jiffy)", [utf8: gen_utf8] do
+  bench "UTF8 unescaping (jiffy)", [utf8: gen_utf8] do
     :jiffy.decode(utf8)
   end
 
-  bench "UTF8 escaping (JSEX)", [utf8: gen_utf8] do
+  bench "UTF8 unescaping (JSEX)", [utf8: gen_utf8] do
     JSEX.decode!(utf8)
   end
 

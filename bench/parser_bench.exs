@@ -30,7 +30,7 @@ defmodule ParserBench do
   end
 
   defp gen_json do
-    File.read!(Path.expand("data/fixture.json", __DIR__))
+    File.read!(Path.expand("data/generated.json", __DIR__))
   end
 
   defp gen_utf8 do

@@ -98,6 +98,6 @@ defmodule EncoderBench do
   end
 
   defp gen_data do
-    File.read!(Path.expand("data/fixture.json", __DIR__)) |> Poison.decode!
+    File.read!(Path.expand("data/generated.json", __DIR__)) |> Poison.decode!
   end
 end

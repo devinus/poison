@@ -10,6 +10,20 @@ defmodule Poison.EncodeError do
   end
 end
 
+defmodule Poison.Encode do
+  def encode_name(value) do
+    cond do
+      is_binary(value) ->
+        value
+      is_atom(value) ->
+        Atom.to_string(value)
+      true ->
+        raise Poison.EncodeError, value: value,
+          message: "expected string or atom key, got: #{inspect value}"
+    end
+  end
+end
+
 defprotocol Poison.Encoder do
   @fallback_to_any true
 
@@ -70,7 +84,7 @@ defimpl Poison.Encoder, for: BitString do
     [chunk | escape(rest, mode)]
   end
 
-  defp chunk_size(<<char>> <> _, _mode, acc) when char < 0x1F or char in [?", ?\\] do
+  defp chunk_size(<<char>> <> _, _mode, acc) when char < 0x1F or char in '"\\' do
     acc
   end
 
@@ -87,19 +101,18 @@ defimpl Poison.Encoder, for: BitString do
   end
 
   defp chunk_size(<<codepoint :: utf8>> <> rest, mode, acc) do
-    chunk_size(rest, mode, acc + codepoint_size(codepoint))
-  end
-
-  defp chunk_size(_, _, acc), do: acc
-
-  defp codepoint_size(codepoint) do
-    cond do
+    size = cond do
       codepoint < 0x800   -> 2
       codepoint < 0x10000 -> 3
       true                -> 4
     end
+
+    chunk_size(rest, mode, acc + size)
   end
 
+  defp chunk_size(_, _, acc), do: acc
+
+  @compile {:inline, seq: 1}
   defp seq(char) do
     case Integer.to_string(char, 16) do
       s when byte_size(s) < 2 -> ["\\u000", s]
@@ -125,6 +138,8 @@ end
 defimpl Poison.Encoder, for: Map do
   alias Poison.Encoder
 
+  import Poison.Encode, only: [encode_name: 1]
+
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
@@ -132,23 +147,12 @@ defimpl Poison.Encoder, for: Map do
                 Encoder.encode(&2, options) | &3]
     [?{, tl(:maps.fold(fun, [], map)), ?}]
   end
-
-  defp encode_name(name) when is_binary(name) do
-    name
-  end
-
-  defp encode_name(name) when is_atom(name) do
-    Atom.to_string(name)
-  end
-
-  defp encode_name(name) do
-    raise Poison.EncodeError, value: name,
-      message: "expected string or atom key, got: #{inspect name}"
-  end
 end
 
 defimpl Poison.Encoder, for: List do
   alias Poison.Encoder
+
+  @compile :inline_list_funcs
 
   def encode([], _), do: "[]"
 
@@ -157,16 +161,16 @@ defimpl Poison.Encoder, for: List do
   end
 
   def encode([head | rest], options) do
-    tail = for value <- rest, do: [?,, Encoder.encode(value, options)]
+    tail = :lists.flatmap(&[?,, Encoder.encode(&1, options)], rest)
     [?[, Encoder.encode(head, options), tail, ?]]
   end
 end
 
 defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
   def encode(collection, options) do
-    list = Enum.flat_map(collection, &[?,, Poison.Encoder.encode(&1, options)])
+    fun = &[?,, Poison.Encoder.encode(&1, options)]
 
-    case list do
+    case Enum.flat_map(collection, fun) do
       [] -> "[]"
       [_ | tail] -> [?[, tail, ?]]
     end
@@ -176,13 +180,15 @@ end
 defimpl Poison.Encoder, for: HashDict do
   alias Poison.Encoder
 
-  def encode(dict, options) do
-    list = Enum.flat_map(dict, fn {key, value} ->
-      [?,, Encoder.BitString.encode(to_string(key), options), ?:,
-           Encoder.encode(value, options)]
-    end)
+  import Poison.Encode, only: [encode_name: 1]
 
-    case list do
+  def encode(dict, options) do
+    fun = fn {key, value} ->
+      [?,, Encoder.BitString.encode(encode_name(key), options), ?:,
+           Encoder.encode(value, options)]
+    end
+
+    case Enum.flat_map(dict, fun) do
       [] -> "{}"
       [_ | tail] -> [?{, tail, ?}]
     end

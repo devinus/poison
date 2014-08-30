@@ -29,7 +29,9 @@ defmodule Poison.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    []
+    [{:jiffy, github: "davisp/jiffy", only: :bench},
+     {:jsex, github: "talentdeficit/jsex", only: :bench},
+     {:jazz, github: "meh/jazz", only: :bench}]
   end
 
   defp package do

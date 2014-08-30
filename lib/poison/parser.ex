@@ -132,15 +132,15 @@ defmodule Poison.Parser do
   end
 
   defp number_int(<<char, _ :: binary>> = string, acc) when char in '123456789' do
-    {first, digits, rest} = number_digits(string)
-    number_frac(rest, [acc, first, digits])
+    {digits, rest} = number_digits(string)
+    number_frac(rest, [acc, digits])
   end
 
   defp number_int(other, _), do: syntax_error(other)
 
   defp number_frac("." <> rest, acc) do
-    {first, digits, rest} = number_digits(rest)
-    number_exp(rest, true, [acc, ?., first, digits])
+    {digits, rest} = number_digits(rest)
+    number_exp(rest, true, [acc, ?., digits])
   end
 
   defp number_frac(string, acc) do
@@ -149,40 +149,34 @@ defmodule Poison.Parser do
 
   defp number_exp(<<e>> <> rest, frac, acc) when e in 'eE' do
     e = if frac, do: ?e, else: ".0e"
-    number_exp_continue(rest, acc, e)
+    case rest do
+      "-" <> rest -> number_exp_continue(rest, [acc, e, ?-])
+      "+" <> rest -> number_exp_continue(rest, [acc, e])
+      rest -> number_exp_continue(rest, [acc, e])
+    end
   end
 
   defp number_exp(string, frac, acc) do
     {number_complete(acc, frac), string}
   end
 
-  defp number_exp_continue("-" <> rest, acc, e) do
-    {first, digits, rest} = number_digits(rest)
-    {number_complete([acc, e, ?-, first, digits], true), rest}
-  end
-
-  defp number_exp_continue("+" <> rest, acc, e) do
-    {first, digits, rest} = number_digits(rest)
-    {number_complete([acc, e, first, digits], true), rest}
-  end
-
-  defp number_exp_continue(rest, acc, e) do
-    {first, digits, rest} = number_digits(rest)
-    {number_complete([acc, e, first, digits], true), rest}
+  defp number_exp_continue(rest, acc) do
+    {digits, rest} = number_digits(rest)
+    {number_complete([acc, digits], true), rest}
   end
 
   defp number_complete(iolist, false) do
-    String.to_integer(IO.iodata_to_binary(iolist))
+    IO.iodata_to_binary(iolist) |> String.to_integer
   end
 
   defp number_complete(iolist, true) do
-    String.to_float(IO.iodata_to_binary(iolist))
+    IO.iodata_to_binary(iolist) |> String.to_float
   end
 
-  defp number_digits(<<char>> <> rest) when char in '0123456789' do
-    count = number_digits_count(rest, 0)
-    <<digits :: binary-size(count), rest :: binary>> = rest
-    {char, digits, rest}
+  defp number_digits(<<char>> <> rest = string) when char in '0123456789' do
+    count = number_digits_count(rest, 1)
+    <<digits :: binary-size(count), rest :: binary>> = string
+    {digits, rest}
   end
 
   defp number_digits(other), do: syntax_error(other)
@@ -255,10 +249,6 @@ defmodule Poison.Parser do
   defp string_codepoint_size(_),                                  do: 4
 
   ## Whitespace
-
-  defp skip_whitespace("    " <> rest), do: skip_whitespace(rest)
-
-  defp skip_whitespace("  " <> rest), do: skip_whitespace(rest)
 
   defp skip_whitespace(<<char>> <> rest) when char in '\s\n\t\r' do
     skip_whitespace(rest)

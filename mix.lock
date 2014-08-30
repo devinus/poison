@@ -1,0 +1,5 @@
+%{"jazz": {:git, "git://github.com/meh/jazz.git", "e0cf73011f64868534cd229c458e205ce04a6619", []},
+  "jiffy": {:git, "git://github.com/davisp/jiffy.git", "5cd89c1eda3801bdef790b1e7c0e09259332c0fc", []},
+  "jsex": {:git, "git://github.com/talentdeficit/jsex.git", "661ce8565aaea22aa3576d4ad5e9d11065fe60f9", []},
+  "json": {:git, "git://github.com/cblage/elixir-json.git", "05747d3e44ebadc0802d2c2b9e59b68146f66dae", []},
+  "jsx": {:package, "2.0.4"}}

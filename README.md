@@ -58,6 +58,15 @@ defimpl Poison.Encoder, for: Person do
 end
 ```
 
+## Benchmarking
+
+```sh-session
+$ mix archive.install https://github.com/alco/benchfella/releases/download/archive/benchfella-0.0.2.ez
+$ mix compile
+$ mix compile.protocols
+$ elixir -pa _build/bench/consolidated -pa _build/bench/lib/\*/ebin -S mix bench
+```
+
 ## License
 
 Poison is released into the public domain (see `UNLICENSE`).

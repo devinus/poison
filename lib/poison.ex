@@ -7,7 +7,7 @@ defmodule Poison do
   Encode a value to JSON.
 
   iex> Poison.encode([1, 2, 3])
-  {:ok, [91, "1", [[44, "2"], [44, "3"]], 93]}
+  {:ok, [91, "1", [44, "2", 44, "3"], 93]}
   iex> Poison.encode([1, 2, 3], string: true)
   {:ok, "[1,2,3]"}
   """
@@ -24,7 +24,7 @@ defmodule Poison do
   Encode a value to JSON, raises an exception on error.
 
   iex> Poison.encode!([1, 2, 3])
-  [91, "1", [[44, "2"], [44, "3"]], 93]
+  [91, "1", [44, "2", 44, "3"], 93]
   iex> Poison.encode!([1, 2, 3], string: true)
   "[1,2,3]"
   """

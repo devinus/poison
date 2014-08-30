@@ -4,3 +4,5 @@
 /_build
 erl_crash.dump
 *.ez
+/bench/snapshots
+/bench/graphs

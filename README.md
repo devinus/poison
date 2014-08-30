@@ -62,8 +62,9 @@ end
 
 ```sh-session
 $ mix archive.install https://github.com/alco/benchfella/releases/download/archive/benchfella-0.0.2.ez
-$ mix compile
-$ mix compile.protocols
+$ mix deps.get
+$ MIX_ENV=bench mix compile
+$ MIX_ENV=bench mix compile.protocols
 $ elixir -pa _build/bench/consolidated -pa _build/bench/lib/\*/ebin -S mix bench
 ```
 

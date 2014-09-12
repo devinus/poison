@@ -2,7 +2,7 @@ language: erlang
 otp_release:
   - 17.1
 before_install:
-  - wget https://github.com/elixir-lang/elixir/releases/download/v1.0.0-rc1/Precompiled.zip
+  - wget https://github.com/elixir-lang/elixir/releases/download/v1.0.0/Precompiled.zip
   - unzip -d elixir Precompiled.zip
 before_script:
   - export PATH=`pwd`/elixir/bin:$PATH

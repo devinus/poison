@@ -36,7 +36,7 @@ defimpl Poison.Encoder, for: Atom do
   def encode(false, _), do: "false"
 
   def encode(atom, options) do
-    Poison.Encoder.BitString.encode(Atom.to_string(atom), options)
+    @protocol.BitString.encode(Atom.to_string(atom), options)
   end
 end
 
@@ -136,39 +136,35 @@ defimpl Poison.Encoder, for: Float do
 end
 
 defimpl Poison.Encoder, for: Map do
-  alias Poison.Encoder
-
   import Poison.Encode, only: [encode_name: 1]
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
-    fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
-                Encoder.encode(&2, options) | &3]
+    fun = &[?,, @protocol.BitString.encode(encode_name(&1), options), ?:,
+                @protocol.encode(&2, options) | &3]
     [?{, tl(:maps.fold(fun, [], map)), ?}]
   end
 end
 
 defimpl Poison.Encoder, for: List do
-  alias Poison.Encoder
-
   @compile :inline_list_funcs
 
   def encode([], _), do: "[]"
 
   def encode([head], options) do
-    [?[, Encoder.encode(head, options), ?]]
+    [?[, @protocol.encode(head, options), ?]]
   end
 
   def encode([head | rest], options) do
-    tail = :lists.flatmap(&[?,, Encoder.encode(&1, options)], rest)
-    [?[, Encoder.encode(head, options), tail, ?]]
+    tail = :lists.flatmap(&[?,, @protocol.encode(&1, options)], rest)
+    [?[, @protocol.encode(head, options), tail, ?]]
   end
 end
 
 defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
   def encode(collection, options) do
-    fun = &[?,, Poison.Encoder.encode(&1, options)]
+    fun = &[?,, @protocol.encode(&1, options)]
 
     case Enum.flat_map(collection, fun) do
       [] -> "[]"
@@ -178,14 +174,12 @@ defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
 end
 
 defimpl Poison.Encoder, for: HashDict do
-  alias Poison.Encoder
-
   import Poison.Encode, only: [encode_name: 1]
 
   def encode(dict, options) do
     fun = fn {key, value} ->
-      [?,, Encoder.BitString.encode(encode_name(key), options), ?:,
-           Encoder.encode(value, options)]
+      [?,, @protocol.BitString.encode(encode_name(key), options), ?:,
+           @protocol.encode(value, options)]
     end
 
     case Enum.flat_map(dict, fun) do
@@ -197,7 +191,7 @@ end
 
 defimpl Poison.Encoder, for: Any do
   def encode(%{__struct__: _} = struct, options) do
-    Poison.Encoder.Map.encode(Map.from_struct(struct), options)
+    @protocol.Map.encode(Map.from_struct(struct), options)
   end
 
   def encode(value, _options) do

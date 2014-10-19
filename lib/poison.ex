@@ -44,7 +44,7 @@ defmodule Poison do
   iex> Poison.decode("[1,2,3]")
   {:ok, [1, 2, 3]}
   """
-  @spec decode(iodata) :: {:ok, Parser.t} | {:error, :invalid}
+  @spec decode(iodata, Keyword.t) :: {:ok, Parser.t} | {:error, :invalid}
     | {:error, {:invalid, String.t}}
   def decode(iodata, options \\ []) do
     case Parser.parse(iodata, options) do

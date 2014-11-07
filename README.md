@@ -1,8 +1,7 @@
 # Poison
 
 [![Build Status](https://api.travis-ci.org/devinus/poison.svg?branch=master)](https://travis-ci.org/devinus/poison)
-
-[![Support via Gratipay](https://raw.githubusercontent.com/twolfson/gittip-badge/0.2.1/dist/gittip.png)](https://gratipay.com/devinus/)
+[![Support via Gratipay](http://img.shields.io/gratipay/devinus.svg)](https://gratipay.com/devinus)
 
 Poison is a new JSON library for Elixir focusing on wicked-fast **speed**
 without sacrificing **simplicity**, **completeness**, or **correctness**.

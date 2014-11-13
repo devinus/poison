@@ -2,4 +2,4 @@
   "jiffy": {:git, "git://github.com/davisp/jiffy.git", "5cd89c1eda3801bdef790b1e7c0e09259332c0fc", []},
   "jsex": {:git, "git://github.com/talentdeficit/jsex.git", "91fbbb51ac18c5ecec45044af107cd079af2ff8b", []},
   "json": {:git, "git://github.com/cblage/elixir-json.git", "05747d3e44ebadc0802d2c2b9e59b68146f66dae", []},
-  "jsx": {:package, "2.1.1"}}
+  "jsx": {:hex, :jsx, "2.1.1"}}

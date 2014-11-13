@@ -17,7 +17,7 @@ defmodule Poison do
     {:ok, encode!(value, options)}
   rescue
     exception in [Poison.EncodeError] ->
-      {:error, {:invalid,  exception.value}}
+      {:error, {:invalid, exception.value}}
   end
 
   @doc """

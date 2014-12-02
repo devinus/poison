@@ -27,7 +27,7 @@ defmodule Poison.Parser do
 
   alias Poison.SyntaxError
 
-  @type t :: nil | true | false | list | float | integer | String.t | Map.t
+  @type t :: nil | true | false | list | float | integer | String.t | map
 
   @spec parse(iodata, Keyword.t) :: {:ok, t} | {:error, :invalid}
     | {:error, {:invalid, String.t}}

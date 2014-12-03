@@ -57,10 +57,6 @@ defimpl Poison.Encoder, for: BitString do
     end
   end
 
-  defp escape(<<char>> <> rest, mode) when char < 0x1F do
-    [seq(char) | escape(rest, mode)]
-  end
-
   defp escape(<<char :: utf8>> <> rest, :unicode) when char in 0x80..0xFFFF do
     [seq(char) | escape(rest, :unicode)]
   end
@@ -76,6 +72,10 @@ defimpl Poison.Encoder, for: BitString do
 
   defp escape(<<char :: utf8>> <> rest, :javascript) when char in [0x2028, 0x2029] do
     [seq(char) | escape(rest, :javascript)]
+  end
+
+  defp escape(<<char>> <> rest, mode) when char < 0x1F or char > 0x7F do
+    [seq(char) | escape(rest, mode)]
   end
 
   defp escape(string, mode) do

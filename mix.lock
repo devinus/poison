@@ -1,5 +1,4 @@
-%{"jazz": {:git, "git://github.com/meh/jazz.git", "49f335492aca5516495199dd81dd18b845ebaa69", []},
-  "jiffy": {:git, "git://github.com/davisp/jiffy.git", "5cd89c1eda3801bdef790b1e7c0e09259332c0fc", []},
-  "jsex": {:git, "git://github.com/talentdeficit/jsex.git", "91fbbb51ac18c5ecec45044af107cd079af2ff8b", []},
-  "json": {:git, "git://github.com/cblage/elixir-json.git", "05747d3e44ebadc0802d2c2b9e59b68146f66dae", []},
-  "jsx": {:hex, :jsx, "2.1.1"}}
+%{"exjsx": {:git, "git://github.com/talentdeficit/exjsx.git", "d8fcc5f55bdcb8ea41e5688d3b2288ae783c3a02", []},
+  "jazz": {:git, "git://github.com/meh/jazz.git", "49f335492aca5516495199dd81dd18b845ebaa69", []},
+  "jiffy": {:git, "git://github.com/davisp/jiffy.git", "137d3d94b6ee10001d761d412cbbe7f665680c98", []},
+  "jsx": {:hex, :jsx, "2.2.0"}}

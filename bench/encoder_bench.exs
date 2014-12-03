@@ -10,8 +10,8 @@ defmodule EncoderBench do
     :jiffy.encode(list)
   end
 
-  bench "lists (JSEX)", [list: gen_list] do
-    JSEX.encode!(list)
+  bench "lists (JSX)", [list: gen_list] do
+    JSX.encode!(list)
   end
 
   bench "lists (Jazz)", [list: gen_list] do
@@ -27,8 +27,8 @@ defmodule EncoderBench do
     :jiffy.encode(map)
   end
 
-  bench "maps (JSEX)", [map: gen_map] do
-    JSEX.encode!(map)
+  bench "maps (JSX)", [map: gen_map] do
+    JSX.encode!(map)
   end
 
   bench "maps (Jazz)", [map: gen_map] do
@@ -44,8 +44,8 @@ defmodule EncoderBench do
     :jiffy.encode(string)
   end
 
-  bench "strings (JSEX)", [string: gen_string] do
-    JSEX.encode!(string)
+  bench "strings (JSX)", [string: gen_string] do
+    JSX.encode!(string)
   end
 
   bench "strings (Jazz)", [string: gen_string] do
@@ -61,7 +61,7 @@ defmodule EncoderBench do
     :jiffy.encode(string, [:uescape])
   end
 
-  bench "string escaping (JSEX, unsupported)", [string: gen_string] do
+  bench "string escaping (JSX, unsupported)", [string: gen_string] do
     # JSX doesn't support escaping unicode
   end
 
@@ -77,8 +77,8 @@ defmodule EncoderBench do
     :jiffy.encode(data)
   end
 
-  bench "JSEX", [data: gen_data] do
-    JSEX.encode!(data)
+  bench "JSX", [data: gen_data] do
+    JSX.encode!(data)
   end
 
   bench "Jazz", [data: gen_data] do

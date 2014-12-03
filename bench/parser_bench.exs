@@ -12,8 +12,8 @@ defmodule ParserBench do
     :jiffy.decode(json, [:return_maps])
   end
 
-  bench "JSEX", [json: gen_json] do
-    JSEX.decode!(json)
+  bench "JSX", [json: gen_json] do
+    JSX.decode!(json)
   end
 
   # UTF8 escaping
@@ -25,8 +25,8 @@ defmodule ParserBench do
     :jiffy.decode(utf8)
   end
 
-  bench "UTF-8 unescaping (JSEX)", [utf8: gen_utf8] do
-    JSEX.decode!(utf8)
+  bench "UTF-8 unescaping (JSX)", [utf8: gen_utf8] do
+    JSX.decode!(utf8)
   end
 
   defp gen_json do

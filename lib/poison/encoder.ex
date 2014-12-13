@@ -57,11 +57,16 @@ defimpl Poison.Encoder, for: BitString do
     end
   end
 
-  defp escape(<<char>> <> rest, mode) when char < 0x1F do
+  # http://en.wikipedia.org/wiki/Unicode_control_characters
+  defp escape(<<char>> <> rest, mode) when char < 0x1F or char == 0x7F do
     [seq(char) | escape(rest, mode)]
   end
 
-  defp escape(<<char :: utf8>> <> rest, :unicode) when char in 0x80..0xFFFF do
+  defp escape(<<char :: utf8>> <> rest, mode) when char in 0x80..0x9F do
+    [seq(char) | escape(rest, mode)]
+  end
+
+  defp escape(<<char :: utf8>> <> rest, :unicode) when char in 0xA0..0xFFFF do
     [seq(char) | escape(rest, :unicode)]
   end
 
@@ -110,7 +115,11 @@ defimpl Poison.Encoder, for: BitString do
     chunk_size(rest, mode, acc + size)
   end
 
-  defp chunk_size(_, _, acc), do: acc
+  defp chunk_size(<<char>>, _, _) do
+    raise Poison.EncodeError, value: <<char>>
+  end
+
+  defp chunk_size("", _, acc), do: acc
 
   @compile {:inline, seq: 1}
   defp seq(char) do

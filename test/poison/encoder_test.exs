@@ -29,6 +29,7 @@ defmodule Posion.EncoderTest do
     assert to_json("☃", escape: :unicode) == ~s("\\u2603")
     assert to_json("𝄞", escape: :unicode) == ~s("\\uD834\\uDD1E")
     assert to_json("\x{2028}\x{2029}", escape: :javascript) == ~s("\\u2028\\u2029")
+    assert to_json("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
   end
 
   test "Map" do
@@ -80,6 +81,10 @@ defmodule Posion.EncoderTest do
 
     assert_raise EncodeError, fn ->
       assert to_json(%{42.0 => "foo"})
+    end
+
+    assert_raise EncodeError, fn ->
+      assert to_json(<<0x80>>)
     end
   end
 

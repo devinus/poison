@@ -1,5 +1,5 @@
 defmodule Poison.ParserTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Poison.Parser
   alias Poison.SyntaxError

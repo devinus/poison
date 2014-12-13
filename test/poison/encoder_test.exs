@@ -26,7 +26,6 @@ defmodule Posion.EncoderTest do
 
     assert to_json("\"") == ~s("\\"")
     assert to_json("\0") == ~s("\\u0000")
-    assert to_json(<<0x80>>) == ~s("\\u0080")
     assert to_json("☃", escape: :unicode) == ~s("\\u2603")
     assert to_json("𝄞", escape: :unicode) == ~s("\\uD834\\uDD1E")
     assert to_json("\x{2028}\x{2029}", escape: :javascript) == ~s("\\u2028\\u2029")

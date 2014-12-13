@@ -24,7 +24,8 @@ defmodule Poison do
       iex> Poison.encode_to_iodata([1, 2, 3])
       {:ok, [91, "1", [44, "2", 44, "3"], 93]}
   """
-  @spec encode_to_iodata(Encoder.t, Keyword.t) :: {:ok, iodata} | {:error, {:invalid, any}}
+  @spec encode_to_iodata(Encoder.t, Keyword.t) :: {:ok, iodata}
+    | {:error, {:invalid, any}}
   def encode_to_iodata(value, options \\ []) do
     encode(value, [iodata: true] ++ options)
   end

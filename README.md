@@ -65,7 +65,7 @@ end
 ## Benchmarking
 
 ```sh-session
-$ mix archive.install https://github.com/alco/benchfella/releases/download/archive/benchfella-0.0.2.ez
+$ mix archive.install https://github.com/alco/benchfella/releases/download/v0.1.0/benchfella-0.1.0.ez
 $ mix deps.get
 $ MIX_ENV=bench mix compile
 $ MIX_ENV=bench mix compile.protocols

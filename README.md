@@ -44,6 +44,19 @@ iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), keys: :atoms!
 %{name: "Devin Torres", age: 27}
 ```
 
+Note that `keys: :atoms!` reuses existing atoms, i.e. if `:name` was not
+allocated before the call, you will encounter an `argument error` message.
+
+You can use the `keys: :atoms` variant to make sure all atoms are created as
+needed.  However, unless you absolutely know what you're doing, do **not** do
+it.  Atoms are not garbage-collected, see
+[Erlang Efficiency Guide](http://www.erlang.org/doc/efficiency_guide/commoncaveats.html)
+for more info:
+
+> Atoms are not garbage-collected. Once an atom is created, it will never be
+> removed. The emulator will terminate if the limit for the number of atoms
+> (1048576 by default) is reached.
+
 ## Encoder
 
 ```iex

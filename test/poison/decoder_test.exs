@@ -4,7 +4,7 @@ defmodule Posion.DecoderTest do
   import Poison.Decode
 
   defmodule Person do
-    defstruct [:name, :age]
+    defstruct [:name, age: 42]
   end
 
   defimpl Poison.Decoder, for: Person do
@@ -53,4 +53,15 @@ defmodule Posion.DecoderTest do
     person = %{"name" => "Devin Torres", "age" => 27, "dob" => "1987-01-29"}
     assert decode(person, as: Person) == "Devin Torres (27)"
   end
+
+  test "decoding into structs with default values" do
+    person = %{"name" => "Devin Torres"}
+    assert decode(person, as: Person) == "Devin Torres (42)"
+  end
+
+  test "decoding into structs with nil overriding defaults" do
+    person = %{"name" => "Devin Torres", "age" => nil}
+    assert decode(person, as: Person) == "Devin Torres ()"
+  end
+
 end

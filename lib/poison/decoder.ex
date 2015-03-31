@@ -40,12 +40,17 @@ defmodule Poison.Decode do
   end
 
   defp transform_struct(value, _keys, as, options) do
-    kv = for k <- Map.keys(Map.from_struct(as.__struct__)) do
-      {k, Map.get(value, Atom.to_string(k))}
-    end
-
-    Poison.Decoder.decode(struct(as, kv), options)
+    struct = as.__struct__.__struct__
+    Enum.into(Map.from_struct(as.__struct__), %{}, fn {key, struct_value} ->
+      case Map.fetch(value, Atom.to_string(key)) do
+        {:ok, json_value} -> {key, json_value}
+        :error -> {key, struct_value}
+      end
+    end)
+    |> Map.put(:__struct__, struct)
+    |> Poison.Decoder.decode(options)
   end
+
 end
 
 defprotocol Poison.Decoder do

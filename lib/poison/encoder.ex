@@ -147,14 +147,16 @@ end
 defimpl Poison.Encoder, for: Map do
   alias Poison.Encoder
 
+  @compile :inline_list_funcs
+
   import Poison.Encode, only: [encode_name: 1]
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
     fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
-                Encoder.encode(&2, options) | &3]
-    [?{, tl(:maps.fold(fun, [], map)), ?}]
+                Encoder.encode(:maps.get(&1, map), options) | &2]
+    [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end
 end
 
@@ -170,7 +172,7 @@ defimpl Poison.Encoder, for: List do
   end
 
   def encode([head | rest], options) do
-    tail = :lists.flatmap(&[?,, Encoder.encode(&1, options)], rest)
+    tail = :lists.foldr(&[?,, Encoder.encode(&1, options) | &2], [], rest)
     [?[, Encoder.encode(head, options), tail, ?]]
   end
 end

@@ -38,6 +38,8 @@ defmodule Poison.Parser do
       "" -> {:ok, value}
       other -> syntax_error(other)
     end
+  rescue
+    e in ArgumentError -> {:error, :argument}
   catch
     :invalid ->
       {:error, :invalid}
@@ -52,6 +54,8 @@ defmodule Poison.Parser do
         value
       {:error, :invalid} ->
         raise SyntaxError
+      {:error, :argument} ->
+        raise ArgumentError
       {:error, {:invalid, token}} ->
         raise SyntaxError, token: token
     end

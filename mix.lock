@@ -1,7 +1,7 @@
 %{"benchfella": {:hex, :benchfella, "0.2.0"},
-  "earmark": {:hex, :earmark, "0.1.15"},
-  "ex_doc": {:hex, :ex_doc, "0.7.2"},
+  "earmark": {:hex, :earmark, "0.1.17"},
+  "ex_doc": {:hex, :ex_doc, "0.7.3"},
   "exjsx": {:git, "git://github.com/talentdeficit/exjsx.git", "d3572b488f10e3b83fadb1fc595fc87f84c35809", []},
   "jazz": {:git, "git://github.com/meh/jazz.git", "49f335492aca5516495199dd81dd18b845ebaa69", []},
-  "jiffy": {:git, "git://github.com/davisp/jiffy.git", "801f9e72995eb72b303018885137ad8afbf1fb2b", []},
+  "jiffy": {:git, "git://github.com/davisp/jiffy.git", "446e284bd51013fe2899803b9dcbd162d8b8efb3", []},
   "jsx": {:hex, :jsx, "2.4.0"}}

@@ -31,7 +31,6 @@ defmodule Poison.Mixfile do
   defp deps do
     [{:earmark, "~> 0.1", only: :docs},
      {:ex_doc, "~> 0.7", only: :docs},
-     {:benchfella, "~> 0.2", only: :bench},
      {:jiffy, github: "davisp/jiffy", only: :bench},
      {:exjsx, github: "talentdeficit/exjsx", only: :bench},
      {:jazz, github: "meh/jazz", only: :bench}]

@@ -242,7 +242,7 @@ defmodule Poison.Parser do
     string_chunk_size(rest, acc + string_codepoint_size(codepoint))
   end
 
-  defp string_chunk_size(_, acc), do: acc
+  defp string_chunk_size(other, _), do: syntax_error(other)
 
   defp string_codepoint_size(codepoint) when codepoint < 0x800,   do: 2
   defp string_codepoint_size(codepoint) when codepoint < 0x10000, do: 3

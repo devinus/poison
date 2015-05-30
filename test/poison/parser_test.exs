@@ -36,6 +36,7 @@ defmodule Poison.ParserTest do
     assert_raise SyntaxError, fn -> parse!(~s(")) end
     assert_raise SyntaxError, fn -> parse!(~s("\\")) end
     assert_raise SyntaxError, fn -> parse!(~s("\\k")) end
+    assert_raise SyntaxError, fn -> parse!(<<34, 128, 34>>) end
 
     assert parse!(~s("\\"\\\\\\/\\b\\f\\n\\r\\t")) == ~s("\\/\b\f\n\r\t)
     assert parse!(~s("\\u2603")) == "☃"

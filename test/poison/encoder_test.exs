@@ -1,4 +1,4 @@
-defmodule Posion.EncoderTest do
+defmodule Poison.EncoderTest do
   use ExUnit.Case, async: true
 
   alias Poison.EncodeError

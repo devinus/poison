@@ -1,4 +1,4 @@
-defmodule PosionTest do
+defmodule PoisonTest do
   use ExUnit.Case, async: true
 
   doctest Poison

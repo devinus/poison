@@ -1,4 +1,4 @@
-defmodule Posion.DecoderTest do
+defmodule Poison.DecoderTest do
   use ExUnit.Case, async: true
 
   import Poison.Decode

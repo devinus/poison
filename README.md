@@ -28,7 +28,6 @@ end
 ```
 
 then run `$ mix deps.get`.
-```
 
 ## Usage
 

@@ -27,7 +27,11 @@ def deps do
 end
 ```
 
-then run `$ mix deps.get`.
+Then, update your dependencies:
+
+```sh-session
+$ mix deps.get
+```
 
 ## Usage
 

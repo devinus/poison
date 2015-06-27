@@ -17,6 +17,21 @@ several techniques that are [known to benefit HiPE][2] for native compilation,
 Preliminary benchmarking has sometimes put Poison's performance closer to
 `jiffy`, and almost always faster than existing Elixir libraries.
 
+## Installation
+
+First, add Poison to your `mix.exs` dependencies:
+
+```elixir
+def deps do
+  [{:poison, "~> 1.4.0"}]
+end
+```
+
+then run `$ mix deps.get`.
+```
+
+## Usage
+
 ```elixir
 defmodule Person do
   defstruct [:name, :age]

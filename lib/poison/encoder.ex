@@ -22,6 +22,11 @@ defmodule Poison.Encode do
           message: "expected string or atom key, got: #{inspect value}"
     end
   end
+
+  def indent(n) when n == 0, do: ''
+  def indent(n) do
+    '  ' ++ indent(n - 1)
+  end
 end
 
 defprotocol Poison.Encoder do
@@ -153,11 +158,22 @@ defimpl Poison.Encoder, for: Map do
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
+  def encode(map, [pretty: true] = options), do: encode(map, Keyword.put(options, :pretty, 1))
+  def encode(map, [pretty: false] = options), do: encode(map, Keyword.delete(options, :pretty))
+
+  def encode(map, [pretty: pretty] = options) do
+    indent_strlist = Poison.Encode.indent(pretty)
+    fun = &[',\n', indent_strlist, Encoder.BitString.encode(encode_name(&1), options), ?:,
+                Encoder.encode(:maps.get(&1, map), Keyword.put(options, :pretty, pretty+1) ) | &2]
+    [?{, ?\n, tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, Poison.Encode.indent(pretty-1), ?}]
+  end
+
   def encode(map, options) do
     fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
                 Encoder.encode(:maps.get(&1, map), options) | &2]
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end
+
 end
 
 defimpl Poison.Encoder, for: List do
@@ -169,6 +185,17 @@ defimpl Poison.Encoder, for: List do
 
   def encode([head], options) do
     [?[, Encoder.encode(head, options), ?]]
+  end
+
+  def encode(list, [pretty: true] = options),do: encode(list, Keyword.put(options, :pretty, 1))
+  def encode(list, [pretty: false] = options), do: encode(list, Keyword.delete(options, :pretty))
+
+  def encode([head | rest], [pretty: pretty] = options) do
+    indent_strlist = Poison.Encode.indent(pretty)
+    value_prefix = ',\n' ++ indent_strlist
+    indent_close_strlist = Poison.Encode.indent(pretty-1)
+    tail = :lists.foldr(&[value_prefix, Encoder.encode(&1, Keyword.put(options, :pretty, pretty+1)) | &2], [], rest)
+    [?[, ?\n, indent_strlist, Encoder.encode(head, options), tail, ?\n, indent_close_strlist, ?]]
   end
 
   def encode([head | rest], options) do

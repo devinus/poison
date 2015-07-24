@@ -39,7 +39,7 @@ defmodule Poison.EncoderTest do
   end
 
   test "Map (pretty)" do
-    assert to_json(%{foo: %{bar: "baz"}}, pretty: true) == ~s({\n  \"foo\":{\n    \"bar\":"baz"\n  }\n})
+    assert to_json(%{foo: %{bar: "baz"}}, pretty: true) == ~s({\n  \"foo\": {\n    \"bar\": "baz"\n  }\n})
   end
 
   test "List" do

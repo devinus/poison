@@ -180,7 +180,7 @@ defimpl Poison.Encoder, for: Map do
     prev_indent = Poison.Style.prev(style)
     next_options = Keyword.put(options, :pretty, Poison.Style.incr(style, current_indent))
 
-    fun = &[',\n', current_indent, Encoder.BitString.encode(encode_name(&1), next_options), ?:,
+    fun = &[',\n', current_indent, Encoder.BitString.encode(encode_name(&1), next_options), ?:, ? ,
                 Encoder.encode(:maps.get(&1, map), next_options ) | &2]
     [?{, ?\n, tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, prev_indent, ?}]
   end

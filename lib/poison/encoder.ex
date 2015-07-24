@@ -22,10 +22,20 @@ defmodule Poison.Encode do
           message: "expected string or atom key, got: #{inspect value}"
     end
   end
+end
 
-  def indent(n) when n == 0, do: ''
-  def indent(n) do
-    '  ' ++ indent(n - 1)
+defmodule Poison.Style do
+  defstruct indent: '  ', level: 1, prev: ''
+
+  def indent(%Poison.Style{level: 0}), do: ''
+  def indent(%Poison.Style{level: level} = style) when level > 0 do
+    style.indent ++ indent(%Poison.Style{style | level: level - 1})
+  end
+
+  def prev(%Poison.Style{prev: prev}), do: prev
+
+  def incr(style, prev_indent) when is_list(prev_indent) do
+    %Poison.Style{style | level: style.level + 1, prev: prev_indent}
   end
 end
 
@@ -158,14 +168,21 @@ defimpl Poison.Encoder, for: Map do
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
-  def encode(map, [pretty: true] = options), do: encode(map, Keyword.put(options, :pretty, 1))
-  def encode(map, [pretty: false] = options), do: encode(map, Keyword.delete(options, :pretty))
+  def encode(map, [pretty: true] = options) do
+    encode(map, Keyword.put(options, :pretty, %Poison.Style{} ))
+  end
+  def encode(map, [pretty: false] = options) do
+    encode(map, Keyword.delete(options, :pretty))
+  end
 
-  def encode(map, [pretty: pretty] = options) do
-    indent_strlist = Poison.Encode.indent(pretty)
-    fun = &[',\n', indent_strlist, Encoder.BitString.encode(encode_name(&1), options), ?:,
-                Encoder.encode(:maps.get(&1, map), Keyword.put(options, :pretty, pretty+1) ) | &2]
-    [?{, ?\n, tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, Poison.Encode.indent(pretty-1), ?}]
+  def encode(map, [pretty: style] = options) do
+    current_indent = Poison.Style.indent(style)
+    prev_indent = Poison.Style.prev(style)
+    next_options = Keyword.put(options, :pretty, Poison.Style.incr(style, current_indent))
+
+    fun = &[',\n', current_indent, Encoder.BitString.encode(encode_name(&1), next_options), ?:,
+                Encoder.encode(:maps.get(&1, map), next_options ) | &2]
+    [?{, ?\n, tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, prev_indent, ?}]
   end
 
   def encode(map, options) do
@@ -187,15 +204,21 @@ defimpl Poison.Encoder, for: List do
     [?[, Encoder.encode(head, options), ?]]
   end
 
-  def encode(list, [pretty: true] = options),do: encode(list, Keyword.put(options, :pretty, 1))
-  def encode(list, [pretty: false] = options), do: encode(list, Keyword.delete(options, :pretty))
+  def encode(map, [pretty: true] = options) do
+    encode(map, Keyword.put(options, :pretty, %Poison.Style{} ))
+  end
+  def encode(map, [pretty: false] = options) do
+    encode(map, Keyword.delete(options, :pretty))
+  end
 
-  def encode([head | rest], [pretty: pretty] = options) do
-    indent_strlist = Poison.Encode.indent(pretty)
-    value_prefix = ',\n' ++ indent_strlist
-    indent_close_strlist = Poison.Encode.indent(pretty-1)
-    tail = :lists.foldr(&[value_prefix, Encoder.encode(&1, Keyword.put(options, :pretty, pretty+1)) | &2], [], rest)
-    [?[, ?\n, indent_strlist, Encoder.encode(head, options), tail, ?\n, indent_close_strlist, ?]]
+  def encode([head | rest], [pretty: style] = options) do
+    current_indent = Poison.Style.indent(style)
+    prev_indent = Poison.Style.prev(style)
+    next_options = Keyword.put(options, :pretty, Poison.Style.incr(style, current_indent))
+
+    value_prefix = ',\n' ++ current_indent
+    tail = :lists.foldr(&[value_prefix, Encoder.encode(&1, next_options) | &2], [], rest)
+    [?[, ?\n, current_indent ++ Encoder.encode(head, next_options), tail, ?\n, prev_indent, ?]]
   end
 
   def encode([head | rest], options) do

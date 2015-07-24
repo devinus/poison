@@ -6,6 +6,10 @@ defmodule EncoderBench do
     Poison.encode!(list)
   end
 
+  bench "lists (Poison (pretty))", [list: gen_list] do
+    Poison.encode!(list, [pretty: true])
+  end
+
   bench "lists (jiffy)", [list: gen_list] do
     :jiffy.encode(list)
   end
@@ -21,6 +25,10 @@ defmodule EncoderBench do
   # Maps
   bench "maps (Poison)", [map: gen_map] do
     Poison.encode!(map)
+  end
+
+  bench "maps (Poison (pretty))", [map: gen_map] do
+    Poison.encode!(map, [pretty: true])
   end
 
   bench "maps (jiffy)", [map: gen_map] do
@@ -71,6 +79,10 @@ defmodule EncoderBench do
 
   bench "Poison", [data: gen_data] do
     Poison.encode!(data)
+  end
+
+  bench "Poison (pretty)", [data: gen_data] do
+    Poison.encode!(data, [pretty: true])
   end
 
   bench "jiffy", [data: gen_data] do

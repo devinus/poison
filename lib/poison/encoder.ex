@@ -26,21 +26,18 @@ end
 
 defmodule Poison.Pretty do
   @default_indent 2
+  @default_offset 0
 
   def indent(options) do
-    options[:indent] || @default_indent
+    Keyword.get(options, :indent, @default_indent)
   end
 
-  def indent(options, value) do
-    Keyword.put(options, :indent, value)
+  def offset(options) do
+    Keyword.get(options, :offset, @default_offset)
   end
 
-  def level(options) do
-    options[:level] || 1
-  end
-
-  def level(options, value) do
-    Keyword.put(options, :level, value)
+  def offset(options, value) do
+    Keyword.put(options, :offset, value)
   end
 
   def spaces(n) do
@@ -183,12 +180,12 @@ defimpl Poison.Encoder, for: Map do
   end
 
   def encode(map, true, options) do
-    level = level(options)
     indent = indent(options)
-    offset = indent * level
-    options = level(options, level + 1)
+    offset = offset(options) + indent
+    options = offset(options, offset)
+
     fun = &[",\n", spaces(offset), Encoder.BitString.encode(encode_name(&1), options), ": ",
-                Encoder.encode(:maps.get(&1, map), options) | &2]
+                                   Encoder.encode(:maps.get(&1, map), options) | &2]
     ["{\n", tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, spaces(offset - indent), ?}]
   end
 
@@ -202,27 +199,57 @@ end
 defimpl Poison.Encoder, for: List do
   alias Poison.Encoder
 
+  import Poison.Pretty
+
   @compile :inline_list_funcs
 
   def encode([], _), do: "[]"
 
-  def encode([head], options) do
-    [?[, Encoder.encode(head, options), ?]]
+  def encode(list, options) do
+    encode(list, !!options[:pretty], options)
   end
 
-  def encode([head | rest], options) do
-    tail = :lists.foldr(&[?,, Encoder.encode(&1, options) | &2], [], rest)
-    [?[, Encoder.encode(head, options), tail, ?]]
+  def encode(list, false, options) do
+    fun = &[?,, Encoder.encode(&1, options) | &2]
+    [?[, tl(:lists.foldr(fun, [], list)), ?]]
+  end
+
+  def encode(list, true, options) do
+    indent = indent(options)
+    offset = offset(options) + indent
+    options = offset(options, offset)
+
+    fun = &[",\n", spaces(offset), Encoder.encode(&1, options) | &2]
+    ["[\n", tl(:lists.foldr(fun, [], list)), ?\n, spaces(offset - indent), ?]]
   end
 end
 
 defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
+  import Poison.Pretty
+
   def encode(collection, options) do
+    encode(collection, !!options[:pretty], options)
+  end
+
+  def encode(collection, false, options) do
     fun = &[?,, Poison.Encoder.encode(&1, options)]
 
     case Enum.flat_map(collection, fun) do
       [] -> "[]"
       [_ | tail] -> [?[, tail, ?]]
+    end
+  end
+
+  def encode(collection, true, options) do
+    indent = indent(options)
+    offset = offset(options) + indent
+    options = offset(options, offset)
+
+    fun = &[",\n", spaces(offset), Poison.Encoder.encode(&1, options)]
+
+    case Enum.flat_map(collection, fun) do
+      [] -> "[]"
+      [_ | tail] -> ["[\n", tail, ?\n, spaces(offset - indent), ?]]
     end
   end
 end
@@ -234,18 +261,26 @@ defimpl Poison.Encoder, for: HashDict do
   import Poison.Pretty
 
   def encode(dict, options) do
-    encode(dict, HashDict.size(dict), !!options[:pretty], options)
+    if HashDict.size(dict) < 1 do
+      "{}"
+    else
+      encode(dict, !!options[:pretty], options)
+    end
   end
 
-  def encode(dict, 0, _, options) do
-    "{}"
+  def encode(dict, false, options) do
+    fun = fn {key, value} ->
+      [?,, Encoder.BitString.encode(encode_name(key), options), ?:,
+           Encoder.encode(value, options)]
+    end
+
+    [?{, tl(Enum.flat_map(dict, fun)), ?}]
   end
 
-  def encode(dict, _, true, options) do
-    level = level(options)
+  def encode(dict, true, options) do
     indent = indent(options)
-    offset = indent * level
-    options = level(options, level + 1)
+    offset = offset(options) + indent
+    options = offset(options, offset)
 
     fun = fn {key, value} ->
       [",\n", spaces(offset), Encoder.BitString.encode(encode_name(key), options), ": ",
@@ -253,15 +288,6 @@ defimpl Poison.Encoder, for: HashDict do
     end
 
     ["{\n", tl(Enum.flat_map(dict, fun)), ?\n, spaces(offset - indent), ?}]
-  end
-
-  def encode(dict, _, _, options) do
-    fun = fn {key, value} ->
-      [?,, Encoder.BitString.encode(encode_name(key), options), ?:,
-           Encoder.encode(value, options)]
-    end
-
-    [?{, tl(Enum.flat_map(dict, fun)), ?}]
   end
 end
 

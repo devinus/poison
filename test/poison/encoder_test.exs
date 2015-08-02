@@ -36,21 +36,51 @@ defmodule Poison.EncoderTest do
     assert to_json(%{}) == "{}"
     assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
     assert to_json(%{"foo" => "bar"})  == ~s({"foo":"bar"})
+    assert to_json(%{foo: %{bar: %{baz: "baz"}}}, pretty: true) == """
+    {
+      "foo": {
+        "bar": {
+          "baz": "baz"
+        }
+      }
+    }\
+    """
   end
 
   test "List" do
     assert to_json([]) == "[]"
     assert to_json([1, 2, 3]) == "[1,2,3]"
+    assert to_json([1, 2, 3], pretty: true) == """
+    [
+      1,
+      2,
+      3
+    ]\
+    """
   end
 
   test "Range" do
     assert to_json(1..3) == "[1,2,3]"
+    assert to_json(1..3, pretty: true) == """
+    [
+      1,
+      2,
+      3
+    ]\
+    """
   end
 
   test "Stream" do
     range = 1..10
     assert to_json(Stream.take(range, 0)) == "[]"
     assert to_json(Stream.take(range, 3)) == "[1,2,3]"
+    assert to_json(Stream.take(range, 3), pretty: true) == """
+    [
+      1,
+      2,
+      3
+    ]\
+    """
   end
 
   # HashSet/HashDict have an unspecified order
@@ -60,7 +90,22 @@ defmodule Poison.EncoderTest do
     assert to_json(set) == "[]"
 
     set = set |> HashSet.put(1) |> HashSet.put(2)
+
     assert to_json(set) in ~w([1,2] [2,1])
+    assert to_json(set, pretty: true) in [
+      """
+      [
+        1,
+        2
+      ]\
+      """,
+      """
+      [
+        2,
+        1
+      ]\
+      """
+    ]
   end
 
   test "HashDict" do
@@ -68,10 +113,26 @@ defmodule Poison.EncoderTest do
     assert to_json(dict) == "{}"
 
     dict = dict |> HashDict.put(:foo, "bar") |> HashDict.put(:baz, "quux")
+
     assert to_json(dict) in ~w"""
     {"foo":"bar","baz":"quux"}
     {"baz":"quux","foo":"bar"}
     """
+
+    assert to_json(dict, pretty: true) in [
+      """
+      {
+        "foo": "bar",
+        "baz": "quux"
+      }\
+      """,
+      """
+      {
+        "baz": "quux",
+        "foo": "bar"
+      }\
+      """
+    ]
   end
 
   test "EncodeError" do

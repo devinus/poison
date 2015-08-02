@@ -151,9 +151,45 @@ defimpl Poison.Encoder, for: Map do
 
   import Poison.Encode, only: [encode_name: 1]
 
+  defp spaces(2), do: "  "
+  defp spaces(4), do: "    "
+  defp spaces(n) do
+    :binary.copy(" ", n)
+  end
+
+  defp indent(options) do
+    Keyword.get(options, :indent) || 2
+  end
+
+  defp indent(options, value) do
+    Keyword.put(options, :indent, value)
+  end
+
+  defp level(options) do
+    Keyword.get(options, :level) || 1
+  end
+
+  defp level(options, value) do
+    Keyword.put(options, :level, value)
+  end
+
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
+    encode(map, options[:pretty], options)
+  end
+
+  def encode(map, true, options) do
+    level = level(options)
+    indent = indent(options)
+    offset = indent * level
+    options = level(options, level + 1)
+    fun = &[",\n", spaces(offset), Encoder.BitString.encode(encode_name(&1), options), ": ",
+                Encoder.encode(:maps.get(&1, map), options) | &2]
+    ["{\n", tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, spaces(offset - indent), ?}]
+  end
+
+  def encode(map, _, options) do
     fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
                 Encoder.encode(:maps.get(&1, map), options) | &2]
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]

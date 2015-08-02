@@ -61,8 +61,8 @@ defmodule EncoderBench do
     :jiffy.encode(string, [:uescape])
   end
 
-  bench "string escaping (JSX, unsupported)", [string: gen_string] do
-    # JSX doesn't support escaping unicode
+  bench "string escaping (JSX)", [string: gen_string] do
+    JSX.encode!(string, [:uescape])
   end
 
   bench "string escaping (Jazz)", [string: gen_string] do
@@ -83,6 +83,22 @@ defmodule EncoderBench do
 
   bench "Jazz", [data: gen_data] do
     Jazz.encode!(data)
+  end
+
+  bench "Poison (pretty)", [data: gen_data] do
+    Poison.encode!(data, pretty: true)
+  end
+
+  bench "jiffy (pretty)", [data: gen_data] do
+    :jiffy.encode(data, [:pretty])
+  end
+
+  bench "JSX (pretty)", [data: gen_data] do
+    JSX.prettify!(JSX.encode!(data))
+  end
+
+  bench "Jazz (pretty)", [data: gen_data] do
+    Jazz.encode!(data, pretty: true)
   end
 
   defp gen_list do

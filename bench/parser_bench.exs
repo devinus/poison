@@ -13,7 +13,7 @@ defmodule ParserBench do
   end
 
   bench "JSX", [json: gen_json] do
-    JSX.decode!(json)
+    JSX.decode!(json, [:strict])
   end
 
   # UTF8 escaping
@@ -26,7 +26,7 @@ defmodule ParserBench do
   end
 
   bench "UTF-8 unescaping (JSX)", [utf8: gen_utf8] do
-    JSX.decode!(utf8)
+    JSX.decode!(utf8, [:strict])
   end
 
   defp gen_json do

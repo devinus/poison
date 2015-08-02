@@ -11,37 +11,51 @@ defmodule Poison.EncodeError do
 end
 
 defmodule Poison.Encode do
-  def encode_name(value) do
-    cond do
-      is_binary(value) ->
-        value
-      is_atom(value) ->
-        Atom.to_string(value)
-      true ->
-        raise Poison.EncodeError, value: value,
-          message: "expected string or atom key, got: #{inspect value}"
+  defmacro __using__(_) do
+    quote do
+      defp encode_name(value) do
+        cond do
+          is_binary(value) ->
+            value
+          is_atom(value) ->
+            Atom.to_string(value)
+          true ->
+            raise Poison.EncodeError, value: value,
+              message: "expected string or atom key, got: #{inspect value}"
+        end
+      end
     end
   end
 end
 
 defmodule Poison.Pretty do
-  @default_indent 2
-  @default_offset 0
+  defmacro __using__(_) do
+    quote do
+      @default_indent 2
+      @default_offset 0
 
-  def indent(options) do
-    Keyword.get(options, :indent, @default_indent)
-  end
+      @compile {:inline, pretty: 1, indent: 1, offset: 1, offset: 2, spaces: 1}
 
-  def offset(options) do
-    Keyword.get(options, :offset, @default_offset)
-  end
+      defp pretty(options) do
+        !!Keyword.get(options, :pretty)
+      end
 
-  def offset(options, value) do
-    Keyword.put(options, :offset, value)
-  end
+      defp indent(options) do
+        Keyword.get(options, :indent, @default_indent)
+      end
 
-  def spaces(n) do
-    :binary.copy(" ", n)
+      defp offset(options) do
+        Keyword.get(options, :offset, @default_offset)
+      end
+
+      defp offset(options, value) do
+        Keyword.put(options, :offset, value)
+      end
+
+      defp spaces(count) do
+        :binary.copy(" ", count)
+      end
+    end
   end
 end
 
@@ -170,13 +184,13 @@ defimpl Poison.Encoder, for: Map do
 
   @compile :inline_list_funcs
 
-  import Poison.Encode
-  import Poison.Pretty
+  use Poison.Pretty
+  use Poison.Encode
 
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
-    encode(map, !!options[:pretty], options)
+    encode(map, pretty(options), options)
   end
 
   def encode(map, true, options) do
@@ -199,14 +213,14 @@ end
 defimpl Poison.Encoder, for: List do
   alias Poison.Encoder
 
-  import Poison.Pretty
+  use Poison.Pretty
 
   @compile :inline_list_funcs
 
   def encode([], _), do: "[]"
 
   def encode(list, options) do
-    encode(list, !!options[:pretty], options)
+    encode(list, pretty(options), options)
   end
 
   def encode(list, false, options) do
@@ -225,10 +239,10 @@ defimpl Poison.Encoder, for: List do
 end
 
 defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
-  import Poison.Pretty
+  use Poison.Pretty
 
   def encode(collection, options) do
-    encode(collection, !!options[:pretty], options)
+    encode(collection, pretty(options), options)
   end
 
   def encode(collection, false, options) do
@@ -257,14 +271,14 @@ end
 defimpl Poison.Encoder, for: HashDict do
   alias Poison.Encoder
 
-  import Poison.Encode
-  import Poison.Pretty
+  use Poison.Pretty
+  use Poison.Encode
 
   def encode(dict, options) do
     if HashDict.size(dict) < 1 do
       "{}"
     else
-      encode(dict, !!options[:pretty], options)
+      encode(dict, pretty(options), options)
     end
   end
 

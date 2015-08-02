@@ -4,9 +4,12 @@ elixir:
   - 1.0.1
   - 1.0.2
   - 1.0.3
+  - 1.0.4
 otp_release:
   - 17.0
   - 17.1
   - 17.3
   - 17.4
-sudo: false # to use faster container based build environment
+  - 17.5
+  - 18.0
+sudo: false

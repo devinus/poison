@@ -37,8 +37,12 @@ $ mix deps.get
 
 ```elixir
 defmodule Person do
+  @derive [Poison.Encoder]
   defstruct [:name, :age]
 end
+
+Poison.encode!(%Person{name: "Devin Torres", age: 27})
+#=> "{\"name\":\"Devin Torres\",\"age\":27}"
 
 Poison.decode!(~s({"name": "Devin Torres", "age": 27}), as: Person)
 #=> %Person{name: "Devin Torres", age: 27}
@@ -93,6 +97,9 @@ defimpl Poison.Encoder, for: Person do
   end
 end
 ```
+
+For maximum performance, make sure you `@derive [Poison.Encoder]` for any struct
+you plan on encoding.
 
 ## Benchmarking
 

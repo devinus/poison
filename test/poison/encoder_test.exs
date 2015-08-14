@@ -135,6 +135,22 @@ defmodule Poison.EncoderTest do
     ]
   end
 
+  defmodule Derived do
+    @derive [Poison.Encoder]
+    defstruct name: ""
+  end
+
+  defmodule NonDerived do
+    defstruct name: ""
+  end
+
+  test "@derive" do
+    derived = %Derived{name: "derived"}
+    non_derived = %NonDerived{name: "non-derived"}
+    assert Poison.Encoder.impl_for!(derived) == Poison.Encoder.Poison.EncoderTest.Derived
+    assert Poison.Encoder.impl_for!(non_derived) == Poison.Encoder.Any
+  end
+
   test "EncodeError" do
     assert_raise EncodeError, fn ->
       to_json(self)

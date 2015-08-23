@@ -140,6 +140,11 @@ defmodule Poison.EncoderTest do
     defstruct name: ""
   end
 
+  defmodule DerivedUsingOnly do
+    @derive {Poison.Encoder, only: [:name]}
+    defstruct name: "", size: 0
+  end
+
   defmodule NonDerived do
     defstruct name: ""
   end
@@ -149,6 +154,9 @@ defmodule Poison.EncoderTest do
     non_derived = %NonDerived{name: "non-derived"}
     assert Poison.Encoder.impl_for!(derived) == Poison.Encoder.Poison.EncoderTest.Derived
     assert Poison.Encoder.impl_for!(non_derived) == Poison.Encoder.Any
+
+    derived_using_only = %DerivedUsingOnly{name: "derived using :only", size: 10}
+    assert Poison.decode!(to_json(derived_using_only)) == %{"name" => "derived using :only"}
   end
 
   test "EncodeError" do

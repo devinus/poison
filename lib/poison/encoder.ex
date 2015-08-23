@@ -187,6 +187,11 @@ defimpl Poison.Encoder, for: Map do
   use Poison.Pretty
   use Poison.Encode
 
+  # TODO: Remove once we require Elixir 1.1+
+  defmacro __deriving__(module, struct, options) do
+    Poison.Encoder.Any.deriving(module, struct, options)
+  end
+
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
@@ -306,6 +311,26 @@ defimpl Poison.Encoder, for: HashDict do
 end
 
 defimpl Poison.Encoder, for: Any do
+  defmacro __deriving__(module, struct, options) do
+    deriving(module, struct, options)
+  end
+
+  def deriving(module, _struct, options) do
+    if only = options[:only] do
+      extractor = quote(do: Map.take(struct, unquote(only)))
+    else
+      extractor = quote(do: :maps.remove(:__struct__, struct))
+    end
+
+    quote do
+      defimpl Poison.Encoder, for: unquote(module) do
+        def encode(struct, options) do
+          Poison.Encoder.Map.encode(unquote(extractor), options)
+        end
+      end
+    end
+  end
+
   def encode(%{__struct__: _} = struct, options) do
     Poison.Encoder.Map.encode(Map.from_struct(struct), options)
   end

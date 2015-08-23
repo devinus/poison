@@ -69,6 +69,19 @@ defmodule EncoderBench do
     Jazz.encode!(string, escape: :unicode)
   end
 
+  # Structs
+  bench "structs (Poison)", [structs: gen_structs] do
+    Poison.encode!(structs)
+  end
+
+  bench "structs (JSX)", [structs: gen_structs] do
+    JSX.encode!(structs)
+  end
+
+  bench "structs (Jazz)", [structs: gen_structs] do
+    Jazz.encode!(structs)
+  end
+
   bench "Poison", [data: gen_data] do
     Poison.encode!(data)
   end
@@ -94,7 +107,7 @@ defmodule EncoderBench do
   end
 
   bench "JSX (pretty)", [data: gen_data] do
-    JSX.prettify!(JSX.encode!(data))
+    JSX.encode!(data) |> JSX.prettify!
   end
 
   bench "Jazz (pretty)", [data: gen_data] do
@@ -102,7 +115,7 @@ defmodule EncoderBench do
   end
 
   defp gen_list do
-    Enum.to_list(1..1000)
+    1..1000 |> Enum.to_list
   end
 
   defp gen_map do
@@ -110,10 +123,19 @@ defmodule EncoderBench do
   end
 
   defp gen_string do
-    File.read!(Path.expand("data/UTF-8-demo.txt", __DIR__))
+    Path.expand("data/UTF-8-demo.txt", __DIR__) |> File.read!
+  end
+
+  defmodule Struct do
+    @derive [Poison.Encoder]
+    defstruct x: nil
+  end
+
+  defp gen_structs do
+    1..10 |> Enum.map(&(%Struct{x: &1}))
   end
 
   defp gen_data do
-    File.read!(Path.expand("data/generated.json", __DIR__)) |> Poison.decode!
+    Path.expand("data/generated.json", __DIR__) |> File.read! |> Poison.decode!
   end
 end

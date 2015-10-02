@@ -6,7 +6,7 @@ defmodule Poison.Mixfile do
   def project do
     [app: :poison,
      version: @version,
-     elixir: "~> 1.0",
+     elixir: "~> 1.0 or ~> 1.1.0",
      description: "An experimental Elixir JSON library",
      deps: deps,
      package: package]

@@ -19,6 +19,13 @@ defmodule Poison.EncoderTest do
     assert to_json(9.9e100) == "9.9e100"
   end
 
+  test "Decimal" do
+    Decimal.with_context(%Decimal.Context{precision: 36, rounding: :floor}, fn ->
+      assert to_json(Decimal.new("1234.56789")) == "1234.56789"
+      assert to_json(Decimal.div(Decimal.new("123456789123489123456789"), Decimal.new("1000"))) == "123456789123489123456.789"
+    end)
+  end
+
   test "BitString" do
     assert to_json("hello world") == ~s("hello world")
     assert to_json("hello\nworld") == ~s("hello\\nworld")

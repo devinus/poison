@@ -173,6 +173,12 @@ defimpl Poison.Encoder, for: Integer do
   end
 end
 
+defimpl Poison.Encoder, for: Decimal do
+  def encode(decimal, _options) do
+    Decimal.to_string(decimal)
+  end
+end
+
 defimpl Poison.Encoder, for: Float do
   def encode(float, _options) do
     :io_lib_format.fwrite_g(float)

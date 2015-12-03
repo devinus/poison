@@ -92,8 +92,8 @@ passable to any IO subsystem without conversion.
 
 ```elixir
 defimpl Poison.Encoder, for: Person do
-  def encode(%{name: name, age: age}, _options) do
-    Poison.Encoder.BitString.encode("#{name} (#{age})")
+  def encode(%{name: name, age: age}, options) do
+    Poison.Encoder.BitString.encode("#{name} (#{age})", options)
   end
 end
 ```

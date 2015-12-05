@@ -30,6 +30,7 @@ defmodule Poison.EncoderTest do
     assert to_json("𝄞", escape: :unicode) == ~s("\\uD834\\uDD1E")
     assert to_json("\x{2028}\x{2029}", escape: :javascript) == ~s("\\u2028\\u2029")
     assert to_json("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
+    assert to_json(<<31>>) == ~s("\\\x1f")
   end
 
   test "Map" do

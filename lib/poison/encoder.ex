@@ -316,10 +316,10 @@ defimpl Poison.Encoder, for: Any do
   end
 
   def deriving(module, _struct, options) do
-    if only = options[:only] do
-      extractor = quote(do: Map.take(struct, unquote(only)))
+    extractor = if only = options[:only] do
+      quote(do: Map.take(struct, unquote(only)))
     else
-      extractor = quote(do: :maps.remove(:__struct__, struct))
+      quote(do: :maps.remove(:__struct__, struct))
     end
 
     quote do

@@ -93,7 +93,7 @@ defimpl Poison.Encoder, for: BitString do
   end
 
   # http://en.wikipedia.org/wiki/Unicode_control_characters
-  defp escape(<<char>> <> rest, mode) when char < 0x1F or char == 0x7F do
+  defp escape(<<char>> <> rest, mode) when char <= 0x1F or char == 0x7F do
     [seq(char) | escape(rest, mode)]
   end
 
@@ -124,7 +124,7 @@ defimpl Poison.Encoder, for: BitString do
     [chunk | escape(rest, mode)]
   end
 
-  defp chunk_size(<<char>> <> _, _mode, acc) when char < 0x1F or char in '"\\' do
+  defp chunk_size(<<char>> <> _, _mode, acc) when char <= 0x1F or char in '"\\' do
     acc
   end
 

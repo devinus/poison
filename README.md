@@ -104,7 +104,6 @@ you plan on encoding.
 ## Benchmarking
 
 ```sh-session
-$ mix archive.install https://github.com/alco/benchfella/releases/download/v0.2.1/benchfella-0.2.1.ez
 $ mix deps.get
 $ MIX_ENV=bench mix compile.protocols
 $ MIX_ENV=bench elixir -pa _build/bench/lib/\*/ebin -pa _build/bench/consolidated -S mix bench

@@ -9,7 +9,8 @@ defmodule Poison.Mixfile do
      elixir: "~> 1.0",
      description: "The fastest JSON library for Elixir",
      deps: deps,
-     package: package]
+     package: package,
+     consolidate_protocols: Mix.env != :test]
   end
 
   # Configuration for the OTP application
@@ -29,8 +30,9 @@ defmodule Poison.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    [{:earmark, "~> 0.1", only: :docs},
-     {:ex_doc, "~> 0.7", only: :docs},
+    [{:earmark, "~> 0.2", only: :docs},
+     {:ex_doc, "~> 0.11", only: :docs},
+     {:benchfella, "~> 0.3", only: :bench},
      {:jiffy, github: "davisp/jiffy", only: :bench},
      {:exjsx, github: "talentdeficit/exjsx", only: :bench},
      {:jazz, github: "meh/jazz", only: :bench}]

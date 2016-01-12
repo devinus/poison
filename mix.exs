@@ -40,7 +40,7 @@ defmodule Poison.Mixfile do
 
   defp package do
     [files: ~w(lib mix.exs README.md LICENSE UNLICENSE VERSION),
-     contributors: ["Devin Torres"],
+     maintainers: ["Devin Torres"],
      licenses: ["Unlicense"],
      links: %{"GitHub" => "https://github.com/devinus/poison"}]
   end

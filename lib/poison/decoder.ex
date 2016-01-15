@@ -10,12 +10,16 @@ defmodule Poison.Decode do
     value
   end
 
-  defp transform(value, keys, as, options) when is_map(as) do
-    transform_map(value, keys, as, options)
+  # defp transform(value, keys, as, options) when is_atom(as) do
+  #   transform_struct(value, keys, %{__struct__: as}, options)
+  # end
+
+  defp transform(value, keys, %{__struct__: _} = as, options) do
+    transform_struct(value, keys, as, options)
   end
 
-  defp transform(value, keys, as, options) when is_atom(as) do
-    transform_struct(value, keys, as, options)
+  defp transform(value, keys, as, options) when is_map(as) do
+    transform_map(value, keys, as, options)
   end
 
   defp transform(value, keys, [as], options) do
@@ -35,16 +39,19 @@ defmodule Poison.Decode do
     end)
   end
 
-  defp transform_struct(value, keys, as, options) when keys in [:atoms, :atoms!] do
-    Poison.Decoder.decode(struct(as, value), options)
+  defp transform_struct(value, keys, %{__struct__: struct} = as, options) when keys in [:atoms, :atoms!] do
+    Enum.into(Map.from_struct(as), %{}, fn {key, default} ->
+      {key, transform(Map.get(value, key, default), keys, default, options)}
+    end)
+    |> Map.put(:__struct__, struct)
+    |> Poison.Decoder.decode(options)
   end
 
-  defp transform_struct(value, _keys, as, options) do
-    struct = as.__struct__
-    Enum.into(Map.from_struct(struct), %{}, fn {key, default} ->
-      {key, Map.get(value, Atom.to_string(key), default)}
+  defp transform_struct(value, keys, %{__struct__: struct} = as, options) do
+    Enum.into(Map.from_struct(as), %{}, fn {key, default} ->
+      {key, transform(Map.get(value, Atom.to_string(key), default), keys, default, options)}
     end)
-    |> Map.put(:__struct__, struct.__struct__)
+    |> Map.put(:__struct__, struct)
     |> Poison.Decoder.decode(options)
   end
 end

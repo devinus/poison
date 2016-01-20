@@ -46,6 +46,16 @@ defmodule Poison.EncoderTest do
       }
     }\
     """
+    assert to_json(%{foo_bar: %{bar_baz_quux: %{_baz_: "baz"}}}, key_transformer: Poison.CamelCase) == ~s({"fooBar":{"barBazQuux":{"baz":"baz"}}})
+    assert to_json(%{foo_bar: %{bar_baz_quux: %{_baz_: "baz"}}}, pretty: true, key_transformer: Poison.CamelCase) == """
+    {
+      "fooBar": {
+        "barBazQuux": {
+          "baz": "baz"
+        }
+      }
+    }\
+    """
   end
 
   test "List" do

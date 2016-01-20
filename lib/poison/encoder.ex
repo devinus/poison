@@ -59,6 +59,19 @@ defmodule Poison.Pretty do
   end
 end
 
+# TODO a macro might be the best way to do this?
+# defmodule Poison.KeyTransform do
+#   defmacro __using__(_) do
+#     quote do
+#       @compile {:inline, key_transformer: 1}
+#
+#       defp key_transformer(options) do
+#         !!Keyword.get(options, :key_transformer)
+#       end
+#     end
+#   end
+# end
+
 defprotocol Poison.Encoder do
   @fallback_to_any true
 
@@ -195,21 +208,22 @@ defimpl Poison.Encoder, for: Map do
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
-    encode(map, pretty(options), options)
+    key_transformer = Keyword.get(options, :key_transformer, Poison.Transform)
+    encode(map, pretty(options), key_transformer, options)
   end
 
-  def encode(map, true, options) do
+  def encode(map, true, key_transformer, options) do
     indent = indent(options)
     offset = offset(options) + indent
     options = offset(options, offset)
 
-    fun = &[",\n", spaces(offset), Encoder.BitString.encode(encode_name(&1), options), ": ",
+    fun = &[",\n", spaces(offset), Encoder.BitString.encode(key_transformer.transform(encode_name(&1)), options), ": ",
                                    Encoder.encode(:maps.get(&1, map), options) | &2]
     ["{\n", tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, spaces(offset - indent), ?}]
   end
 
-  def encode(map, _, options) do
-    fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
+  def encode(map, _, key_transformer, options) do
+    fun = &[?,, Encoder.BitString.encode(key_transformer.transform(encode_name(&1)), options), ?:,
                 Encoder.encode(:maps.get(&1, map), options) | &2]
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end

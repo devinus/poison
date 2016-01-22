@@ -4,7 +4,11 @@ defmodule Poison.DecoderTest do
   import Poison.Decode
 
   defmodule Person do
-    defstruct [:name, :address, age: 42]
+    defstruct [:name, :address, :contact, age: 42]
+  end
+
+  defmodule Contact do
+    defstruct [:email, :telephone]
   end
 
   defmodule Address do
@@ -51,6 +55,11 @@ defmodule Poison.DecoderTest do
     actual = decode(people, as: %{"people" => [%Person{}]})
     expected = %{"people" => [%Person{name: "Devin Torres", age: 27}]}
     assert actual == expected
+  end
+
+  test "decoding into nested structs" do
+    person = %{"name" => "Devin Torres", "contact" => %{"email" => "devin@torres.com"}}
+    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres", contact: %Contact{email: "devin@torres.com"}}
   end
 
   test "decoding into structs with key subset" do

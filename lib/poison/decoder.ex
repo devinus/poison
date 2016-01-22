@@ -10,6 +10,8 @@ defmodule Poison.Decode do
     value
   end
 
+  defp transform(nil, _keys, _as, _options), do: nil
+
   defp transform(value, keys, %{__struct__: _} = as, options) do
     transform_struct(value, keys, as, options)
   end
@@ -54,7 +56,9 @@ defmodule Poison.Decode do
   defp transform_struct(value, _keys, as, options) do
     Map.from_struct(as)
     |> Enum.reduce(%{}, fn {key, default}, acc ->
-      Map.put(acc, key, Map.get(value, Atom.to_string(key), default))
+      default = Map.get(value, Atom.to_string(key), default)
+                |> transform(nil, default, options)
+      Map.put(acc, key, default)
     end)
     |> transform_struct(:atoms!, as, options)
   end

@@ -4,7 +4,11 @@ defmodule Poison.DecoderTest do
   import Poison.Decode
 
   defmodule Person do
-    defstruct [:name, :address, age: 42]
+    defstruct [:name, :address, :contact, age: 42]
+  end
+
+  defmodule Contact do
+    defstruct [:email, :telephone]
   end
 
   defmodule Address do
@@ -68,9 +72,14 @@ defmodule Poison.DecoderTest do
     assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: nil}
   end
 
+  test "decoding into nested structs" do
+    person = %{"name" => "Devin Torres", "contact" => %{"email" => "devin@torres.com"}}
+    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres", contact: %Contact{email: "devin@torres.com"}}
+  end
+
   test "decoding into nested structs with nil overriding defaults" do
-    person = %{"name" => "Devin Torres", "address" => nil}
-    assert decode(person, as: %Person{address: %Address{}}) == %Person{name: "Devin Torres", address: nil}
+    person = %{"name" => "Devin Torres", "contact" => nil}
+    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres", contact: nil}
   end
 
   test "decoding using a defined decoder" do

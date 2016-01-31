@@ -164,7 +164,7 @@ defmodule Poison.EncoderTest do
     derived_using_only = %DerivedUsingOnly{name: "derived using :only", size: 10}
     assert Poison.decode!(to_json(derived_using_only)) == %{"name" => "derived using :only"}
 
-    derived_using_except = %DerivedUsingExcept{name: "derived using :only", size: 10}
+    derived_using_except = %DerivedUsingExcept{name: "derived using :except", size: 10}
     assert Poison.decode!(to_json(derived_using_except)) == %{"size" => 10}
   end
 

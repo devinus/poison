@@ -57,6 +57,10 @@ on their own without buying into other functionality. For example, if you were
 interested purely in the speed of parsing JSON without a decoding step, you
 could simply call `Poison.Parser.parse`.
 
+If you use Poison 1.x, you have to set a module to `as` option in order to
+decode into a struct. e.g. `as: Person` instead of `as: %Person{}`. The change was
+introduced at 2.0.0.
+
 ## Parser
 
 ```iex

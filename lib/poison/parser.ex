@@ -33,7 +33,7 @@ defmodule Poison.Parser do
     | {:error, {:invalid, String.t}}
   def parse(iodata, options \\ []) do
     string = IO.iodata_to_binary(iodata)
-    {value, rest} = value(skip_whitespace(string), options[:keys])
+    {value, rest} = value(skip_whitespace(string), options)
     case skip_whitespace(rest) do
       "" -> {:ok, value}
       other -> syntax_error(other)
@@ -57,31 +57,38 @@ defmodule Poison.Parser do
     end
   end
 
-  defp value("\"" <> rest, _keys),    do: string_continue(rest, [])
-  defp value("{" <> rest, keys),      do: object_pairs(skip_whitespace(rest), keys, [])
-  defp value("[" <> rest, keys),      do: array_values(skip_whitespace(rest), keys, [])
-  defp value("null" <> rest, _keys),  do: {nil, rest}
-  defp value("true" <> rest, _keys),  do: {true, rest}
-  defp value("false" <> rest, _keys), do: {false, rest}
+  defp value("\"" <> rest, _options),    do: string_continue(rest, [])
+  defp value("{" <> rest, options),      do: object_pairs(skip_whitespace(rest), options, [])
+  defp value("[" <> rest, options),      do: array_values(skip_whitespace(rest), options, [])
+  defp value("null" <> rest, _options),  do: {nil, rest}
+  defp value("true" <> rest, _options),  do: {true, rest}
+  defp value("false" <> rest, _options), do: {false, rest}
 
-  defp value(<<char, _ :: binary>> = string, _keys) when char in '-0123456789' do
+  defp value(<<char, _ :: binary>> = string, _options) when char in '-0123456789' do
     number_start(string)
   end
 
-  defp value(other, _keys), do: syntax_error(other)
+  defp value(other, _options), do: syntax_error(other)
 
   ## Objects
 
-  defp object_pairs("\"" <> rest, keys, acc) do
+  defp object_pairs("\"" <> rest, options, acc) do
     {name, rest} = string_continue(rest, [])
     {value, rest} = case skip_whitespace(rest) do
-      ":" <> rest -> value(skip_whitespace(rest), keys)
+      ":" <> rest -> value(skip_whitespace(rest), options)
       other -> syntax_error(other)
     end
 
-    acc = [{object_name(name, keys), value} | acc]
+    # this won't perform very well, needs a macro?
+    name = if key_transformer = options[:key_transformer] do
+      key_transformer.transform(name)
+    else
+      name
+    end
+
+    acc = [{object_name(name, options[:keys]), value} | acc]
     case skip_whitespace(rest) do
-      "," <> rest -> object_pairs(skip_whitespace(rest), keys, acc)
+      "," <> rest -> object_pairs(skip_whitespace(rest), options, acc)
       "}" <> rest -> {:maps.from_list(acc), rest}
       other -> syntax_error(other)
     end
@@ -93,9 +100,9 @@ defmodule Poison.Parser do
 
   defp object_pairs(other, _, _), do: syntax_error(other)
 
-  defp object_name(name, :atoms),  do: String.to_atom(name)
+  defp object_name(name, :atoms), do: String.to_atom(name)
   defp object_name(name, :atoms!), do: String.to_existing_atom(name)
-  defp object_name(name, _keys),   do: name
+  defp object_name(name, _options), do: name
 
   ## Arrays
 
@@ -103,12 +110,12 @@ defmodule Poison.Parser do
     {[], rest}
   end
 
-  defp array_values(string, keys, acc) do
-    {value, rest} = value(string, keys)
+  defp array_values(string, options, acc) do
+    {value, rest} = value(string, options)
 
     acc = [value | acc]
     case skip_whitespace(rest) do
-      "," <> rest -> array_values(skip_whitespace(rest), keys, acc)
+      "," <> rest -> array_values(skip_whitespace(rest), options, acc)
       "]" <> rest -> {:lists.reverse(acc), rest}
       other -> syntax_error(other)
     end

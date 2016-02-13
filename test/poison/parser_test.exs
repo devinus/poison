@@ -63,6 +63,17 @@ defmodule Poison.ParserTest do
     assert parse!(~s({"foo": {"bar": "baz"}})) == expected
   end
 
+  test "objects with transform" do
+    expected = %{"foo_bar" => "bazQuux"}
+    assert snakecase(~s({"fooBar": "bazQuux"})) == expected
+
+    expected = %{"foo_a" => "bar", "baz_a" => "quux"}
+    assert snakecase(~s({"fooA": "bar", "bazA": "quux"})) == expected
+
+    expected = %{"foo_bar" => %{"bar_quux" => "baz"}}
+    assert snakecase(~s({"fooBar": {"barQuux": "baz"}})) == expected
+  end
+
   test "arrays" do
     assert_raise SyntaxError, fn -> parse!("[") end
     assert_raise SyntaxError, fn -> parse!("[,") end
@@ -93,5 +104,9 @@ defmodule Poison.ParserTest do
 
     assert parse!(~s({"foo": "bar"}), keys: :atoms) == %{foo: "bar"}
     assert parse!(~s({"foo": "bar"}), keys: :atoms!) == %{foo: "bar"}
+  end
+
+  def snakecase(json) do
+    parse!(json, key_transformer: Poison.SnakeCase)
   end
 end

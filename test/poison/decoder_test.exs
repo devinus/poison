@@ -86,4 +86,9 @@ defmodule Poison.DecoderTest do
     address = %{"street" => "1 Main St.", "city" => "Austin", "state" => "TX", "zip" => "78701"}
     assert decode(address, as: %Address{}) == "1 Main St., Austin, TX  78701"
   end
+
+  # test "decoding map with key transform and string keys" do
+  #   person = %{"fooBar" => "Devin Torres"}
+  #   assert decode(person, key_transformer: Poison.SnakeCase) == %{foo_bar: "Devin Torres"}
+  # end
 end

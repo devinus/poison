@@ -127,8 +127,8 @@ In case both `:only` and `:except` keys are defined, the `:except` option is ign
 
 ```sh-session
 $ mix deps.get
-$ MIX_ENV=bench mix compile.protocols
-$ MIX_ENV=bench elixir -pa _build/bench/lib/\*/ebin -pa _build/bench/consolidated -S mix bench
+$ MIX_ENV=bench mix compile
+$ MIX_ENV=bench mix bench
 ```
 
 ## License

@@ -105,6 +105,24 @@ end
 For maximum performance, make sure you `@derive [Poison.Encoder]` for any struct
 you plan on encoding.
 
+### Encoding only some attributes
+
+When deriving structs for encoding, it is possible to select or exclude specific attributes. This is achieved by deriving `Poison.Encoder` with the `:only` or `:except` options set:
+
+```elixir
+defmodule PersonOnlyName do
+  @derive {Poison.Encoder, only: [:name]}
+  defstruct [:name, :age]
+end
+
+defmodule PersonWithoutName do
+  @derive {Poison.Encoder, except: [:name]}
+  defstruct [:name, :age]
+end
+```
+
+In case both `:only` and `:except` keys are defined, the `:except` option is ignored.
+
 ## Benchmarking
 
 ```sh-session

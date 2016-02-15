@@ -13,16 +13,11 @@ end
 defmodule Poison.Encode do
   defmacro __using__(_) do
     quote do
+      defp encode_name(value) when is_binary(value), do: value
+      defp encode_name(value) when is_atom(value), do: Atom.to_string(value)
       defp encode_name(value) do
-        cond do
-          is_binary(value) ->
-            value
-          is_atom(value) ->
-            Atom.to_string(value)
-          true ->
-            raise Poison.EncodeError, value: value,
-              message: "expected string or atom key, got: #{inspect value}"
-        end
+        raise Poison.EncodeError, value: value,
+          message: "expected string or atom key, got: #{inspect value}"
       end
     end
   end

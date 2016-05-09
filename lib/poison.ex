@@ -64,7 +64,7 @@ defmodule Poison do
       {:ok, [1, 2, 3]}
   """
   @spec decode(iodata, Keyword.t) :: {:ok, Parser.t} | {:error, :invalid}
-    | {:error, {:invalid, String.t}}
+    | {:error, {:invalid, String.t, String.t}}
   def decode(iodata, options \\ []) do
     case Parser.parse(iodata, options) do
       {:ok, value} -> {:ok, Decode.decode(value, options)}

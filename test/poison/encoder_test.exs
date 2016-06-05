@@ -84,6 +84,35 @@ defmodule Poison.EncoderTest do
     """
   end
 
+  if Code.ensure_loaded?(Calendar) do
+    test "Time" do
+      {:ok, time} = Time.new(12, 13, 14)
+      assert to_json(time) == ~s["12:13:14"]
+    end
+
+    test "Date" do
+      {:ok, date} = Date.new(2000, 1, 1)
+      assert to_json(date) == ~s["2000-01-01"]
+    end
+
+    test "NaiveDateTime" do
+      {:ok, datetime} = NaiveDateTime.new(2000, 1, 1, 12, 13, 14)
+      assert to_json(datetime) == ~s["2000-01-01T12:13:14"]
+    end
+
+    test "DateTime" do
+      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+                           microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
+                           std_offset: -1800, utc_offset: 3600}
+      assert to_json(datetime) == ~s["2000-01-01T12:13:14+00:30"]
+
+      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+                           microsecond: {50000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
+                           std_offset: 0, utc_offset: 0}
+      assert to_json(datetime) == ~s["2000-01-01T12:13:14.050Z"]
+    end
+  end
+
   # HashSet/HashDict have an unspecified order
 
   test "HashSet" do

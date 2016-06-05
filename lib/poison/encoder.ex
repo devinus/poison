@@ -310,6 +310,12 @@ defimpl Poison.Encoder, for: HashDict do
   end
 end
 
+defimpl Poison.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
+  def encode(data, options) do
+    Poison.Encoder.BitString.encode(@for.to_iso8601(data), options)
+  end
+end
+
 defimpl Poison.Encoder, for: Any do
   defmacro __deriving__(module, struct, options) do
     deriving(module, struct, options)

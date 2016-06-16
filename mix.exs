@@ -8,8 +8,8 @@ defmodule Poison.Mixfile do
      version: @version,
      elixir: "~> 1.0",
      description: "An incredibly fast, pure Elixir JSON library",
-     deps: deps,
-     package: package,
+     deps: deps(),
+     package: package(),
      consolidate_protocols: Mix.env != :test]
   end
 

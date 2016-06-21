@@ -170,7 +170,7 @@ defmodule Poison.EncoderTest do
 
   test "EncodeError" do
     assert_raise EncodeError, fn ->
-      to_json(self)
+      to_json(self())
     end
 
     assert_raise EncodeError, fn ->

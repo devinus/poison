@@ -29,7 +29,7 @@ defmodule Poison.EncoderTest do
     assert to_json(<<31>>) == ~s("\\u001F")
     assert to_json("☃", escape: :unicode) == ~s("\\u2603")
     assert to_json("𝄞", escape: :unicode) == ~s("\\uD834\\uDD1E")
-    assert to_json("\x{2028}\x{2029}", escape: :javascript) == ~s("\\u2028\\u2029")
+    assert to_json("\u2028\u2029", escape: :javascript) == ~s("\\u2028\\u2029")
     assert to_json("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
   end
 
@@ -84,58 +84,31 @@ defmodule Poison.EncoderTest do
     """
   end
 
-  if Code.ensure_loaded?(Calendar) do
-    test "Time" do
-      {:ok, time} = Time.new(12, 13, 14)
-      assert to_json(time) == ~s["12:13:14"]
+  # MapSet/HashSet/HashDict have an unspecified order
+
+  test "MapSet/HashSet" do
+    for type <- [MapSet, HashSet] do
+      set = type.new
+      assert to_json(set) == "[]"
+
+      set = set |> type.put(1) |> type.put(2)
+
+      assert to_json(set) in ~w([1,2] [2,1])
+      assert to_json(set, pretty: true) in [
+        """
+        [
+          1,
+          2
+        ]\
+        """,
+        """
+        [
+          2,
+          1
+        ]\
+        """
+      ]
     end
-
-    test "Date" do
-      {:ok, date} = Date.new(2000, 1, 1)
-      assert to_json(date) == ~s["2000-01-01"]
-    end
-
-    test "NaiveDateTime" do
-      {:ok, datetime} = NaiveDateTime.new(2000, 1, 1, 12, 13, 14)
-      assert to_json(datetime) == ~s["2000-01-01T12:13:14"]
-    end
-
-    test "DateTime" do
-      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-                           microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
-                           std_offset: -1800, utc_offset: 3600}
-      assert to_json(datetime) == ~s["2000-01-01T12:13:14+00:30"]
-
-      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-                           microsecond: {50000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
-                           std_offset: 0, utc_offset: 0}
-      assert to_json(datetime) == ~s["2000-01-01T12:13:14.050Z"]
-    end
-  end
-
-  # HashSet/HashDict have an unspecified order
-
-  test "HashSet" do
-    set = HashSet.new
-    assert to_json(set) == "[]"
-
-    set = set |> HashSet.put(1) |> HashSet.put(2)
-
-    assert to_json(set) in ~w([1,2] [2,1])
-    assert to_json(set, pretty: true) in [
-      """
-      [
-        1,
-        2
-      ]\
-      """,
-      """
-      [
-        2,
-        1
-      ]\
-      """
-    ]
   end
 
   test "HashDict" do
@@ -163,6 +136,35 @@ defmodule Poison.EncoderTest do
       }\
       """
     ]
+  end
+
+  if Version.match?(System.version, ">=1.3.0-rc.1") do
+    test "Time" do
+      {:ok, time} = Time.new(12, 13, 14)
+      assert to_json(time) == ~s("12:13:14")
+    end
+
+    test "Date" do
+      {:ok, date} = Date.new(2000, 1, 1)
+      assert to_json(date) == ~s("2000-01-01")
+    end
+
+    test "NaiveDateTime" do
+      {:ok, datetime} = NaiveDateTime.new(2000, 1, 1, 12, 13, 14)
+      assert to_json(datetime) == ~s("2000-01-01T12:13:14")
+    end
+
+    test "DateTime" do
+      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+                           microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
+                           std_offset: -1800, utc_offset: 3600}
+      assert to_json(datetime) == ~s("2000-01-01T12:13:14+00:30")
+
+      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+                           microsecond: {50000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
+                           std_offset: 0, utc_offset: 0}
+      assert to_json(datetime) == ~s("2000-01-01T12:13:14.050Z")
+    end
   end
 
   defmodule Derived do

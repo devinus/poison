@@ -243,7 +243,7 @@ defimpl Poison.Encoder, for: List do
   end
 end
 
-defimpl Poison.Encoder, for: [Range, Stream, HashSet] do
+defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet] do
   use Poison.Pretty
 
   def encode(collection, options) do
@@ -310,9 +310,11 @@ defimpl Poison.Encoder, for: HashDict do
   end
 end
 
-defimpl Poison.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
-  def encode(data, options) do
-    Poison.Encoder.BitString.encode(@for.to_iso8601(data), options)
+if Version.match?(System.version, ">=1.3.0-rc.1") do
+  defimpl Poison.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
+    def encode(value, options) do
+      Poison.Encoder.BitString.encode(@for.to_iso8601(value), options)
+    end
   end
 end
 

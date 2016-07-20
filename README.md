@@ -66,7 +66,7 @@ introduced at 2.0.0.
 ```iex
 iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}))
 %{"name" => "Devin Torres", "age" => 27}
-iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), keys: :atoms!)
+iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), keys: :atoms)
 %{name: "Devin Torres", age: 27}
 ```
 

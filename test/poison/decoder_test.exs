@@ -19,6 +19,10 @@ defmodule Poison.DecoderTest do
    defstruct name: nil, age: 42, contacts: []
   end
 
+  defmodule Contact2 do
+    defstruct [:email, :telephone, call_count: 0]
+  end
+
   defimpl Poison.Decoder, for: Address do
     def decode(address, _options) do
       "#{address.street}, #{address.city}, #{address.state}  #{address.zip}"
@@ -97,13 +101,29 @@ defmodule Poison.DecoderTest do
   end
 
   test "decoding into nested struct list" do
-    person = %{"name" => "Devin Torres", "contacts" => [%{"email" => "devin@torres.com"}, %{"email" => "test@email.com"}]}
+    person = %{"name" => "Devin Torres", "contacts" => [%{"email" => "devin@torres.com", "call_count" => 10}, %{"email" => "test@email.com"}]}
     expected = %Person2{
       name: "Devin Torres",
       contacts: [
-        %Contact{email: "devin@torres.com"}, %Contact{email: "test@email.com"}]}
+        %Contact2{email: "devin@torres.com", call_count: 10},
+        %Contact2{email: "test@email.com", call_count: 0}
+      ]}
 
-    assert decode(person, as: %Person2{contacts: [%Contact{}]}) == expected
+    decoded = decode(person, as: %Person2{contacts: [%Contact2{}]})
+    assert decoded == expected
+  end
+
+  test "decoding into nested struct list with keys = :atoms" do
+    person = %{name: "Devin Torres", contacts: [%{email: "devin@torres.com", call_count: 10}, %{email: "test@email.com"}]}
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: [
+        %Contact2{email: "devin@torres.com", call_count: 10},
+        %Contact2{email: "test@email.com", call_count: 0}
+      ]}
+
+    decoded = decode(person, as: %Person2{contacts: [%Contact2{}]}, keys: :atoms)
+    assert decoded == expected
   end
 
   test "decoding into nested structs, empty list" do

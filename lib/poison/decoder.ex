@@ -56,7 +56,7 @@ defmodule Poison.Decode do
 
     Map.from_struct(as)
     |> Enum.reduce(%{}, fn {key, as}, acc ->
-      new_value = case Map.get(value, key) do
+      new_value = case Map.get(value, key, Map.get(default, key)) do
         value when is_map(value) or is_list(value) ->
           # value == as indicates we never actually recieved a value for `key`.
           if value == as do

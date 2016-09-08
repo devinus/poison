@@ -218,8 +218,7 @@ defimpl Poison.Encoder, for: Map do
 
   defp check_key_integrity(map, false), do: map
   defp check_key_integrity(map, true) do
-    map
-    |> Enum.reduce(%{}, fn {key, value}, acc ->
+    Enum.reduce(map, %{}, fn {key, value}, acc ->
       normalised_key = encode_name(key)
       case Map.has_key?(acc, normalised_key) do
         true -> raise Poison.EncodeError, value: map

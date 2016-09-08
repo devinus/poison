@@ -196,7 +196,7 @@ defimpl Poison.Encoder, for: Map do
 
   def encode(map, options) do
     map
-    |> check_key_integrity
+    |> check_key_integrity(Keyword.get(options, :strict_keys, false))
     |> encode(pretty(options), options)
   end
 
@@ -216,7 +216,8 @@ defimpl Poison.Encoder, for: Map do
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end
 
-  defp check_key_integrity(map) do
+  defp check_key_integrity(map, false), do: map
+  defp check_key_integrity(map, true) do
     map
     |> Enum.reduce(%{}, fn {key, value}, acc ->
       normalised_key = encode_name(key)

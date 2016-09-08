@@ -48,7 +48,8 @@ defmodule Poison.EncoderTest do
     """
 
     multi_key_map = %{"foo" => "foo1", :foo => "foo2"}
-    assert Poison.encode(multi_key_map) == {:error, {:invalid, multi_key_map}}
+    assert to_json(multi_key_map) == ~s({"foo":"foo1","foo":"foo2"})
+    assert Poison.encode(multi_key_map, strict_keys: true) == {:error, {:invalid, multi_key_map}}
   end
 
   test "List" do

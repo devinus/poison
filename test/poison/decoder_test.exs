@@ -15,6 +15,10 @@ defmodule Poison.DecoderTest do
     defstruct [:street, :city, :state, :zip]
   end
 
+  defmodule Person2 do
+   defstruct name: nil, age: 42, contacts: []
+  end
+
   defimpl Poison.Decoder, for: Address do
     def decode(address, _options) do
       "#{address.street}, #{address.city}, #{address.state}  #{address.zip}"
@@ -75,6 +79,38 @@ defmodule Poison.DecoderTest do
   test "decoding into nested structs" do
     person = %{"name" => "Devin Torres", "contact" => %{"email" => "devin@torres.com"}}
     assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres", contact: %Contact{email: "devin@torres.com"}}
+  end
+
+  test "decoding into nested struct, empty nested struct" do
+    person = %{"name" => "Devin Torres"}
+    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres"}
+  end
+
+  test "decoding into nested struct list" do
+    person = %{"name" => "Devin Torres", "contacts" => [%{"email" => "devin@torres.com"}, %{"email" => "test@email.com"}]}
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: [
+        %Contact{email: "devin@torres.com"}, %Contact{email: "test@email.com"}]}
+
+    assert decode(person, as: %Person2{contacts: [%Contact{}]}) == expected
+  end
+
+  test "decoding into nested structs, empty list" do
+    person = %{"name" => "Devin Torres"}
+
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: []
+    }
+
+    assert decode(person, as: %Person2{contacts: [%Contact{}]}) == expected
+  end
+
+  test "decoding into nested structs list with nil overriding default" do
+    person = %{"name" => "Devin Torres", "contacts" => nil}
+
+    assert decode(person, as: %Person2{contacts: [%Contact{}]}) == %Person2{name: "Devin Torres", contacts: nil}
   end
 
   test "decoding into nested structs with nil overriding defaults" do

@@ -118,8 +118,8 @@ defimpl Poison.Encoder, for: BitString do
     [seq(char) | escape(rest, :javascript)]
   end
 
-  defp escape(<<char :: utf8>> <> rest, :html_safe) when char in '/' do
-    ['\\/' | escape(rest, :html_safe)]
+  defp escape(<<?/ :: utf8>> <> rest, :html_safe) do
+    ["\\/" | escape(rest, :html_safe)]
   end
 
   defp escape(<<char :: utf8>> <> rest, :html_safe) do

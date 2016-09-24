@@ -167,6 +167,11 @@ defmodule Poison.EncoderTest do
     end
   end
 
+  test "Decimal" do
+    assert to_json(Decimal.new(120.5)) == "120.5"
+    assert to_json(Decimal.new(1.7E+100)) == "1.7E+100"
+  end
+
   defmodule Derived do
     @derive [Poison.Encoder]
     defstruct name: ""

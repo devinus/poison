@@ -354,3 +354,9 @@ defimpl Poison.Encoder, for: Any do
     raise Poison.EncodeError, value: value
   end
 end
+
+defimpl Poison.Encoder, for: Decimal do
+  def encode(decimal, _options) do
+    Decimal.to_string(decimal)
+  end
+end

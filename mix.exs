@@ -35,7 +35,8 @@ defmodule Poison.Mixfile do
      {:benchfella, "~> 0.3", only: :bench},
      {:jiffy, github: "davisp/jiffy", only: :bench},
      {:exjsx, github: "talentdeficit/exjsx", only: :bench},
-     {:jazz, github: "meh/jazz", only: :bench}]
+     {:jazz, github: "meh/jazz", only: :bench},
+     {:decimal, "~> 1.1"}]
   end
 
   defp package do

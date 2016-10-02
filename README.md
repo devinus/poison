@@ -58,8 +58,8 @@ interested purely in the speed of parsing JSON without a decoding step, you
 could simply call `Poison.Parser.parse`.
 
 If you use Poison 1.x, you have to set a module to `as` option in order to
-decode into a struct. e.g. `as: Person` instead of `as: %Person{}`. The change was
-introduced at 2.0.0.
+decode into a struct. e.g. `as: Person` instead of `as: %Person{}`. The change
+was introduced in 2.0.0.
 
 ## Parser
 
@@ -107,7 +107,9 @@ you plan on encoding.
 
 ### Encoding only some attributes
 
-When deriving structs for encoding, it is possible to select or exclude specific attributes. This is achieved by deriving `Poison.Encoder` with the `:only` or `:except` options set:
+When deriving structs for encoding, it is possible to select or exclude specific
+attributes. This is achieved by deriving `Poison.Encoder` with the `:only` or
+`:except` options set:
 
 ```elixir
 defmodule PersonOnlyName do
@@ -121,19 +123,27 @@ defmodule PersonWithoutName do
 end
 ```
 
-In case both `:only` and `:except` keys are defined, the `:except` option is ignored.
+In case both `:only` and `:except` keys are defined, the `:except` option is
+ignored.
 
 ### Key Validation
 
-According to [the JSON spec](https://tools.ietf.org/html/rfc7159#section-4) keys in a JSON object should be unique. This is enforced and resolved in different ways in other libraries. In the Ruby JSON library for example, the output generated from encoding a hash with a duplicate key (say 1 is a string, the other an atom) will include both keys. When parsing JSON of this type, Chromium will override all previous values with the final one.
+According to [the JSON spec](https://tools.ietf.org/html/rfc7159#section-4) keys
+in a JSON object should be unique. This is enforced and resolved in different
+ways in other libraries. In the Ruby JSON library for example, the output
+generated from encoding a hash with a duplicate key (say one is a string, the
+other an atom) will include both keys. When parsing JSON of this type, Chromium
+will override all previous values with the final one.
 
-Like Ruby, Poison will also generate JSON with duplicate keys. If you'd like to ensure that your generated json doesn't have this issue, you can pass the `strict_keys: true` option when encoding. This will force the encoding to fail.
+Like Ruby, Poison will also generate JSON with duplicate keys. If you'd like to
+ensure that your generated JSON doesn't have this issue, you can pass the
+`strict_keys: true` option when encoding. This will force the encoding to fail.
 
 Note that validating keys can cause a small performance hit.
 
-```elixir
-  iex(1)> Poison.encode %{:foo => "foo1", "foo" => "foo2"}, strict_keys: true
-  {:error, {:invalid, %{:foo => "foo1", "foo" => "foo2"}}}
+```iex
+iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
+** (Poison.EncodeError) duplicate key found: "foo"
 ```
 
 ## Benchmarking

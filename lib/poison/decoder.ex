@@ -40,7 +40,11 @@ defmodule Poison.Decode do
   end
 
   defp transform_struct(value, keys, as, options) when keys in [:atoms, :atoms!] do
-    do_transform_struct(value, keys, as, options)
+    Map.from_struct(as)
+    |> Enum.reduce(%{}, fn {key, default}, acc ->
+      Map.put acc, key, Map.get(value, key, default)
+    end)
+    |> do_transform_struct(keys, as, options)
   end
 
   defp transform_struct(value, keys, as, options) do

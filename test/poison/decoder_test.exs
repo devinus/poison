@@ -67,6 +67,16 @@ defmodule Poison.DecoderTest do
     assert decode(person, as: %Person{age: 50}) == %Person{name: "Devin Torres", age: 50}
   end
 
+  test "decoding into structs with unspecified default values" do
+    person = %{"name" => "Devin Torres"}
+    assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: 42}
+  end
+
+  test "decoding into structs with unspecified default values and atom keys" do
+    person = %{:name => "Devin Torres"}
+    assert decode(person, as: %Person{}, keys: :atoms!) == %Person{name: "Devin Torres", age: 42}
+  end
+
   test "decoding into structs with nil overriding defaults" do
     person = %{"name" => "Devin Torres", "age" => nil}
     assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: nil}

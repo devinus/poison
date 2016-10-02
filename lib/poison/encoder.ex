@@ -204,7 +204,7 @@ defimpl Poison.Encoder, for: Map do
 
   def encode(map, options) do
     map
-    |> check_key_integrity(Keyword.get(options, :strict_keys, false))
+    |> strict_keys(Keyword.get(options, :strict_keys, false))
     |> encode(pretty(options), options)
   end
 
@@ -224,13 +224,15 @@ defimpl Poison.Encoder, for: Map do
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end
 
-  defp check_key_integrity(map, false), do: map
-  defp check_key_integrity(map, true) do
+  defp strict_keys(map, false), do: map
+  defp strict_keys(map, true) do
     Enum.reduce(map, %{}, fn {key, value}, acc ->
-      normalised_key = encode_name(key)
-      case Map.has_key?(acc, normalised_key) do
-        true -> raise Poison.EncodeError, value: map
-        false -> Map.put(acc, normalised_key, value)
+      name = encode_name(key)
+      case Map.has_key?(acc, name) do
+        false -> Map.put(acc, name, value)
+        true ->
+          raise Poison.EncodeError, value: name,
+            message: "duplicate key found: #{inspect key}"
       end
     end)
   end

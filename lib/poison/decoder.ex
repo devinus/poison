@@ -41,9 +41,7 @@ defmodule Poison.Decode do
 
   defp transform_struct(value, keys, as, options) when keys in [:atoms, :atoms!] do
     Map.from_struct(as)
-    |> Enum.reduce(%{}, fn {key, default}, acc ->
-      Map.put acc, key, Map.get(value, key, default)
-    end)
+    |> Map.merge(value)
     |> do_transform_struct(keys, as, options)
   end
 
@@ -61,14 +59,10 @@ defmodule Poison.Decode do
     Map.from_struct(as)
     |> Enum.reduce(%{}, fn {key, as}, acc ->
       new_value = case Map.fetch(value, key) do
+        {:ok, ^as} when is_map(as) or is_list(as) ->
+          Map.get(default, key)
         {:ok, value} when is_map(value) or is_list(value) ->
-          # value == as indicates we never actually recieved a value for `key`
-          # and instead have the default value line 57 (which is from `as`).
-          if value == as do
-            Map.get(default, key)
-          else
-            transform(value, keys, as, options)
-          end
+          transform(value, keys, as, options)
         {:ok, value} ->
           value
         :error ->

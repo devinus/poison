@@ -14,6 +14,10 @@ defmodule EncoderBench do
     JSX.encode!(list)
   end
 
+  bench "lists (JSON)", [list: gen_list] do
+    JSON.encode!(list)
+  end
+
   bench "lists (Jazz)", [list: gen_list] do
     Jazz.encode!(list)
   end
@@ -31,6 +35,10 @@ defmodule EncoderBench do
     JSX.encode!(map)
   end
 
+  bench "maps (JSON)", [map: gen_map] do
+    JSON.encode!(map)
+  end
+
   bench "maps (Jazz)", [map: gen_map] do
     Jazz.encode!(map)
   end
@@ -46,6 +54,10 @@ defmodule EncoderBench do
 
   bench "strings (JSX)", [string: gen_string] do
     JSX.encode!(string)
+  end
+
+  bench "strings (JSON)", [string: gen_string] do
+    JSON.encode!(string)
   end
 
   bench "strings (Jazz)", [string: gen_string] do
@@ -78,6 +90,10 @@ defmodule EncoderBench do
     JSX.encode!(structs)
   end
 
+  bench "structs (JSON)", [structs: gen_structs] do
+    JSON.encode!(structs)
+  end
+
   bench "structs (Jazz)", [structs: gen_structs] do
     Jazz.encode!(structs)
   end
@@ -92,6 +108,10 @@ defmodule EncoderBench do
 
   bench "JSX", [data: gen_data] do
     JSX.encode!(data)
+  end
+
+  bench "JSON", [data: gen_data] do
+    JSON.encode!(data)
   end
 
   bench "Jazz", [data: gen_data] do

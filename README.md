@@ -23,7 +23,7 @@ First, add Poison to your `mix.exs` dependencies:
 
 ```elixir
 def deps do
-  [{:poison, "~> 2.2"}]
+  [{:poison, "~> 3.0"}]
 end
 ```
 
@@ -156,7 +156,7 @@ $ MIX_ENV=bench mix bench
 
 ## License
 
-Poison is released into the public domain under [CC0-1.0][5].
+Poison is released under [CC0-1.0][5] (see `LICENSE`).
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf

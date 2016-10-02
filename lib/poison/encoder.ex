@@ -203,7 +203,9 @@ defimpl Poison.Encoder, for: Map do
   def encode(map, _) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
-    encode(map, pretty(options), options)
+    map
+    |> check_key_integrity(Keyword.get(options, :strict_keys, false))
+    |> encode(pretty(options), options)
   end
 
   def encode(map, true, options) do
@@ -220,6 +222,17 @@ defimpl Poison.Encoder, for: Map do
     fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
                 Encoder.encode(:maps.get(&1, map), options) | &2]
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
+  end
+
+  defp check_key_integrity(map, false), do: map
+  defp check_key_integrity(map, true) do
+    Enum.reduce(map, %{}, fn {key, value}, acc ->
+      normalised_key = encode_name(key)
+      case Map.has_key?(acc, normalised_key) do
+        true -> raise Poison.EncodeError, value: map
+        false -> Map.put(acc, normalised_key, value)
+      end
+    end)
   end
 end
 

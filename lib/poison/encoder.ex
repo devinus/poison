@@ -118,6 +118,14 @@ defimpl Poison.Encoder, for: BitString do
     [seq(char) | escape(rest, :javascript)]
   end
 
+  defp escape(<<?/ :: utf8>> <> rest, :html_safe) do
+    ["\\/" | escape(rest, :html_safe)]
+  end
+
+  defp escape(<<char :: utf8>> <> rest, :html_safe) do
+    [char | escape(rest, :html_safe)]
+  end
+
   defp escape(string, mode) do
     size = chunk_size(string, mode, 0)
     <<chunk :: binary-size(size), rest :: binary>> = string

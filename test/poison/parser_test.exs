@@ -94,4 +94,9 @@ defmodule Poison.ParserTest do
     assert parse!(~s({"foo": "bar"}), keys: :atoms) == %{foo: "bar"}
     assert parse!(~s({"foo": "bar"}), keys: :atoms!) == %{foo: "bar"}
   end
+
+  test "error reporting" do
+    assert parse(~s({"foo": "bar". "baz": "quux"})) == {:error, {:invalid, ".", ~s( "baz": "q)}}
+    assert parse(~s({"foo": "bar", "baz"; "quux"})) == {:error, {:invalid, ";", ~s( "quux"}<END OF INPUT>)}}
+  end
 end

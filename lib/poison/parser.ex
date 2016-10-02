@@ -1,14 +1,14 @@
 defmodule Poison.SyntaxError do
-  defexception [:message, :token]
+  defexception [:message, :token, :before]
 
   def exception(opts) do
     message = if token = opts[:token] do
-      "Unexpected token: #{token}"
+      "Unexpected token '#{token}' before '#{opts[:before]}'"
     else
       "Unexpected end of input"
     end
 
-    %Poison.SyntaxError{message: message, token: token}
+    %Poison.SyntaxError{message: message, token: token, before: opts[:before]}
   end
 end
 
@@ -30,7 +30,7 @@ defmodule Poison.Parser do
   @type t :: nil | true | false | list | float | integer | String.t | map
 
   @spec parse(iodata, Keyword.t) :: {:ok, t} | {:error, :invalid}
-    | {:error, {:invalid, String.t}}
+    | {:error, {:invalid, String.t, String.t}}
   def parse(iodata, options \\ []) do
     string = IO.iodata_to_binary(iodata)
     {value, rest} = value(skip_whitespace(string), options[:keys])
@@ -41,8 +41,8 @@ defmodule Poison.Parser do
   catch
     :invalid ->
       {:error, :invalid}
-    {:invalid, token} ->
-      {:error, {:invalid, token}}
+    {:invalid, token, before} ->
+      {:error, {:invalid, token, before}}
   end
 
   @spec parse!(iodata, Keyword.t) :: t
@@ -52,8 +52,8 @@ defmodule Poison.Parser do
         value
       {:error, :invalid} ->
         raise SyntaxError
-      {:error, {:invalid, token}} ->
-        raise SyntaxError, token: token
+      {:error, {:invalid, token, before}} ->
+        raise SyntaxError, token: token, before: before
     end
   end
 
@@ -258,11 +258,15 @@ defmodule Poison.Parser do
 
   ## Errors
 
-  defp syntax_error(<<token :: utf8>> <> _) do
-    throw({:invalid, <<token>>})
+  defp syntax_error(<<token :: utf8>> <> rest) do
+    throw({:invalid, <<token>>, before(rest, 10, [])})
   end
 
   defp syntax_error(_) do
     throw(:invalid)
   end
+
+  def before(_, 0, acc),                     do: acc |> Enum.reverse |> List.to_string
+  def before("", _n, acc),                   do: before("", 0, acc) <> "<END OF INPUT>"
+  def before(<<c :: utf8>> <> rest, n, acc), do: before(rest, n-1, [c|acc])
 end

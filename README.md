@@ -156,11 +156,10 @@ $ MIX_ENV=bench mix bench
 
 ## License
 
-Poison is released into the public domain (see `UNLICENSE`).
-Poison is also optionally available under the ISC License (see `LICENSE`),
-meant especially for jurisdictions that do not recognize public domain works.
+Poison is released into the public domain under [CC0-1.0][5].
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf
 [3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
 [4]: http://prog21.dadgum.com/70.html
+[5]: https://creativecommons.org/publicdomain/zero/1.0/

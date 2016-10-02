@@ -40,9 +40,9 @@ defmodule Poison.Mixfile do
   end
 
   defp package do
-    [files: ~w(lib mix.exs README.md LICENSE UNLICENSE VERSION),
+    [files: ~w(lib mix.exs README.md LICENSE VERSION),
      maintainers: ["Devin Torres"],
-     licenses: ["Unlicense"],
+     licenses: ["CC0-1.0"],
      links: %{"GitHub" => "https://github.com/devinus/poison"}]
   end
 end

@@ -23,7 +23,7 @@ First, add Poison to your `mix.exs` dependencies:
 
 ```elixir
 def deps do
-  [{:poison, "~> 2.0"}]
+  [{:poison, "~> 2.2"}]
 end
 ```
 

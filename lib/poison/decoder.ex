@@ -48,7 +48,12 @@ defmodule Poison.Decode do
   defp transform_struct(value, keys, as, options) do
     Map.from_struct(as)
     |> Enum.reduce(%{}, fn {key, default}, acc ->
-      Map.put(acc, key, Map.get(value, Atom.to_string(key), default))
+      string_key = if options[:dash] do
+        key |> Atom.to_string() |> String.replace("_", "-")
+      else
+        key |> Atom.to_string()
+      end
+      Map.put(acc, key, Map.get(value, string_key, default))
     end)
     |> do_transform_struct(keys, as, options)
   end

@@ -23,6 +23,10 @@ defmodule Poison.DecoderTest do
     defstruct [:email, :telephone, call_count: 0]
   end
 
+  defmodule PersonDash do
+    defstruct [:person_name, :address, :contact, age: 42]
+  end
+
   defimpl Poison.Decoder, for: Address do
     def decode(address, _options) do
       "#{address.street}, #{address.city}, #{address.state}  #{address.zip}"
@@ -32,6 +36,11 @@ defmodule Poison.DecoderTest do
   test "decoding single :as with string keys" do
     person = %{"name" => "Devin Torres", "age" => 27}
     assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: 27}
+  end
+
+  test "decoding single :as with string-dash keys" do
+    person = %{"person-name" => "Devin Torres", "age" => 27}
+    assert decode(person, as: %PersonDash{}, dash: true) == %PersonDash{person_name: "Devin Torres", age: 27}
   end
 
   test "decoding single :as with atom keys" do

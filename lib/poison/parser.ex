@@ -187,11 +187,11 @@ defmodule Poison.Parser do
   end
 
   defp number_complete(iolist, false) do
-    IO.iodata_to_binary(iolist) |> String.to_integer
+    iolist |> IO.iodata_to_binary |> String.to_integer
   end
 
   defp number_complete(iolist, true) do
-    IO.iodata_to_binary(iolist) |> String.to_float
+    iolist |> IO.iodata_to_binary |> String.to_float
   end
 
   defp number_digits(<<char>> <> rest = string, pos) when char in '0123456789' do

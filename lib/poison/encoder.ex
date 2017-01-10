@@ -19,9 +19,11 @@ defmodule Poison.Encode do
             value
           is_atom(value) ->
             Atom.to_string(value)
+          is_integer(value) ->
+            Integer.to_string(value)
           true ->
             raise Poison.EncodeError, value: value,
-              message: "expected string or atom key, got: #{inspect value}"
+              message: "expected string, atom or integer key, got: #{inspect value}"
         end
       end
     end

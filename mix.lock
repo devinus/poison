@@ -1,8 +1,8 @@
 %{"benchfella": {:hex, :benchfella, "0.3.3", "bbde48b5fe1ef556baa7ad933008e214e050e81ddb0916350715f5759fb35c0c", [:mix], []},
-  "earmark": {:hex, :earmark, "1.0.1", "2c2cd903bfdc3de3f189bd9a8d4569a075b88a8981ded9a0d95672f6e2b63141", [:mix], []},
-  "ex_doc": {:hex, :ex_doc, "0.14.1", "bfed8d4e93c755e2b150be925ad2cfa6af7c3bfcacc3b609f45f6048c9d623d6", [:mix], [{:earmark, "~> 1.0", [hex: :earmark, optional: false]}]},
-  "exjsx": {:git, "https://github.com/talentdeficit/exjsx.git", "202b2ee1b274511973de60e9fdfed218d3b5eecc", []},
+  "earmark": {:hex, :earmark, "1.0.3", "89bdbaf2aca8bbb5c97d8b3b55c5dd0cff517ecc78d417e87f1d0982e514557b", [:mix], []},
+  "ex_doc": {:hex, :ex_doc, "0.14.5", "c0433c8117e948404d93ca69411dd575ec6be39b47802e81ca8d91017a0cf83c", [:mix], [{:earmark, "~> 1.0", [hex: :earmark, optional: false]}]},
+  "exjsx": {:git, "https://github.com/talentdeficit/exjsx.git", "090774be46724d4691d0c956eee9a9ab7e33a51e", []},
   "jazz": {:git, "https://github.com/meh/jazz.git", "49f335492aca5516495199dd81dd18b845ebaa69", []},
-  "jiffy": {:git, "https://github.com/davisp/jiffy.git", "4c0bfbc0fa0de12dcc4ff263888eeaa431ae6ed2", []},
+  "jiffy": {:git, "https://github.com/davisp/jiffy.git", "06aaf440e091c9fd5f8aea557ac760a33bd37130", []},
   "json": {:git, "https://github.com/cblage/elixir-json.git", "f49a2bb3a38bbc8509f91f18fec8ef95c5ec5743", []},
-  "jsx": {:hex, :jsx, "2.6.2", "213721e058da0587a4bce3cc8a00ff6684ced229c8f9223245c6ff2c88fbaa5a", [:mix, :rebar], []}}
+  "jsx": {:hex, :jsx, "2.8.1", "1453b4eb3615acb3e2cd0a105d27e6761e2ed2e501ac0b390f5bbec497669846", [:mix, :rebar3], []}}

@@ -36,8 +36,10 @@ defmodule Poison.EncoderTest do
 
   test "Map" do
     assert to_json(%{}) == "{}"
-    assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
     assert to_json(%{"foo" => "bar"})  == ~s({"foo":"bar"})
+    assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
+    assert to_json(%{42 => :bar}) == ~s({"42":"bar"})
+    assert to_json(%{'foo' => :bar}) == ~s({"foo":"bar"})
     assert to_json(%{foo: %{bar: %{baz: "baz"}}}, pretty: true) == """
     {
       "foo": {
@@ -116,31 +118,33 @@ defmodule Poison.EncoderTest do
     end
   end
 
-  test "HashDict" do
-    dict = HashDict.new
-    assert to_json(dict) == "{}"
+  if Version.match?(System.version, "<1.4.0-rc.0") do
+    test "HashDict" do
+      dict = HashDict.new
+      assert to_json(dict) == "{}"
 
-    dict = dict |> HashDict.put(:foo, "bar") |> HashDict.put(:baz, "quux")
+      dict = dict |> HashDict.put(:foo, "bar") |> HashDict.put(:baz, "quux")
 
-    assert to_json(dict) in ~w"""
-    {"foo":"bar","baz":"quux"}
-    {"baz":"quux","foo":"bar"}
-    """
+      assert to_json(dict) in ~w"""
+      {"foo":"bar","baz":"quux"}
+      {"baz":"quux","foo":"bar"}
+      """
 
-    assert to_json(dict, pretty: true) in [
-      """
-      {
-        "foo": "bar",
-        "baz": "quux"
-      }\
-      """,
-      """
-      {
-        "baz": "quux",
-        "foo": "bar"
-      }\
-      """
-    ]
+      assert to_json(dict, pretty: true) in [
+        """
+        {
+          "foo": "bar",
+          "baz": "quux"
+        }\
+        """,
+        """
+        {
+          "baz": "quux",
+          "foo": "bar"
+        }\
+        """
+      ]
+    end
   end
 
   if Version.match?(System.version, ">=1.3.0-rc.1") do
@@ -207,10 +211,6 @@ defmodule Poison.EncoderTest do
   test "EncodeError" do
     assert_raise EncodeError, fn ->
       to_json(self())
-    end
-
-    assert_raise EncodeError, fn ->
-      assert to_json(%{42.0 => "foo"})
     end
 
     assert_raise EncodeError, fn ->

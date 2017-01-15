@@ -13,15 +13,19 @@ end
 defmodule Poison.Encode do
   defmacro __using__(_) do
     quote do
+      @compile {:inline, encode_name: 1}
+
+      defp encode_name(value) when is_binary(value) do
+        value
+      end
+
       defp encode_name(value) do
-        cond do
-          is_binary(value) ->
-            value
-          is_atom(value) ->
-            Atom.to_string(value)
-          true ->
+        case String.Chars.impl_for(value) do
+          nil ->
             raise Poison.EncodeError, value: value,
-              message: "expected string or atom key, got: #{inspect value}"
+              message: "expected a String.Chars encodable value, got: #{inspect value}"
+          impl ->
+            impl.to_string(value)
         end
       end
     end
@@ -296,40 +300,42 @@ defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet] do
   end
 end
 
-defimpl Poison.Encoder, for: HashDict do
-  alias Poison.Encoder
+if Version.match?(System.version, "<1.4.0-rc.0") do
+  defimpl Poison.Encoder, for: HashDict do
+    alias Poison.Encoder
 
-  use Poison.Pretty
-  use Poison.Encode
+    use Poison.Pretty
+    use Poison.Encode
 
-  def encode(dict, options) do
-    if HashDict.size(dict) < 1 do
-      "{}"
-    else
-      encode(dict, pretty(options), options)
-    end
-  end
-
-  def encode(dict, false, options) do
-    fun = fn {key, value} ->
-      [?,, Encoder.BitString.encode(encode_name(key), options), ?:,
-           Encoder.encode(value, options)]
+    def encode(dict, options) do
+      if HashDict.size(dict) < 1 do
+        "{}"
+      else
+        encode(dict, pretty(options), options)
+      end
     end
 
-    [?{, tl(Enum.flat_map(dict, fun)), ?}]
-  end
+    def encode(dict, false, options) do
+      fun = fn {key, value} ->
+        [?,, Encoder.BitString.encode(encode_name(key), options), ?:,
+             Encoder.encode(value, options)]
+      end
 
-  def encode(dict, true, options) do
-    indent = indent(options)
-    offset = offset(options) + indent
-    options = offset(options, offset)
-
-    fun = fn {key, value} ->
-      [",\n", spaces(offset), Encoder.BitString.encode(encode_name(key), options), ": ",
-                              Encoder.encode(value, options)]
+      [?{, tl(Enum.flat_map(dict, fun)), ?}]
     end
 
-    ["{\n", tl(Enum.flat_map(dict, fun)), ?\n, spaces(offset - indent), ?}]
+    def encode(dict, true, options) do
+      indent = indent(options)
+      offset = offset(options) + indent
+      options = offset(options, offset)
+
+      fun = fn {key, value} ->
+        [",\n", spaces(offset), Encoder.BitString.encode(encode_name(key), options), ": ",
+                                Encoder.encode(value, options)]
+      end
+
+      ["{\n", tl(Enum.flat_map(dict, fun)), ?\n, spaces(offset - indent), ?}]
+    end
   end
 end
 

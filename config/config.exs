@@ -15,7 +15,8 @@ use Mix.Config
 #       format: "$time $metadata[$level] $message\n"
 
 config :poison,
-  native: :erlang.system_info(:hipe_architecture) != :undefined
+  native: :erlang.system_info(:hipe_architecture) != :undefined,
+  enable_hashdict: Version.match?(System.version, "<1.4.0-rc.0")
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment

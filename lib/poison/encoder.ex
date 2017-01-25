@@ -15,6 +15,7 @@ defmodule Poison.Encode do
     quote do
       @compile {:inline, encode_name: 1}
 
+      # Fast path encoding string keys
       defp encode_name(value) when is_binary(value) do
         value
       end
@@ -118,8 +119,8 @@ defimpl Poison.Encoder, for: BitString do
      | escape(rest, :unicode)]
   end
 
-  defp escape(<<char :: utf8>> <> rest, :javascript) when char in [0x2028, 0x2029] do
-    [seq(char) | escape(rest, :javascript)]
+  defp escape(<<char :: utf8>> <> rest, mode) when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
+    [seq(char) | escape(rest, mode)]
   end
 
   defp escape(<<?/ :: utf8>> <> rest, :html_safe) do
@@ -148,7 +149,7 @@ defimpl Poison.Encoder, for: BitString do
     acc
   end
 
-  defp chunk_size(<<char :: utf8>> <> _, :javascript, acc) when char in [0x2028, 0x2029] do
+  defp chunk_size(<<char :: utf8>> <> _, mode, acc) when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
     acc
   end
 
@@ -230,15 +231,14 @@ defimpl Poison.Encoder, for: Map do
 
   defp strict_keys(map, false), do: map
   defp strict_keys(map, true) do
-    Enum.reduce(map, %{}, fn {key, value}, acc ->
+    Enum.each(map, fn {key, value} ->
       name = encode_name(key)
-      case Map.has_key?(acc, name) do
-        false -> Map.put(acc, name, value)
-        true ->
-          raise Poison.EncodeError, value: name,
-            message: "duplicate key found: #{inspect key}"
+      if Map.has_key?(map, name) do
+        raise Poison.EncodeError, value: name,
+          message: "duplicate key found: #{inspect key}"
       end
     end)
+    map
   end
 end
 
@@ -300,7 +300,7 @@ defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet] do
   end
 end
 
-if Version.match?(System.version, "<1.4.0-rc.0") do
+if Application.get_env(:poison, :enable_hashdict) do
   defimpl Poison.Encoder, for: HashDict do
     alias Poison.Encoder
 

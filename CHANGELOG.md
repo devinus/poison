@@ -3,13 +3,14 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Changelog](#changelog)
-  - [v3.2.0](#v320)
+  - [master](#master)
+  - [v3.1.0](#v310)
     - [Enhancements](#enhancements)
     - [Bug Fixes](#bug-fixes)
-  - [v3.1.0](#v310)
   - [v3.0.0](#v300)
     - [Enhancements](#enhancements-1)
     - [Bug Fixes](#bug-fixes-1)
+    - [Incompatible Changes](#incompatible-changes)
   - [v2.2.0](#v220)
     - [Enhancements](#enhancements-2)
     - [Bug Fixes](#bug-fixes-2)
@@ -20,7 +21,7 @@
     - [Bug Fixes](#bug-fixes-4)
   - [v2.0.0](#v200)
     - [Enhancements](#enhancements-4)
-    - [Incompatible Changes](#incompatible-changes)
+    - [Incompatible Changes](#incompatible-changes-1)
   - [v1.5.2](#v152)
     - [Bug Fixes](#bug-fixes-5)
   - [v1.5.1](#v151)
@@ -47,13 +48,14 @@
   - [v1.0.0](#v100)
     - [Enhancements](#enhancements-9)
     - [Bug Fixes](#bug-fixes-12)
-    - [Incompatible Changes](#incompatible-changes-1)
+    - [Incompatible Changes](#incompatible-changes-2)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Changelog
 
 ## master
+* [#118](https://github.com/devinus/poison/pull/118) - Add `CHANGELOG` - [@KronicDeth](https://github.com/KronicDeth)
 
 ## v3.1.0
 

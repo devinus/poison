@@ -55,7 +55,9 @@
 # Changelog
 
 ## master
-* [#118](https://github.com/devinus/poison/pull/118) - Add `CHANGELOG` - [@KronicDeth](https://github.com/KronicDeth)
+* [#118](https://github.com/devinus/poison/pull/118) - [@KronicDeth](https://github.com/KronicDeth)
+  * Add `CHANGELOG.md`
+  * Add `UPGRADING.md`
 
 ## v3.1.0
 

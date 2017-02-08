@@ -30,7 +30,7 @@ defmodule Poison.Parser do
   @type t :: nil | true | false | list | float | integer | String.t | map
 
   @spec parse(iodata, Keyword.t) :: {:ok, t} | {:error, :invalid}
-    | {:error, {:invalid, String.t}}
+    | {:error, {:invalid, String.t}} | no_return
   def parse(iodata, options \\ []) do
     string = IO.iodata_to_binary(iodata)
     {rest, pos} = skip_whitespace(string, 0)

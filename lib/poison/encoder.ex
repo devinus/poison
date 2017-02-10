@@ -163,7 +163,7 @@ defimpl Poison.Encoder, for: BitString do
     chunk_size(rest, mode, acc + size)
   end
 
-  defp chunk_size(<<char>>, _, _) do
+  defp chunk_size(<<char>> <> _rest, _, _) do
     raise Poison.EncodeError, value: <<char>>
   end
 

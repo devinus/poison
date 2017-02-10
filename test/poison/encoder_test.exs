@@ -33,6 +33,7 @@ defmodule Poison.EncoderTest do
     assert to_json("</script>", escape: :html_safe) == ~s("<\\/script>")
     assert to_json(~s(<script>var s = "\u2028\u2029";</script>), escape: :html_safe) == ~s("<script>var s = \\\"\\u2028\\u2029\\\";<\\/script>")
     assert to_json("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
+    assert to_json("hello_world", dash: true) == ~s("hello-world")
   end
 
   test "Map" do

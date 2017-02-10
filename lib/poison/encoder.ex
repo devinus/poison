@@ -86,8 +86,13 @@ defimpl Poison.Encoder, for: BitString do
   def encode("", _), do: "\"\""
 
   def encode(string, options) do
-    [?", escape(string, options[:escape]), ?"]
+    [?", dash(string, options[:dash]) |> escape(options[:escape]), ?"]
   end
+
+  defp dash(string, true) when is_binary(string) do
+    String.replace(string, "_", "-")
+  end
+  defp dash(string, _), do: string
 
   defp escape("", _), do: []
 

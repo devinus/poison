@@ -12,6 +12,10 @@ defmodule Poison.ParserTest do
     assert_raise SyntaxError, "Unexpected end of input at position 2", fn -> parse!("1.") end
     assert_raise SyntaxError, "Unexpected end of input at position 2", fn -> parse!("1e") end
     assert_raise SyntaxError, "Unexpected end of input at position 5", fn -> parse!("1.0e+") end
+    assert_raise ArgumentError, "argument error", fn -> parse!("1.7976932e308") end
+
+    # note: `parse` is also expected to raise an error in this case
+    assert_raise ArgumentError, "argument error", fn -> parse("1.7976932e308") end
 
     assert parse!("0") == 0
     assert parse!("1") == 1
@@ -31,6 +35,7 @@ defmodule Poison.ParserTest do
     assert parse!("99.99e99") == 99.99e99
     assert parse!("-99.99e-99") == -99.99e-99
     assert parse!("123456789.123456789e123") == 123456789.123456789e123
+    assert parse!("1.7976931e308") == 1.7976931e308
   end
 
   test "strings" do

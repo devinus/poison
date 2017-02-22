@@ -231,7 +231,7 @@ defimpl Poison.Encoder, for: Map do
 
   defp strict_keys(map, false), do: map
   defp strict_keys(map, true) do
-    Enum.each(map, fn {key, value} ->
+    Enum.each(map, fn {key, _value} ->
       name = encode_name(key)
       if Map.has_key?(map, name) do
         raise Poison.EncodeError, value: name,

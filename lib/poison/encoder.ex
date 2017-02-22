@@ -97,6 +97,10 @@ defimpl Poison.Encoder, for: BitString do
     end
   end
 
+  defp escape(<<31>> <> rest, mode) do
+    ["\\" <> <<31>> | escape(rest, mode)]
+  end
+
   # http://en.wikipedia.org/wiki/Unicode_control_characters
   defp escape(<<char>> <> rest, mode) when char <= 0x1F or char == 0x7F do
     [seq(char) | escape(rest, mode)]

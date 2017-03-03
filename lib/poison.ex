@@ -4,10 +4,25 @@ defmodule Poison do
   alias Poison.Parser
 
   @doc """
-  Encode a value to JSON.
+  Encodes an elixir value into a JSON.
+
+  Any value that implements the `Poison.Encoder` protocol is sutiable to be encoded.
+
+  ## Examples
 
       iex> Poison.encode([1, 2, 3])
       {:ok, "[1,2,3]"}
+      iex> Poison.encode("Poison String")
+      {:ok, ~s("Poison String")}
+      iex> Poison.encode(%{name: "John Doe"})
+      {:ok, ~s({"name":"John Doe"})}
+
+  ## Return values
+
+  If the encode is successful, returns a tuple with `{:ok, encoded_data}`,
+  where `encoded_data` is the result of the parse. If the parse fails,
+  this function returns a tuple with `{:error, {:invalid, invalid_value}}`,
+  where `invalid_value` is the value that couldn't be parsed.
   """
   @spec encode(Encoder.t, Keyword.t) :: {:ok, iodata} | {:ok, String.t}
     | {:error, {:invalid, any}}

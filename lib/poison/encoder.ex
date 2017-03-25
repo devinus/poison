@@ -171,11 +171,19 @@ defimpl Poison.Encoder, for: BitString do
 
   @compile {:inline, seq: 1}
   defp seq(char) do
-    case Integer.to_char_list(char, 16) do
+    case to_charlist(char, 16) do
       s when length(s) < 2 -> ["\\u000" | s]
       s when length(s) < 3 -> ["\\u00" | s]
       s when length(s) < 4 -> ["\\u0" | s]
       s -> ["\\u" | s]
+    end
+  end
+
+  defp to_charlist(integer, base) do
+    if function_exported?(Integer, :to_charlist, 2) do
+      Integer.to_charlist(integer, base)
+    else
+      Integer.to_char_list(integer, base)
     end
   end
 end

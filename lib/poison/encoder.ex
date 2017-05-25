@@ -181,8 +181,12 @@ defimpl Poison.Encoder, for: BitString do
 end
 
 defimpl Poison.Encoder, for: Integer do
-  def encode(integer, _options) do
-    Integer.to_string(integer)
+  def encode(integer, options) do
+    if options[:bigint_to_string] && (integer > 0xffffffff || integer < -0x80000000) do
+      Integer.to_string(integer) |> Poison.Encoder.encode(options)
+    else
+      Integer.to_string(integer)
+    end
   end
 end
 

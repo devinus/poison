@@ -195,11 +195,11 @@ defimpl Poison.Encoder, for: BitString do
     chunk_size(rest, mode, acc + size)
   end
 
-  defp chunk_size(<<char>>, _, _) do
-    raise EncodeError, value: <<char>>
-  end
-
   defp chunk_size("", _, acc), do: acc
+
+  defp chunk_size(other, _, _) do
+    raise EncodeError, value: other
+  end
 
   @compile {:inline, seq: 1}
   defp seq(char) do

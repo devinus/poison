@@ -186,6 +186,10 @@ defmodule Poison.EncoderTest do
     assert_raise EncodeError, fn ->
       assert to_json(<<0x80>>)
     end
+
+    assert_raise EncodeError, fn ->
+      assert to_json(<<208, 99>>)
+    end
   end
 
   defp to_json(value, options \\ []) do

@@ -39,6 +39,12 @@ $ mix deps.get
 ## Usage
 
 ```elixir
+Poison.encode!(%{"age" => 27, "name" => "Devin Torres"})
+#=> "{\"name\":\"Devin Torres\",\"age\":27}"
+
+Poison.decode!(~s({"name": "Devin Torres", "age": 27}))
+#=> %{"age" => 27, "name" => "Devin Torres"}
+
 defmodule Person do
   @derive [Poison.Encoder]
   defstruct [:name, :age]

@@ -5,18 +5,23 @@ use Mix.Config
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,
-# if you want to provide default values for your application for third-
-# party users, it should be done in your mix.exs file.
+# if you want to provide default values for your application for
+# 3rd-party users, it should be done in your "mix.exs" file.
 
-# Sample configuration:
+# You can configure for your application as:
 #
-#     config :logger,
-#       level: :info,
-#       format: "$time $metadata[$level] $message\n"
-
+#     config :foo, key: :value
+#
+# And access this configuration in your application as:
+#
+#     Application.get_env(:foo, :key)
+#
+# Or configure a 3rd-party app:
+#
+#     config :logger, level: :info
+#
 config :poison,
-  native: :erlang.system_info(:hipe_architecture) != :undefined,
-  enable_hashdict: Version.match?(System.version, "<1.4.0-rc.0")
+  native: :erlang.system_info(:hipe_architecture) != :undefined
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment

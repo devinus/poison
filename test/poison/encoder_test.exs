@@ -53,7 +53,7 @@ defmodule Poison.EncoderTest do
 
     multi_key_map = %{"foo" => "foo1", :foo => "foo2"}
     assert to_json(multi_key_map) == ~s({"foo":"foo1","foo":"foo2"})
-    assert Poison.encode(multi_key_map, strict_keys: true) == {:error, {:invalid, "foo"}}
+    assert Poison.encode(multi_key_map, strict_keys: true) == {:error, %Poison.EncodeError{message: "duplicate key found: :foo", value: "foo"}}
   end
 
   test "List" do
@@ -92,7 +92,7 @@ defmodule Poison.EncoderTest do
     """
   end
 
-  # MapSet/HashSet/HashDict have an unspecified order
+  # MapSet/HashSet have an unspecified order
 
   test "MapSet/HashSet" do
     for type <- [MapSet, HashSet] do
@@ -119,62 +119,31 @@ defmodule Poison.EncoderTest do
     end
   end
 
-  if Application.get_env(:poison, :enable_hashdict) do
-    test "HashDict" do
-      dict = HashDict.new
-      assert to_json(dict) == "{}"
-
-      dict = dict |> HashDict.put(:foo, "bar") |> HashDict.put(:baz, "quux")
-
-      assert to_json(dict) in ~w"""
-      {"foo":"bar","baz":"quux"}
-      {"baz":"quux","foo":"bar"}
-      """
-
-      assert to_json(dict, pretty: true) in [
-        """
-        {
-          "foo": "bar",
-          "baz": "quux"
-        }\
-        """,
-        """
-        {
-          "baz": "quux",
-          "foo": "bar"
-        }\
-        """
-      ]
-    end
+  test "Time" do
+    {:ok, time} = Time.new(12, 13, 14)
+    assert to_json(time) == ~s("12:13:14")
   end
 
-  if Version.match?(System.version, ">=1.3.0-rc.1") do
-    test "Time" do
-      {:ok, time} = Time.new(12, 13, 14)
-      assert to_json(time) == ~s("12:13:14")
-    end
+  test "Date" do
+    {:ok, date} = Date.new(2000, 1, 1)
+    assert to_json(date) == ~s("2000-01-01")
+  end
 
-    test "Date" do
-      {:ok, date} = Date.new(2000, 1, 1)
-      assert to_json(date) == ~s("2000-01-01")
-    end
+  test "NaiveDateTime" do
+    {:ok, datetime} = NaiveDateTime.new(2000, 1, 1, 12, 13, 14)
+    assert to_json(datetime) == ~s("2000-01-01T12:13:14")
+  end
 
-    test "NaiveDateTime" do
-      {:ok, datetime} = NaiveDateTime.new(2000, 1, 1, 12, 13, 14)
-      assert to_json(datetime) == ~s("2000-01-01T12:13:14")
-    end
+  test "DateTime" do
+    datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+                         microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
+                         std_offset: -1800, utc_offset: 3600}
+    assert to_json(datetime) == ~s("2000-01-01T12:13:14+00:30")
 
-    test "DateTime" do
-      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-                           microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
-                           std_offset: -1800, utc_offset: 3600}
-      assert to_json(datetime) == ~s("2000-01-01T12:13:14+00:30")
-
-      datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-                           microsecond: {50000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
-                           std_offset: 0, utc_offset: 0}
-      assert to_json(datetime) == ~s("2000-01-01T12:13:14.050Z")
-    end
+    datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+                         microsecond: {50000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
+                         std_offset: 0, utc_offset: 0}
+    assert to_json(datetime) == ~s("2000-01-01T12:13:14.050Z")
   end
 
   defmodule Derived do
@@ -220,6 +189,8 @@ defmodule Poison.EncoderTest do
   end
 
   defp to_json(value, options \\ []) do
-    Poison.Encoder.encode(value, options) |> IO.iodata_to_binary
+    value
+    |> Poison.Encoder.encode(Map.new(options))
+    |> IO.iodata_to_binary
   end
 end

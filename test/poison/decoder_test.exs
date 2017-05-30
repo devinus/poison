@@ -1,7 +1,7 @@
 defmodule Poison.DecoderTest do
   use ExUnit.Case, async: true
 
-  import Poison.Decode
+  import Poison.Decode, only: [transform: 2]
 
   defmodule Person do
     defstruct [:name, :address, :contact, age: 42]
@@ -31,73 +31,73 @@ defmodule Poison.DecoderTest do
 
   test "decoding single :as with string keys" do
     person = %{"name" => "Devin Torres", "age" => 27}
-    assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: 27}
+    assert transform(person, %{as: %Person{}}) == %Person{name: "Devin Torres", age: 27}
   end
 
   test "decoding single :as with atom keys" do
     person = %{name: "Devin Torres", age: 27}
-    assert decode(person, keys: :atoms!, as: %Person{}) == %Person{name: "Devin Torres", age: 27}
+    assert transform(person, %{keys: :atoms!, as: %Person{}}) == %Person{name: "Devin Torres", age: 27}
   end
 
   test "decoding :as list with string keys" do
     person = [%{"name" => "Devin Torres", "age" => 27}]
-    assert decode(person, as: [%Person{}]) == [%Person{name: "Devin Torres", age: 27}]
+    assert transform(person, %{as: [%Person{}]}) == [%Person{name: "Devin Torres", age: 27}]
   end
 
   test "decoding nested :as with string keys" do
     person = %{"person" => %{"name" => "Devin Torres", "age" => 27}}
-    actual = decode(person, as: %{"person" => %Person{}})
+    actual = transform(person, %{as: %{"person" => %Person{}}})
     expected = %{"person" => %Person{name: "Devin Torres", age: 27}}
     assert actual == expected
   end
 
   test "decoding nested :as with atom keys" do
     person = %{person: %{name: "Devin Torres", age: 27}}
-    actual = decode(person, keys: :atoms!, as: %{person: %Person{}})
+    actual = transform(person, %{keys: :atoms!, as: %{person: %Person{}}})
     expected = %{person: %Person{name: "Devin Torres", age: 27}}
     assert actual == expected
   end
 
   test "decoding nested :as list with string keys" do
     people = %{"people" => [%{"name" => "Devin Torres", "age" => 27}]}
-    actual = decode(people, as: %{"people" => [%Person{}]})
+    actual = transform(people, %{as: %{"people" => [%Person{}]}})
     expected = %{"people" => [%Person{name: "Devin Torres", age: 27}]}
     assert actual == expected
   end
 
   test "decoding into structs with key subset" do
     person = %{"name" => "Devin Torres", "age" => 27, "dob" => "1987-01-29"}
-    assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: 27}
+    assert transform(person, %{as: %Person{}}) == %Person{name: "Devin Torres", age: 27}
   end
 
   test "decoding into structs with default values" do
     person = %{"name" => "Devin Torres"}
-    assert decode(person, as: %Person{age: 50}) == %Person{name: "Devin Torres", age: 50}
+    assert transform(person, %{as: %Person{age: 50}}) == %Person{name: "Devin Torres", age: 50}
   end
 
   test "decoding into structs with unspecified default values" do
     person = %{"name" => "Devin Torres"}
-    assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: 42}
+    assert transform(person, %{as: %Person{}}) == %Person{name: "Devin Torres", age: 42}
   end
 
   test "decoding into structs with unspecified default values and atom keys" do
     person = %{:name => "Devin Torres"}
-    assert decode(person, as: %Person{}, keys: :atoms!) == %Person{name: "Devin Torres", age: 42}
+    assert transform(person, %{as: %Person{}, keys: :atoms!}) == %Person{name: "Devin Torres", age: 42}
   end
 
   test "decoding into structs with nil overriding defaults" do
     person = %{"name" => "Devin Torres", "age" => nil}
-    assert decode(person, as: %Person{}) == %Person{name: "Devin Torres", age: nil}
+    assert transform(person, %{as: %Person{}}) == %Person{name: "Devin Torres", age: nil}
   end
 
   test "decoding into nested structs" do
     person = %{"name" => "Devin Torres", "contact" => %{"email" => "devin@torres.com"}}
-    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres", contact: %Contact{email: "devin@torres.com"}}
+    assert transform(person, %{as: %Person{contact: %Contact{}}}) == %Person{name: "Devin Torres", contact: %Contact{email: "devin@torres.com"}}
   end
 
   test "decoding into nested struct, empty nested struct" do
     person = %{"name" => "Devin Torres"}
-    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres"}
+    assert transform(person, %{as: %Person{contact: %Contact{}}}) == %Person{name: "Devin Torres"}
   end
 
   test "decoding into nested struct list" do
@@ -109,7 +109,7 @@ defmodule Poison.DecoderTest do
         %Contact2{email: "test@email.com", call_count: 0}
       ]}
 
-    decoded = decode(person, as: %Person2{contacts: [%Contact2{}]})
+    decoded = transform(person, %{as: %Person2{contacts: [%Contact2{}]}})
     assert decoded == expected
   end
 
@@ -122,7 +122,7 @@ defmodule Poison.DecoderTest do
         %Contact2{email: "test@email.com", call_count: 0}
       ]}
 
-    decoded = decode(person, as: %Person2{contacts: [%Contact2{}]}, keys: :atoms)
+    decoded = transform(person, %{as: %Person2{contacts: [%Contact2{}]}, keys: :atoms})
     assert decoded == expected
   end
 
@@ -134,22 +134,21 @@ defmodule Poison.DecoderTest do
       contacts: []
     }
 
-    assert decode(person, as: %Person2{contacts: [%Contact{}]}) == expected
+    assert transform(person, %{as: %Person2{contacts: [%Contact{}]}}) == expected
   end
 
   test "decoding into nested structs list with nil overriding default" do
     person = %{"name" => "Devin Torres", "contacts" => nil}
-
-    assert decode(person, as: %Person2{contacts: [%Contact{}]}) == %Person2{name: "Devin Torres", contacts: nil}
+    assert transform(person, %{as: %Person2{contacts: [%Contact{}]}}) == %Person2{name: "Devin Torres", contacts: nil}
   end
 
   test "decoding into nested structs with nil overriding defaults" do
     person = %{"name" => "Devin Torres", "contact" => nil}
-    assert decode(person, as: %Person{contact: %Contact{}}) == %Person{name: "Devin Torres", contact: nil}
+    assert transform(person, %{as: %Person{contact: %Contact{}}}) == %Person{name: "Devin Torres", contact: nil}
   end
 
   test "decoding using a defined decoder" do
     address = %{"street" => "1 Main St.", "city" => "Austin", "state" => "TX", "zip" => "78701"}
-    assert decode(address, as: %Address{}) == "1 Main St., Austin, TX  78701"
+    assert transform(address, %{as: %Address{}}) == "1 Main St., Austin, TX  78701"
   end
 end

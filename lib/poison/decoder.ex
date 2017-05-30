@@ -1,12 +1,30 @@
+defmodule Poison.DecodeError do
+  @type t :: %__MODULE__{message: String.t, value: any}
+
+  defexception message: nil, value: nil
+
+  def message(%{message: nil, value: value}) do
+    "unable to decode value: #{inspect(value)}"
+  end
+
+  def message(%{message: message}) do
+    message
+  end
+end
+
 defmodule Poison.Decode do
-  def decode(value, options) when is_map(value) or is_list(value) do
-    case options[:as] do
+  @moduledoc false
+
+  alias Poison.Decoder
+
+  def transform(value, options) when is_map(value) or is_list(value) do
+    case Map.get(options, :as) do
       nil -> value
-      as -> transform(value, options[:keys], as, options)
+      as -> transform(value, Map.get(options, :keys), as, options)
     end
   end
 
-  def decode(value, _options) do
+  def transform(value, _options) do
     value
   end
 
@@ -75,13 +93,22 @@ defmodule Poison.Decode do
       Map.put(acc, key, new_value)
     end)
     |> Map.put(:__struct__, as.__struct__)
-    |> Poison.Decoder.decode(options)
+    |> Decoder.decode(options)
   end
 end
 
 defprotocol Poison.Decoder do
   @fallback_to_any true
 
+  @typep keys :: :atoms | :atoms!
+  @typep as :: map | struct | [as]
+
+  @type options :: %{
+    optional(:keys) => keys,
+    optional(:as) => as,
+  }
+
+  @spec decode(t, options) :: any
   def decode(value, options)
 end
 

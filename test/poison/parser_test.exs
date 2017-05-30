@@ -2,16 +2,17 @@ defmodule Poison.ParserTest do
   use ExUnit.Case, async: true
 
   import Poison.Parser
-  alias Poison.SyntaxError
+  alias Poison.ParseError
 
   test "numbers" do
-    assert_raise SyntaxError, "Unexpected end of input at position 1", fn -> parse!("-") end
-    assert_raise SyntaxError, "Unexpected token at position 1: -", fn -> parse!("--1") end
-    assert_raise SyntaxError, "Unexpected token at position 1: 1", fn -> parse!("01") end
-    assert_raise SyntaxError, "Unexpected token at position 0: .", fn -> parse!(".1") end
-    assert_raise SyntaxError, "Unexpected end of input at position 2", fn -> parse!("1.") end
-    assert_raise SyntaxError, "Unexpected end of input at position 2", fn -> parse!("1e") end
-    assert_raise SyntaxError, "Unexpected end of input at position 5", fn -> parse!("1.0e+") end
+    assert_raise ParseError, "Unexpected end of input at position 1", fn -> parse!("-") end
+    assert_raise ParseError, "Unexpected token at position 1: -", fn -> parse!("--1") end
+    assert_raise ParseError, "Unexpected token at position 1: 1", fn -> parse!("01") end
+    assert_raise ParseError, "Unexpected token at position 0: .", fn -> parse!(".1") end
+    assert_raise ParseError, "Unexpected end of input at position 2", fn -> parse!("1.") end
+    assert_raise ParseError, "Unexpected end of input at position 2", fn -> parse!("1e") end
+    assert_raise ParseError, "Unexpected end of input at position 5", fn -> parse!("1.0e+") end
+    assert_raise ParseError, ~s(Cannot parse value at position 0: "100.0e999"), fn -> parse!("100e999") end
 
     assert parse!("0") == 0
     assert parse!("1") == 1
@@ -34,13 +35,16 @@ defmodule Poison.ParserTest do
   end
 
   test "strings" do
-    assert_raise SyntaxError, "Unexpected end of input at position 1", fn -> parse!(~s(")) end
-    assert_raise SyntaxError, "Unexpected end of input at position 2", fn -> parse!(~s("\\")) end
-    assert_raise SyntaxError, "Unexpected token at position 1: k", fn -> parse!(~s("\\k")) end
-    assert_raise SyntaxError, "Unexpected end of input at position 1", fn -> parse!(<<34, 128, 34>>) end
-    assert_raise SyntaxError, "Unexpected end of input at position 7", fn -> parse!(~s("\\u2603\\")) end
-    assert_raise SyntaxError, "Unexpected end of input at position 39", fn -> parse!(~s("Here's a snowman for you: ☃. Good day!)) end
-    assert_raise SyntaxError, "Unexpected end of input at position 2", fn -> parse!(~s("𝄞)) end
+    assert_raise ParseError, "Unexpected end of input at position 1", fn -> parse!(~s(")) end
+    assert_raise ParseError, "Unexpected end of input at position 2", fn -> parse!(~s("\\")) end
+    assert_raise ParseError, "Unexpected token at position 1: k", fn -> parse!(~s("\\k")) end
+    assert_raise ParseError, "Unexpected end of input at position 1", fn -> parse!(<<34, 128, 34>>) end
+    assert_raise ParseError, "Unexpected end of input at position 7", fn -> parse!(~s("\\u2603\\")) end
+    assert_raise ParseError, "Unexpected end of input at position 39", fn -> parse!(~s("Here's a snowman for you: ☃. Good day!)) end
+    assert_raise ParseError, "Unexpected end of input at position 2", fn -> parse!(~s("𝄞)) end
+    assert_raise ParseError, "Unexpected token at position 0: \\x1F", fn -> parse!(~s(\u001F)) end
+    assert_raise ParseError, ~s(Cannot parse value at position 1: "\\\\ud8aa\\\\udcxx"), fn -> parse!(~s("\\ud8aa\\udcxx")) end
+    assert_raise ParseError, ~s(Cannot parse value at position 1: "\\\\uxxxx"), fn -> parse!(~s("\\uxxxx")) end
 
     assert parse!(~s("\\"\\\\\\/\\b\\f\\n\\r\\t")) == ~s("\\/\b\f\n\r\t)
     assert parse!(~s("\\u2603")) == "☃"
@@ -52,10 +56,10 @@ defmodule Poison.ParserTest do
   end
 
   test "objects" do
-    assert_raise SyntaxError, "Unexpected end of input at position 1", fn -> parse!("{") end
-    assert_raise SyntaxError, "Unexpected token at position 1: ,", fn -> parse!("{,") end
-    assert_raise SyntaxError, "Unexpected token at position 6: }", fn -> parse!(~s({"foo"})) end
-    assert_raise SyntaxError, "Unexpected token at position 14: }", fn -> parse!(~s({"foo": "bar",})) end
+    assert_raise ParseError, "Unexpected end of input at position 1", fn -> parse!("{") end
+    assert_raise ParseError, "Unexpected token at position 1: ,", fn -> parse!("{,") end
+    assert_raise ParseError, "Unexpected token at position 6: }", fn -> parse!(~s({"foo"})) end
+    assert_raise ParseError, "Unexpected token at position 14: }", fn -> parse!(~s({"foo": "bar",})) end
 
     assert parse!("{}") == %{}
     assert parse!(~s({"foo": "bar"})) == %{"foo" => "bar"}
@@ -68,9 +72,9 @@ defmodule Poison.ParserTest do
   end
 
   test "arrays" do
-    assert_raise SyntaxError, "Unexpected end of input at position 1", fn -> parse!("[") end
-    assert_raise SyntaxError, "Unexpected token at position 1: ,", fn -> parse!("[,") end
-    assert_raise SyntaxError, "Unexpected token at position 3: ]", fn -> parse!("[1,]") end
+    assert_raise ParseError, "Unexpected end of input at position 1", fn -> parse!("[") end
+    assert_raise ParseError, "Unexpected token at position 1: ,", fn -> parse!("[,") end
+    assert_raise ParseError, "Unexpected token at position 3: ]", fn -> parse!("[1,]") end
 
     assert parse!("[]") == []
     assert parse!("[1, 2, 3]") == [1, 2, 3]
@@ -79,8 +83,8 @@ defmodule Poison.ParserTest do
   end
 
   test "whitespace" do
-    assert_raise SyntaxError, "Unexpected end of input at position 0", fn -> parse!("") end
-    assert_raise SyntaxError, "Unexpected end of input at position 4", fn -> parse!("    ") end
+    assert_raise ParseError, "Unexpected end of input at position 0", fn -> parse!("") end
+    assert_raise ParseError, "Unexpected end of input at position 4", fn -> parse!("    ") end
 
     assert parse!("  [  ]  ") == []
     assert parse!("  {  }  ") == %{}
@@ -93,9 +97,13 @@ defmodule Poison.ParserTest do
 
   test "atom keys" do
     hash = :erlang.phash2(:crypto.strong_rand_bytes(8))
-    assert_raise ArgumentError, fn -> parse!(~s({"key#{hash}": null}), keys: :atoms!) end
+    assert_raise ArgumentError, fn -> parse!(~s({"key#{hash}": null}), %{keys: :atoms!}) end
 
-    assert parse!(~s({"foo": "bar"}), keys: :atoms) == %{foo: "bar"}
-    assert parse!(~s({"foo": "bar"}), keys: :atoms!) == %{foo: "bar"}
+    assert parse!(~s({"foo": "bar"}), %{keys: :atoms!}) == %{foo: "bar"}
+    assert parse!(~s({"foo": "bar"}), %{keys: :atoms}) == %{foo: "bar"}
+  end
+
+  defp parse!(iodata) do
+    parse!(iodata, %{})
   end
 end

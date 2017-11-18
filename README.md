@@ -12,7 +12,7 @@ Poison takes several approaches to be the fastest JSON library for Elixir.
 
 Poison uses extensive [sub binary matching][1], a **hand-rolled parser** using
 several techniques that are [known to benefit HiPE][2] for native compilation,
-[IO list][7] encoding and **single-pass** decoding.
+[IO list][3] encoding and **single-pass** decoding.
 
 Poison benchmarks sometimes puts Poison's performance close to `jiffy` and
 usually faster than other Erlang/Elixir libraries.
@@ -96,7 +96,7 @@ iex> IO.puts Poison.Encoder.encode([1, 2, 3], [])
 ```
 
 Anything implementing the Encoder protocol is expected to return an
-[IO list][5] to be embedded within any other Encoder's implementation and
+[IO list][7] to be embedded within any other Encoder's implementation and
 passable to any IO subsystem without conversion.
 
 ```elixir

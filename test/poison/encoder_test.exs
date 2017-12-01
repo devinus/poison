@@ -192,6 +192,24 @@ defmodule Poison.EncoderTest do
     end
   end
 
+  test "camelCase" do
+    camel_case = [format_keys: :camel_case]
+
+    assert to_json(%{one_two: true}, camel_case) == ~s({"oneTwo":true})
+    assert to_json(%{One_two_three: true}, camel_case) == ~s({"oneTwoThree":true})
+    assert to_json(%{"one_two" => true}, camel_case) == ~s({"oneTwo":true})
+
+    camel_and_strict = camel_case ++ [strict_keys: true]
+
+    assert_raise Poison.EncodeError, ~r/duplicate key found/, fn -> 
+      to_json(%{:one_two => true, "one_two" => 4}, camel_and_strict)
+    end
+
+    assert_raise Poison.EncodeError, ~r/duplicate key found/, fn -> 
+      to_json(%{:one_two => true, "_one_two_" => 4}, camel_and_strict)
+    end
+  end
+
   defp to_json(value, options \\ []) do
     value
     |> Poison.Encoder.encode(Map.new(options))

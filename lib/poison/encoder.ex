@@ -22,14 +22,14 @@ defmodule Poison.Encode do
       alias Poison.EncodeError
       alias String.Chars
 
-      @compile {:inline, encode_name: 1}
+      @compile {:inline, encode_name: 2}
 
       # Fast path encoding string keys
-      defp encode_name(value) when is_binary(value) do
+      defp encode_name(value, :default) when is_binary(value) do
         value
       end
 
-      defp encode_name(value) do
+      defp encode_name(value, :default) do
         case Chars.impl_for(value) do
           nil ->
             raise EncodeError,
@@ -41,6 +41,26 @@ defmodule Poison.Encode do
             impl.to_string(value)
         end
       end
+
+      defp encode_name(value, :camel_case) when is_binary(value) do
+        value
+        |> String.split("_", trim: true)
+        |> camelize(:first)
+        |> Enum.join()
+      end
+
+      defp encode_name(value, :camel_case) do
+        value
+        |> encode_name(:default)
+        |> encode_name(:camel_case)
+      end
+
+      defp camelize([], _), do: []
+
+      defp camelize([h | t], :first),
+        do: [String.downcase(h) | camelize(t, :rest)]
+
+      defp camelize([h | t], _), do: [String.capitalize(h), camelize(t, :rest)]
     end
   end
 end
@@ -86,13 +106,15 @@ defprotocol Poison.Encoder do
   @typep indent :: non_neg_integer
   @typep offset :: non_neg_integer
   @typep strict_keys :: boolean
+  @typep format_keys :: :default | :camel_case
 
   @type options :: %{
           optional(:escape) => escape,
           optional(:pretty) => pretty,
           optional(:indent) => indent,
           optional(:offset) => offset,
-          optional(:strict_keys) => strict_keys
+          optional(:strict_keys) => strict_keys,
+          optional(:format_keys) => format_keys
         }
 
   @spec encode(t, options) :: iodata
@@ -243,7 +265,10 @@ defimpl Poison.Encoder, for: Map do
 
   def encode(map, options) do
     map
-    |> strict_keys(Map.get(options, :strict_keys, false))
+    |> strict_keys(
+      Map.get(options, :strict_keys, false),
+      options[:format_keys] || :default
+    )
     |> encode(pretty(options), options)
   end
 
@@ -251,12 +276,13 @@ defimpl Poison.Encoder, for: Map do
     indent = indent(options)
     offset = offset(options) + indent
     options = offset(options, offset)
+    key_formatter = options[:format_keys] || :default
 
     fun =
       &[
         ",\n",
         spaces(offset),
-        Encoder.BitString.encode(encode_name(&1), options),
+        Encoder.BitString.encode(encode_name(&1, key_formatter), options),
         ": ",
         Encoder.encode(:maps.get(&1, map), options) | &2
       ]
@@ -271,10 +297,12 @@ defimpl Poison.Encoder, for: Map do
   end
 
   def encode(map, _, options) do
+    key_formatter = options[:format_keys] || :default
+
     fun =
       &[
         ?,,
-        Encoder.BitString.encode(encode_name(&1), options),
+        Encoder.BitString.encode(encode_name(&1, key_formatter), options),
         ?:,
         Encoder.encode(:maps.get(&1, map), options) | &2
       ]
@@ -282,19 +310,37 @@ defimpl Poison.Encoder, for: Map do
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end
 
-  defp strict_keys(map, false), do: map
+  defp strict_keys(map, false, _), do: map
 
-  defp strict_keys(map, true) do
+  defp strict_keys(map, true, :default) do
     map
     |> Map.keys()
     |> Enum.each(fn key ->
-      name = encode_name(key)
+      name = encode_name(key, :default)
 
       if Map.has_key?(map, name) do
         raise EncodeError,
           value: name,
           message: "duplicate key found: #{inspect(key)}"
       end
+    end)
+
+    map
+  end
+
+  defp strict_keys(map, true, :camel_case) do
+    map
+    |> Map.keys()
+    |> Enum.reduce(%{}, fn key, acc ->
+      name = encode_name(key, :camel_case)
+
+      if Map.has_key?(acc, name) do
+        raise EncodeError,
+          value: name,
+          message: "duplicate key found: #{inspect(key)}"
+      end
+
+      Map.put(acc, name, :ok)
     end)
 
     map

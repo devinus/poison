@@ -83,6 +83,7 @@ defprotocol Poison.Encoder do
   @typep indent :: non_neg_integer
   @typep offset :: non_neg_integer
   @typep strict_keys :: boolean
+  @typep force :: map
 
   @type options :: %{
     optional(:escape) => escape,
@@ -90,6 +91,7 @@ defprotocol Poison.Encoder do
     optional(:indent) => indent,
     optional(:offset) => offset,
     optional(:strict_keys) => strict_keys,
+    optional(:force) => force,
   }
 
   @spec encode(t, options) :: iodata
@@ -103,9 +105,20 @@ defimpl Poison.Encoder, for: Atom do
   def encode(true, _),  do: "true"
   def encode(false, _), do: "false"
 
+  def encode(atom, %{force: mapping} = options) when is_map(mapping) do
+    options = Map.delete(mapping, :force)
+    if Map.has_key?(mapping, atom) do
+      Map.get(mapping, atom)
+      |> Poison.Encoder.encode(options)
+    else
+      Encoder.BitString.encode(Atom.to_string(atom), options)
+    end
+  end
+
   def encode(atom, options) do
     Encoder.BitString.encode(Atom.to_string(atom), options)
   end
+
 end
 
 defimpl Poison.Encoder, for: BitString do

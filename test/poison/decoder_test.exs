@@ -151,4 +151,52 @@ defmodule Poison.DecoderTest do
     address = %{"street" => "1 Main St.", "city" => "Austin", "state" => "TX", "zip" => "78701"}
     assert transform(address, %{as: %Address{}}) == "1 Main St., Austin, TX  78701"
   end
+
+  test "decoding using a key map rename" do
+    person = %{"name" => "Devin Torres", "some_contacts" => [%{"email" => "devin@torres.com", "call_count" => 10}, %{"email" => "test@email.com"}]}
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: [
+        %Contact2{email: "devin@torres.com", call_count: 10},
+        %Contact2{email: "test@email.com", call_count: 0}
+      ]}
+    decoded = transform(person, %{as: %Person2{contacts: [%Contact2{}]}, map_to: %{"some_contacts" => "contacts"}})
+    assert decoded == expected
+  end
+
+  test "decoding using a key map rename in a nested struct" do
+    person = %{"name" => "Devin Torres", "some_contacts" => [%{"email" => "devin@torres.com"}, %{"contact_email" => "test@email.com"}]}
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: [
+        %Contact2{email: "devin@torres.com", call_count: 0},
+        %Contact2{email: "test@email.com", call_count: 0}
+      ]}
+    decoded = transform(person, %{as: %Person2{contacts: [%Contact2{}]}, map_to: %{"some_contacts" => "contacts", "contact_email" => "email"}})
+    assert decoded == expected
+  end
+
+  test "decoding using a key map rename with keys = :atoms" do
+    person = %{name: "Devin Torres", contacts: [%{email: "devin@torres.com", call_count: 10}, %{email: "test@email.com"}]}
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: [
+        %Contact2{email: "devin@torres.com", call_count: 10},
+        %Contact2{email: "test@email.com", call_count: 0}
+      ]}
+    decoded = transform(person, %{as: %Person2{contacts: [%Contact2{}]}, keys: :atoms, map_to: %{"some_contacts" => "contacts"}})
+    assert decoded == expected
+  end
+
+  test "decoding using a key map rename which is not present" do
+    person = %{"name" => "Devin Torres", "contacts" => [%{"email" => "devin@torres.com", "call_count" => 10}, %{"email" => "test@email.com"}]}
+    expected = %Person2{
+      name: "Devin Torres",
+      contacts: [
+        %Contact2{email: "devin@torres.com", call_count: 10},
+        %Contact2{email: "test@email.com", call_count: 0}
+      ]}
+    decoded = transform(person, %{as: %Person2{contacts: [%Contact2{}]}, map_to: %{"some_contacts" => "contacts"}})
+    assert decoded == expected
+  end
 end

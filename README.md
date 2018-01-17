@@ -131,6 +131,23 @@ end
 In case both `:only` and `:except` keys are defined, the `:except` option is
 ignored.
 
+## Decoder
+
+### Override map keys
+
+Sometimes, when you can't or you don't want to change a JSON map, you will need to map some fields with one key to another.
+This can be achieved by using the option `map_to: %{"old_key" => "new_key"}`:
+
+```elixir
+defmodule Person do
+  @derive [Poison.Encoder]
+  defstruct [:name, :age]
+end
+
+Poison.decode!(~s({"user_name": "Devin Torres", "age": 27}), %{as: %Person{}, map_to: %{"user_name" => "name"}})
+#=> %Person{name: "Devin Torres", age: 27}
+```
+
 ### Key Validation
 
 According to [RFC 7159][4] keys in a JSON object should be unique. This is

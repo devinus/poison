@@ -31,7 +31,9 @@ defmodule Poison.Decode do
   defp transform(nil, _keys, _as, _options), do: nil
 
   defp transform(value, keys, %{__struct__: _} = as, options) do
-    transform_struct(value, keys, as, options)
+    value
+    |> map_to_keys(options)
+    |> transform_struct(keys, as, options)
   end
 
   defp transform(value, keys, as, options) when is_map(as) do
@@ -94,6 +96,25 @@ defmodule Poison.Decode do
     end)
     |> Map.put(:__struct__, as.__struct__)
     |> Decoder.decode(options)
+  end
+
+  defp map_to_keys(value, options) do
+    if Map.has_key?(options, :map_to) do
+      Enum.reduce(value, %{}, fn {key, _}, acc ->
+        case Map.get(options[:map_to] || %{}, key) do
+          nil ->
+            Map.put(acc, key, Map.get(value, key))
+          new_key when is_atom(new_key) ->
+            Map.put(acc, Atom.to_string(new_key), Map.get(value, key))
+          new_key when is_binary(new_key) ->
+            Map.put(acc, new_key, Map.get(value, key))
+          _ ->
+            Map.put(acc, key, Map.get(value, key))
+        end
+      end)
+    else
+      value
+    end
   end
 end
 

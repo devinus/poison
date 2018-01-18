@@ -15,3 +15,11 @@ otp_release:
   - 18.1
   - 18.0
 sudo: false
+matrix:
+  include:
+  - elixir: 1.6.0
+    otp_release: 20.0
+    env: FORMAT_CHECK="mix format --check-formatted --dry-run"
+script:
+  - $(echo $FORMAT_CHECK)
+  - mix test

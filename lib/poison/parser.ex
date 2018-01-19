@@ -1,6 +1,8 @@
 defmodule Poison.ParseError do
   @type t :: %__MODULE__{pos: integer, value: String.t}
 
+  alias Code.Identifier
+
   defexception pos: nil, value: nil, rest: nil
 
   def message(%{value: nil, pos: pos}) do
@@ -17,7 +19,8 @@ defmodule Poison.ParseError do
   end
 
   defp escape(token) do
-    Inspect.BitString.escape(<<token>>, ?\\)
+    {value, _} = Identifier.escape(<<token>>, ?\\)
+    value
   end
 end
 

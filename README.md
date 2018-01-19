@@ -155,7 +155,7 @@ iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
 ## Benchmarking
 
 ```sh-session
-$ MIX_ENV=bench mix run bench/runs.exs
+$ MIX_ENV=bench mix run bench/run.exs
 ```
 
 ### Current Benchmarks

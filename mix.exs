@@ -38,15 +38,15 @@ defmodule Poison.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [{:dialyxir, "~> 0.5", only: :dev, runtime: false},
-     {:ex_doc, "~> 0.16", only: :dev, runtime: false},
-     {:credo, "~> 0.8.0-rc", only: [:dev, :test], runtime: false},
-     {:benchee, "~> 0.8", only: :bench},
+     {:ex_doc, "~> 0.18", only: :dev, runtime: false},
+     {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
+     {:benchee, "~> 0.11", only: :bench},
      {:benchee_json, github: "devinus/benchee_json", branch: "poison-optional", override: true, only: :bench},
-     {:benchee_html, "~> 0.1", only: :bench},
+     {:benchee_html, "~> 0.4", only: :bench},
      {:exjsx, "~> 4.0", only: :bench},
      {:tiny, "~> 1.0", only: :bench},
      {:jsone, "~> 1.4", only: :bench},
-     {:jiffy, "~> 0.14",  only: :bench},
+     {:jiffy, "~> 0.15",  only: :bench},
      {:json, "~> 1.0", only: :bench}]
   end
 

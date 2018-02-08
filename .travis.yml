@@ -17,7 +17,7 @@ otp_release:
 sudo: false
 matrix:
   include:
-  - elixir: 1.6.0
+  - elixir: 1.6.1
     otp_release: 20.0
     env: FORMAT_CHECK="mix format --check-formatted --dry-run"
 script:

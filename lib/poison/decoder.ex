@@ -31,7 +31,8 @@ defmodule Poison.Decode do
   defp transform(nil, _keys, _as, _options), do: nil
 
   defp transform(value, keys, %{__struct__: _} = as, options) do
-    transform_struct(value, keys, as, options)
+    Decoder.Remap.remap( as, value, keys )
+    |> transform_struct(keys, as, options)
   end
 
   defp transform(value, keys, as, options) when is_map(as) do
@@ -116,4 +117,31 @@ defimpl Poison.Decoder, for: Any do
   def decode(value, _options) do
     value
   end
+end
+
+defprotocol Poison.Decoder.Remap do
+  @moduledoc """
+  Hook via protocol for adjusting keys or the value map in general
+  when decoding to a struct. remap gets called after parsing but before
+  decoding to an `as` target. Base use case is translating camelCase
+  keys to under_score.
+
+  ```
+  defimpl Poison.Decoder.Remap, for: Contact2 do
+    def remap( _as, contact, keys ) when keys in [ :atoms, :atoms! ], do: contact
+    def remap( _as, contact, _keys ) do
+      Map.new( contact, fn { k, v } -> { Macro.underscore( k ), v } end )
+    end
+  end
+  ```
+  """
+
+  @fallback_to_any true
+  @type keys :: :atoms | :atoms!
+  @spec remap( as :: struct, value :: map, keys :: keys ) :: map
+  def remap( as, value, keys )
+end
+
+defimpl Poison.Decoder.Remap, for: Any do
+  def remap( _as, value, _keys ), do: value
 end

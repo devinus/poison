@@ -29,6 +29,13 @@ defmodule Poison.DecoderTest do
     end
   end
 
+  defimpl Poison.Decoder.Remap, for: Contact2 do
+    def remap( _as, contact, keys ) when keys in [ :atoms, :atoms! ], do: contact
+    def remap( _as, contact, _keys ) do
+      Map.new( contact, fn { k, v } -> { Macro.underscore( k ), v } end )
+    end
+  end
+
   test "decoding single :as with string keys" do
     person = %{"name" => "Devin Torres", "age" => 27}
     assert transform(person, %{as: %Person{}}) == %Person{name: "Devin Torres", age: 27}
@@ -150,5 +157,15 @@ defmodule Poison.DecoderTest do
   test "decoding using a defined decoder" do
     address = %{"street" => "1 Main St.", "city" => "Austin", "state" => "TX", "zip" => "78701"}
     assert transform(address, %{as: %Address{}}) == "1 Main St., Austin, TX  78701"
+  end
+
+  test "decoding using remapping with camel case string keys" do
+    contact2 = %{ "callCount" => 7, "email" => "abc@123" }
+    assert transform(contact2, %{as: %Contact2{}}) == %Poison.DecoderTest.Contact2{ call_count: 7, email: "abc@123" }
+  end
+
+  test "decoding using remapping with camel case atom keys" do
+    contact2 = %{ :callCount => 7, :email => "abc@123" }
+    assert transform(contact2, %{as: %Contact2{}, keys: :atoms}) == %Poison.DecoderTest.Contact2{ call_count: 0, email: "abc@123" }
   end
 end

@@ -53,7 +53,7 @@ defmodule Poison do
   def decode(iodata, options \\ %{}) do
     {:ok, decode!(iodata, options)}
   rescue
-    exception in [ParseError, DecodeError] ->
+    exception in [ParseError, DecodeError, ArgumentError] ->
       {:error, exception}
   end
 

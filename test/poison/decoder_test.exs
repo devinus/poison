@@ -151,4 +151,10 @@ defmodule Poison.DecoderTest do
     address = %{"street" => "1 Main St.", "city" => "Austin", "state" => "TX", "zip" => "78701"}
     assert transform(address, %{as: %Address{}}) == "1 Main St., Austin, TX  78701"
   end
+
+  test "decoding unsupported input types results in error response" do
+    for input <- [1, :foo, %{}, [], 1.2, nil] do
+      assert {:error, _exception} = Poison.decode(input)
+    end
+  end
 end

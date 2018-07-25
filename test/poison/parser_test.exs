@@ -97,7 +97,9 @@ defmodule Poison.ParserTest do
 
   test "atom keys" do
     hash = :erlang.phash2(:crypto.strong_rand_bytes(8))
-    assert_raise ArgumentError, fn -> parse!(~s({"key#{hash}": null}), %{keys: :atoms!}) end
+    assert_raise ParseError, ~s(Cannot parse value at position 3: "key#{hash}"), fn ->
+      parse!(~s({"key#{hash}": null}), %{keys: :atoms!})
+    end
 
     assert parse!(~s({"foo": "bar"}), %{keys: :atoms!}) == %{foo: "bar"}
     assert parse!(~s({"foo": "bar"}), %{keys: :atoms}) == %{foo: "bar"}

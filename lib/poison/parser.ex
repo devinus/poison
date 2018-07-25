@@ -3,9 +3,9 @@ defmodule Poison.ParseError do
 
   alias Code.Identifier
 
-  defexception pos: nil, value: nil, rest: nil
+  defexception pos: 0, value: nil, rest: nil
 
-  def message(%{value: nil, pos: pos}) do
+  def message(%{value: "", pos: pos}) do
     "Unexpected end of input at position #{pos}"
   end
 
@@ -13,9 +13,13 @@ defmodule Poison.ParseError do
     "Unexpected token at position #{pos}: #{escape(token)}"
   end
 
-  def message(%{value: value, pos: pos}) do
+  def message(%{value: value, pos: pos}) when is_binary(value) do
     start = pos - String.length(value)
     "Cannot parse value at position #{start}: #{inspect(value)}"
+  end
+
+  def message(%{value: value}) do
+    "Unsupported value: #{inspect(value)}"
   end
 
   defp escape(token) do
@@ -54,6 +58,9 @@ defmodule Poison.Parser do
       {"", _pos} -> value
       {other, pos} -> syntax_error(other, pos)
     end
+  rescue
+    _ in [ArgumentError] ->
+      raise %ParseError{value: iodata}
   end
 
   defp value("\"" <> rest, pos, _keys) do
@@ -82,15 +89,16 @@ defmodule Poison.Parser do
 
   defp object_pairs("\"" <> rest, pos, keys, acc) do
     {name, pos, rest} = string_continue(rest, pos + 1, [])
-    {value, pos, rest} = case skip_whitespace(rest, pos) do
-      {":" <> rest, pos} ->
-        {rest, pos} = skip_whitespace(rest, pos + 1)
-        value(rest, pos, keys)
+    {value, start, pos, rest} = case skip_whitespace(rest, pos) do
+      {":" <> rest, start} ->
+        {rest, pos} = skip_whitespace(rest, start + 1)
+        {value, pos, rest} = value(rest, pos, keys)
+        {value, start, pos, rest}
       {other, pos} ->
         syntax_error(other, pos)
     end
 
-    acc = [{object_name(name, keys), value} | acc]
+    acc = [{object_name(name, start, keys), value} | acc]
     case skip_whitespace(rest, pos) do
       {"," <> rest, pos} ->
         {rest, pos} = skip_whitespace(rest, pos + 1)
@@ -108,9 +116,15 @@ defmodule Poison.Parser do
 
   defp object_pairs(other, pos, _, _), do: syntax_error(other, pos)
 
-  defp object_name(name, :atoms),  do: String.to_atom(name)
-  defp object_name(name, :atoms!), do: String.to_existing_atom(name)
-  defp object_name(name, _keys),   do: name
+  defp object_name(name, pos, :atoms!) do
+    String.to_existing_atom(name)
+  rescue
+    _ in [ArgumentError] ->
+      raise %ParseError{value: name, pos: pos}
+  end
+
+  defp object_name(name, _pos, :atoms), do: String.to_atom(name)
+  defp object_name(name, _pos, _keys),  do: name
 
   ## Arrays
 
@@ -300,6 +314,6 @@ defmodule Poison.Parser do
   end
 
   defp syntax_error(_, pos) do
-    raise %ParseError{pos: pos}
+    raise %ParseError{pos: pos, value: ""}
   end
 end

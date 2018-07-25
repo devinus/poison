@@ -1,5 +1,6 @@
 encode_jobs = %{
   "Poison" => &Poison.encode!/1,
+  "Jason"  => &Jason.encode!/1,
   "JSX"    => &JSX.encode!/1,
   "Tiny"   => &Tiny.encode!/1,
   "jsone"  => &:jsone.encode/1,
@@ -20,6 +21,7 @@ encode_inputs = [
 
 decode_jobs = %{
   "Poison" => &Poison.decode!/1,
+  "Jason"  => &Jason.decode!/1,
   "JSX"    => &JSX.decode!(&1, [:strict]),
   "Tiny"   => &Tiny.decode!/1,
   "jsone"  => &:jsone.decode/1,

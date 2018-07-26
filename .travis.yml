@@ -13,8 +13,22 @@ otp_release:
   - 20.3
   - 20.1
   - 20.0
-  - 19.3
-  - 19.2
-  - 19.1
-  - 19.0
+matrix:
+  exclude:
+    - elixir: 1.7.0
+      opt_release: 20.3
+    - elixir: 1.7.0
+      opt_release: 20.1
+    - elixir: 1.7.0
+      opt_release: 20.0
+    - elixir: 1.6.4
+      opt_release: 21.0
+    - elixir: 1.6.3
+      opt_release: 21.0
+    - elixir: 1.6.2
+      opt_release: 21.0
+    - elixir: 1.6.1
+      opt_release: 21.0
+    - elixir: 1.6.0
+      opt_release: 21.0
 sudo: false

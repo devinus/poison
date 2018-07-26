@@ -49,6 +49,15 @@ defmodule Poison.Parser do
 
   @type t :: nil | true | false | list | float | integer | String.t | map
 
+  def parse!(<<0xEF, 0xBB, 0xBF, iodata :: binary>>, options) do
+    parse!(iodata, options)
+  end
+  def parse!(<<0xFE, 0xFF, iodata :: binary>>, options) do
+    parse!(iodata, options)
+  end
+  def parse!(<<0xFF, 0xFE, iodata :: binary>>, options) do
+    parse!(iodata, options)
+  end
   def parse!(iodata, options) do
     string = IO.iodata_to_binary(iodata)
     keys = Map.get(options, :keys)

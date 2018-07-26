@@ -96,7 +96,7 @@ iex> IO.puts Poison.Encoder.encode([1, 2, 3], [])
 ```
 
 Anything implementing the Encoder protocol is expected to return an
-[IO list][5] to be embedded within any other Encoder's implementation and
+[IO list][7] to be embedded within any other Encoder's implementation and
 passable to any IO subsystem without conversion.
 
 ```elixir
@@ -215,7 +215,7 @@ Issue 90 (JSON)                     1   1964860.00 µs/op
 
 ## License
 
-Poison is released under [CC0-1.0][6] (see [`LICENSE`](LICENSE)).
+Poison is released under [CC0-1.0][8] (see [`LICENSE`](LICENSE)).
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf

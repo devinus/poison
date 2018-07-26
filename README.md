@@ -224,3 +224,4 @@ Poison is released under [CC0-1.0][8] (see [`LICENSE`](LICENSE)).
 [6]: https://github.com/nst/JSONTestSuite
 [7]: http://prog21.dadgum.com/70.html
 [8]: https://creativecommons.org/publicdomain/zero/1.0/
+

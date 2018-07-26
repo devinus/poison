@@ -1,5 +1,5 @@
 defmodule Poison.ParseError do
-  @type t :: %__MODULE__{pos: integer, value: String.t}
+  @type t :: %__MODULE__{pos: integer, value: String.t()}
 
   alias Code.Identifier
 
@@ -9,7 +9,7 @@ defmodule Poison.ParseError do
     "Unexpected end of input at position #{pos}"
   end
 
-  def message(%{value: <<token :: utf8>>, pos: pos}) do
+  def message(%{value: <<token::utf8>>, pos: pos}) do
     "Unexpected token at position #{pos}: #{escape(token)}"
   end
 
@@ -47,13 +47,14 @@ defmodule Poison.Parser do
 
   alias Poison.ParseError
 
-  @type t :: nil | true | false | list | float | integer | String.t | map
+  @type t :: nil | true | false | list | float | integer | String.t() | map
 
   def parse!(iodata, options) do
     string = IO.iodata_to_binary(iodata)
     keys = Map.get(options, :keys)
     {rest, pos} = skip_whitespace(skip_bom(string), 0)
     {value, pos, rest} = value(rest, pos, keys)
+
     case skip_whitespace(rest, pos) do
       {"", _pos} -> value
       {other, pos} -> syntax_error(other, pos)
@@ -66,20 +67,22 @@ defmodule Poison.Parser do
   defp value("\"" <> rest, pos, _keys) do
     string_continue(rest, pos + 1, [])
   end
+
   defp value("{" <> rest, pos, keys) do
     {rest, pos} = skip_whitespace(rest, pos + 1)
     object_pairs(rest, pos, keys, [])
   end
+
   defp value("[" <> rest, pos, keys) do
     {rest, pos} = skip_whitespace(rest, pos + 1)
     array_values(rest, pos, keys, [])
   end
 
-  defp value("null" <> rest, pos, _keys),  do: {nil, pos + 4, rest}
-  defp value("true" <> rest, pos, _keys),  do: {true, pos + 4, rest}
+  defp value("null" <> rest, pos, _keys), do: {nil, pos + 4, rest}
+  defp value("true" <> rest, pos, _keys), do: {true, pos + 4, rest}
   defp value("false" <> rest, pos, _keys), do: {false, pos + 5, rest}
 
-  defp value(<<char, _ :: binary>> = string, pos, _keys) when char in '-0123456789' do
+  defp value(<<char, _::binary>> = string, pos, _keys) when char in '-0123456789' do
     number_start(string, pos)
   end
 
@@ -89,29 +92,32 @@ defmodule Poison.Parser do
 
   defp object_pairs("\"" <> rest, pos, keys, acc) do
     {name, pos, rest} = string_continue(rest, pos + 1, [])
-    {value, start, pos, rest} = case skip_whitespace(rest, pos) do
-      {":" <> rest, start} ->
-        {rest, pos} = skip_whitespace(rest, start + 1)
-        {value, pos, rest} = value(rest, pos, keys)
-        {value, start, pos, rest}
-      {other, pos} ->
-        syntax_error(other, pos)
-    end
+    {value, start, pos, rest} =
+      case skip_whitespace(rest, pos) do
+        {":" <> rest, start} ->
+          {rest, pos} = skip_whitespace(rest, start + 1)
+          {value, pos, rest} = value(rest, pos, keys)
+          {value, start, pos, rest}
+        {other, pos} ->
+          syntax_error(other, pos)
+      end
 
     acc = [{object_name(name, start, keys), value} | acc]
     case skip_whitespace(rest, pos) do
       {"," <> rest, pos} ->
         {rest, pos} = skip_whitespace(rest, pos + 1)
         object_pairs(rest, pos, keys, acc)
+
       {"}" <> rest, pos} ->
         {:maps.from_list(acc), pos + 1, rest}
+
       {other, pos} ->
         syntax_error(other, pos)
     end
   end
 
   defp object_pairs("}" <> rest, pos, _, []) do
-    {:maps.new, pos + 1, rest}
+    {:maps.new(), pos + 1, rest}
   end
 
   defp object_pairs(other, pos, _, _), do: syntax_error(other, pos)
@@ -124,7 +130,7 @@ defmodule Poison.Parser do
   end
 
   defp object_name(name, _pos, :atoms), do: String.to_atom(name)
-  defp object_name(name, _pos, _keys),  do: name
+  defp object_name(name, _pos, _keys), do: name
 
   ## Arrays
 
@@ -136,12 +142,15 @@ defmodule Poison.Parser do
     {value, pos, rest} = value(string, pos, keys)
 
     acc = [value | acc]
+
     case skip_whitespace(rest, pos) do
       {"," <> rest, pos} ->
         {rest, pos} = skip_whitespace(rest, pos + 1)
         array_values(rest, pos, keys, acc)
+
       {"]" <> rest, pos} ->
         {:lists.reverse(acc), pos + 1, rest}
+
       {other, pos} ->
         syntax_error(other, pos)
     end
@@ -164,7 +173,7 @@ defmodule Poison.Parser do
     number_int(string, pos, [])
   end
 
-  defp number_int(<<char, _ :: binary>> = string, pos, acc) when char in '123456789' do
+  defp number_int(<<char, _::binary>> = string, pos, acc) when char in '123456789' do
     {digits, pos, rest} = number_digits(string, pos)
     number_frac(rest, pos, [acc, digits])
   end
@@ -182,6 +191,7 @@ defmodule Poison.Parser do
 
   defp number_exp(<<e>> <> rest, frac, pos, acc) when e in 'eE' do
     e = if frac, do: ?e, else: ".0e"
+
     case rest do
       "-" <> rest -> number_exp_continue(rest, frac, pos + 2, [acc, e, ?-])
       "+" <> rest -> number_exp_continue(rest, frac, pos + 2, [acc, e])
@@ -200,20 +210,20 @@ defmodule Poison.Parser do
   end
 
   defp number_complete(iolist, false, _pos) do
-    iolist |> IO.iodata_to_binary |> String.to_integer
+    iolist |> IO.iodata_to_binary() |> String.to_integer()
   end
 
   defp number_complete(iolist, true, pos) do
-    iolist |> IO.iodata_to_binary |> String.to_float
+    iolist |> IO.iodata_to_binary() |> String.to_float()
   rescue
     ArgumentError ->
-      value = iolist |> IO.iodata_to_binary
+      value = iolist |> IO.iodata_to_binary()
       raise %ParseError{pos: pos, value: value}
   end
 
   defp number_digits(<<char>> <> rest = string, pos) when char in '0123456789' do
     count = number_digits_count(rest, 1)
-    <<digits :: binary-size(count), rest :: binary>> = string
+    <<digits::binary-size(count), rest::binary>> = string
     {digits, pos + count, rest}
   end
 
@@ -239,7 +249,7 @@ defmodule Poison.Parser do
 
   defp string_continue(string, pos, acc) do
     {count, pos} = string_chunk_size(string, pos, 0)
-    <<chunk :: binary-size(count), rest :: binary>> = string
+    <<chunk::binary-size(count), rest::binary>> = string
     string_continue(rest, pos, [acc, chunk])
   end
 
@@ -253,22 +263,19 @@ defmodule Poison.Parser do
   # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
   # http://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
   defp string_escape(<<?u, a1, b1, c1, d1, "\\u", a2, b2, c2, d2>> <> rest, pos, acc)
-    when a1 in 'dD' and a2 in 'dD'
-    and (b1 in '89abAB')
-    and (b2 in ?c..?f or b2 in ?C..?F) \
-  do
+       when a1 in 'dD' and a2 in 'dD' and b1 in '89abAB' and (b2 in ?c..?f or b2 in ?C..?F) do
     hi = List.to_integer([a1, b1, c1, d1], 16)
     lo = List.to_integer([a2, b2, c2, d2], 16)
     codepoint = 0x10000 + ((hi &&& 0x03FF) <<< 10) + (lo &&& 0x03FF)
-    string_continue(rest, pos + 11, [acc, <<codepoint :: utf8>>])
+    string_continue(rest, pos + 11, [acc, <<codepoint::utf8>>])
   rescue
     ArgumentError ->
       value = <<"\\u", a1, b1, c1, d1, "\\u", a2, b2, c2, d2>>
       raise %ParseError{pos: pos + 12, value: value}
   end
 
-  defp string_escape(<<?u, seq :: binary-size(4)>> <> rest, pos, acc) do
-    string_continue(rest, pos + 5, [acc, <<String.to_integer(seq, 16) :: utf8>>])
+  defp string_escape(<<?u, seq::binary-size(4)>> <> rest, pos, acc) do
+    string_continue(rest, pos + 5, [acc, <<String.to_integer(seq, 16)::utf8>>])
   rescue
     ArgumentError ->
       value = "\\u" <> seq
@@ -289,15 +296,15 @@ defmodule Poison.Parser do
     string_chunk_size(rest, pos + 1, acc + 1)
   end
 
-  defp string_chunk_size(<<codepoint :: utf8>> <> rest, pos, acc) do
+  defp string_chunk_size(<<codepoint::utf8>> <> rest, pos, acc) do
     string_chunk_size(rest, pos + 1, acc + string_codepoint_size(codepoint))
   end
 
   defp string_chunk_size(other, pos, _acc), do: syntax_error(other, pos)
 
-  defp string_codepoint_size(codepoint) when codepoint < 0x800,   do: 2
+  defp string_codepoint_size(codepoint) when codepoint < 0x800, do: 2
   defp string_codepoint_size(codepoint) when codepoint < 0x10000, do: 3
-  defp string_codepoint_size(_),                                  do: 4
+  defp string_codepoint_size(_), do: 4
 
   ## Whitespace
 
@@ -319,7 +326,7 @@ defmodule Poison.Parser do
 
   ## Errors
 
-  defp syntax_error(<<token :: utf8>> <> _, pos) do
+  defp syntax_error(<<token::utf8>> <> _, pos) do
     raise %ParseError{pos: pos, value: <<token>>}
   end
 

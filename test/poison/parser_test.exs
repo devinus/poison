@@ -93,6 +93,8 @@ defmodule Poison.ParserTest do
 
     expected = %{"foo" => "bar", "baz" => "quux"}
     assert parse!(~s(  {  "foo"  :  "bar"  ,  "baz"  :  "quux"  }  )) == expected
+
+    assert parse!(<<0xEF, 0xBB, 0xBF>> <> ~s("foobar")) == "foobar"
   end
 
   test "atom keys" do

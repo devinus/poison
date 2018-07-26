@@ -49,19 +49,10 @@ defmodule Poison.Parser do
 
   @type t :: nil | true | false | list | float | integer | String.t | map
 
-  def parse!(<<0xEF, 0xBB, 0xBF, iodata :: binary>>, options) do
-    parse!(iodata, options)
-  end
-  def parse!(<<0xFE, 0xFF, iodata :: binary>>, options) do
-    parse!(iodata, options)
-  end
-  def parse!(<<0xFF, 0xFE, iodata :: binary>>, options) do
-    parse!(iodata, options)
-  end
   def parse!(iodata, options) do
     string = IO.iodata_to_binary(iodata)
     keys = Map.get(options, :keys)
-    {rest, pos} = skip_whitespace(string, 0)
+    {rest, pos} = skip_whitespace(skip_bom(string), 0)
     {value, pos, rest} = value(rest, pos, keys)
     case skip_whitespace(rest, pos) do
       {"", _pos} -> value
@@ -315,6 +306,16 @@ defmodule Poison.Parser do
   end
 
   defp skip_whitespace(string, pos), do: {string, pos}
+
+  # https://tools.ietf.org/html/rfc7159#section-8.1
+  # https://en.wikipedia.org/wiki/Byte_order_mark#UTF-8
+  defp skip_bom(<<0xEF, 0xBB, 0xBF>> <> rest) do
+    rest
+  end
+
+  defp skip_bom(string) do
+    string
+  end
 
   ## Errors
 

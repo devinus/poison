@@ -1,10 +1,11 @@
 encode_jobs = %{
   "Poison" => &Poison.encode!/1,
-  "JSX" => &JSX.encode!/1,
-  "Tiny" => &Tiny.encode!/1,
-  "jsone" => &:jsone.encode/1,
-  "jiffy" => &:jiffy.encode/1,
-  "JSON" => &JSON.encode!/1
+  "Jason"  => &Jason.encode!/1,
+  "JSX"    => &JSX.encode!/1,
+  "Tiny"   => &Tiny.encode!/1,
+  "jsone"  => &:jsone.encode/1,
+  "jiffy"  => &:jiffy.encode/1,
+  "JSON"   => &JSON.encode!/1
 }
 
 encode_inputs = [
@@ -20,11 +21,12 @@ encode_inputs = [
 
 decode_jobs = %{
   "Poison" => &Poison.decode!/1,
-  "JSX" => &JSX.decode!(&1, [:strict]),
-  "Tiny" => &Tiny.decode!/1,
-  "jsone" => &:jsone.decode/1,
-  "jiffy" => &:jiffy.decode(&1, [:return_maps]),
-  "JSON" => &JSON.decode!/1
+  "Jason"  => &Jason.decode!/1,
+  "JSX"    => &JSX.decode!(&1, [:strict]),
+  "Tiny"   => &Tiny.decode!/1,
+  "jsone"  => &:jsone.decode/1,
+  "jiffy"  => &:jiffy.decode(&1, [:return_maps]),
+  "JSON"   => &JSON.decode!/1
 }
 
 decode_inputs = [

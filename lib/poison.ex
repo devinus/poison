@@ -18,6 +18,13 @@ defmodule Poison do
       {:error, exception}
   end
 
+  def encode_to_iodata(value, options \\ %{}) do
+    {:ok, encode_to_iodata!(value, options)}
+  rescue
+    exception in [EncodeError] ->
+      {:error, exception}
+  end
+
   @doc """
   Encode a value to JSON, raises an exception on error.
 
@@ -38,6 +45,15 @@ defmodule Poison do
     else
       iodata |> IO.iodata_to_binary
     end
+  end
+
+
+  def encode_to_iodata!(value, options) when is_list(options) do
+    encode_to_iodata!(value, Map.new(options))
+  end
+
+  def encode_to_iodata!(value, options \\ %{}) do
+    Encoder.encode(value, options)
   end
 
   @doc """

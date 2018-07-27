@@ -13,9 +13,11 @@ sudo: false
 matrix:
   include:
     - install:
-        - mix local.hex --force
-        - mix archive.install hex bunt '~> 0.2' --force
-        - mix archive.install hex credo '~> 0.9' --force
+      - mix local.hex --force
+      - mix archive.install hex bunt '~> 0.2' --force
+      - mix archive.install hex credo '~> 0.9' --force
       script:
-        - mix format --check-formatted --dry-run
-        - mix credo --strict
+      - mix format --check-formatted --dry-run
+      - mix credo --strict
+    - secure: fpg2leA+GSEcbW+B9lkUPFHAsPoiq9VIF48izB4anR65TZgPIHoy7W04Ly+cHSDuPYPxxtCuZW5YU5ZBi3GAXNLsKZG3uTaoLQj+atZsDdyZNW7Z7Df2uVm3eIK7wC7XojalNtShYx56xTC19xrH01n6VouAcbgJ3TIfxQCraDk=
+      script: mix coveralls.travis

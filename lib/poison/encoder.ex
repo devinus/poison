@@ -164,10 +164,6 @@ defimpl Poison.Encoder, for: BitString do
     ["\\/" | escape(rest, :html_safe)]
   end
 
-  defp escape(<<char::utf8>> <> rest, :html_safe) do
-    [char | escape(rest, :html_safe)]
-  end
-
   defp escape(string, mode) do
     size = chunk_size(string, mode, 0)
     <<chunk::binary-size(size), rest::binary>> = string
@@ -176,6 +172,10 @@ defimpl Poison.Encoder, for: BitString do
 
   defp chunk_size(<<char>> <> _, _mode, acc)
        when char <= 0x1F or char in '"\\' do
+    acc
+  end
+
+  defp chunk_size(<<?/::utf8>> <> _, :html_safe, acc) do
     acc
   end
 

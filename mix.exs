@@ -9,7 +9,7 @@ defmodule Poison.Mixfile do
     [
       app: :poison,
       version: @version,
-      elixir: "~> 1.4",
+      elixir: "~> 1.6",
       description: "An incredibly fast, pure Elixir JSON library",
       consolidate_protocols: not (Mix.env() in [:dev, :test]),
       deps: deps(),

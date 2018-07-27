@@ -88,6 +88,10 @@ defmodule Poison.ParserTest do
       parse!(~s("𝄞))
     end
 
+    assert_raise ParseError, "Unexpected token at position 0: á", fn ->
+      parse!(~s(á))
+    end
+
     assert_raise ParseError, "Unexpected token at position 0: \\x1F", fn ->
       parse!(~s(\u001F))
     end

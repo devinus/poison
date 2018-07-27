@@ -23,7 +23,7 @@ defmodule Poison.ParseError do
   end
 
   defp escape(token) do
-    {value, _} = Identifier.escape(<<token>>, ?\\)
+    {value, _} = Identifier.escape(<<token::utf8>>, ?\\)
     value
   end
 end
@@ -350,7 +350,7 @@ defmodule Poison.Parser do
   ## Errors
 
   defp syntax_error(<<token::utf8>> <> _, pos) do
-    raise %ParseError{pos: pos, value: <<token>>}
+    raise %ParseError{pos: pos, value: <<token::utf8>>}
   end
 
   defp syntax_error(_, pos) do

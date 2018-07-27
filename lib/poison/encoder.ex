@@ -1,5 +1,5 @@
 defmodule Poison.EncodeError do
-  @type t :: %__MODULE__{message: String.t, value: any}
+  @type t :: %__MODULE__{message: String.t(), value: any}
 
   defexception message: nil, value: nil
 
@@ -32,8 +32,11 @@ defmodule Poison.Encode do
       defp encode_name(value) do
         case Chars.impl_for(value) do
           nil ->
-            raise EncodeError, value: value,
-              message: "expected a String.Chars encodable value, got: #{inspect(value)}"
+            raise EncodeError,
+              value: value,
+              message:
+                "expected a String.Chars encodable value, got: #{inspect(value)}"
+
           impl ->
             impl.to_string(value)
         end
@@ -85,12 +88,12 @@ defprotocol Poison.Encoder do
   @typep strict_keys :: boolean
 
   @type options :: %{
-    optional(:escape) => escape,
-    optional(:pretty) => pretty,
-    optional(:indent) => indent,
-    optional(:offset) => offset,
-    optional(:strict_keys) => strict_keys,
-  }
+          optional(:escape) => escape,
+          optional(:pretty) => pretty,
+          optional(:indent) => indent,
+          optional(:offset) => offset,
+          optional(:strict_keys) => strict_keys
+        }
 
   @spec encode(t, options) :: iodata
   def encode(value, options)
@@ -99,8 +102,8 @@ end
 defimpl Poison.Encoder, for: Atom do
   alias Poison.Encoder
 
-  def encode(nil, _),   do: "null"
-  def encode(true, _),  do: "true"
+  def encode(nil, _), do: "null"
+  def encode(true, _), do: "true"
   def encode(false, _), do: "false"
 
   def encode(atom, options) do
@@ -132,43 +135,47 @@ defimpl Poison.Encoder, for: BitString do
     [seq(char) | escape(rest, mode)]
   end
 
-  defp escape(<<char :: utf8>> <> rest, mode) when char in 0x80..0x9F do
+  defp escape(<<char::utf8>> <> rest, mode) when char in 0x80..0x9F do
     [seq(char) | escape(rest, mode)]
   end
 
-  defp escape(<<char :: utf8>> <> rest, :unicode) when char in 0xA0..0xFFFF do
+  defp escape(<<char::utf8>> <> rest, :unicode) when char in 0xA0..0xFFFF do
     [seq(char) | escape(rest, :unicode)]
   end
 
   # http://en.wikipedia.org/wiki/UTF-16#Example_UTF-16_encoding_procedure
   # http://unicodebook.readthedocs.org/unicode_encodings.html
-  defp escape(<<char :: utf8>> <> rest, :unicode) when char > 0xFFFF do
+  defp escape(<<char::utf8>> <> rest, :unicode) when char > 0xFFFF do
     code = char - 0x10000
-    [seq(0xD800 ||| (code >>> 10)),
-     seq(0xDC00 ||| (code &&& 0x3FF))
-     | escape(rest, :unicode)]
+
+    [
+      seq(0xD800 ||| code >>> 10),
+      seq(0xDC00 ||| (code &&& 0x3FF))
+      | escape(rest, :unicode)
+    ]
   end
 
-  defp escape(<<char :: utf8>> <> rest, mode)
-      when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
+  defp escape(<<char::utf8>> <> rest, mode)
+       when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
     [seq(char) | escape(rest, mode)]
   end
 
-  defp escape(<<?/ :: utf8>> <> rest, :html_safe) do
+  defp escape(<<?/::utf8>> <> rest, :html_safe) do
     ["\\/" | escape(rest, :html_safe)]
   end
 
-  defp escape(<<char :: utf8>> <> rest, :html_safe) do
+  defp escape(<<char::utf8>> <> rest, :html_safe) do
     [char | escape(rest, :html_safe)]
   end
 
   defp escape(string, mode) do
     size = chunk_size(string, mode, 0)
-    <<chunk :: binary-size(size), rest :: binary>> = string
+    <<chunk::binary-size(size), rest::binary>> = string
     [chunk | escape(rest, mode)]
   end
 
-  defp chunk_size(<<char>> <> _, _mode, acc) when char <= 0x1F or char in '"\\' do
+  defp chunk_size(<<char>> <> _, _mode, acc)
+       when char <= 0x1F or char in '"\\' do
     acc
   end
 
@@ -176,21 +183,22 @@ defimpl Poison.Encoder, for: BitString do
     chunk_size(rest, mode, acc + 1)
   end
 
-  defp chunk_size(<<_ :: utf8>> <> _, :unicode, acc) do
+  defp chunk_size(<<_::utf8>> <> _, :unicode, acc) do
     acc
   end
 
-  defp chunk_size(<<char :: utf8>> <> _, mode, acc)
-      when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
+  defp chunk_size(<<char::utf8>> <> _, mode, acc)
+       when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
     acc
   end
 
-  defp chunk_size(<<codepoint :: utf8>> <> rest, mode, acc) do
-    size = cond do
-      codepoint < 0x800   -> 2
-      codepoint < 0x10000 -> 3
-      true                -> 4
-    end
+  defp chunk_size(<<codepoint::utf8>> <> rest, mode, acc) do
+    size =
+      cond do
+        codepoint < 0x800 -> 2
+        codepoint < 0x10000 -> 3
+        true -> 4
+      end
 
     chunk_size(rest, mode, acc + size)
   end
@@ -244,28 +252,51 @@ defimpl Poison.Encoder, for: Map do
     offset = offset(options) + indent
     options = offset(options, offset)
 
-    fun = &[",\n", spaces(offset), Encoder.BitString.encode(encode_name(&1), options), ": ",
-                                   Encoder.encode(:maps.get(&1, map), options) | &2]
-    ["{\n", tl(:lists.foldl(fun, [], :maps.keys(map))), ?\n, spaces(offset - indent), ?}]
+    fun =
+      &[
+        ",\n",
+        spaces(offset),
+        Encoder.BitString.encode(encode_name(&1), options),
+        ": ",
+        Encoder.encode(:maps.get(&1, map), options) | &2
+      ]
+
+    [
+      "{\n",
+      tl(:lists.foldl(fun, [], :maps.keys(map))),
+      ?\n,
+      spaces(offset - indent),
+      ?}
+    ]
   end
 
   def encode(map, _, options) do
-    fun = &[?,, Encoder.BitString.encode(encode_name(&1), options), ?:,
-                Encoder.encode(:maps.get(&1, map), options) | &2]
+    fun =
+      &[
+        ?,,
+        Encoder.BitString.encode(encode_name(&1), options),
+        ?:,
+        Encoder.encode(:maps.get(&1, map), options) | &2
+      ]
+
     [?{, tl(:lists.foldl(fun, [], :maps.keys(map))), ?}]
   end
 
   defp strict_keys(map, false), do: map
+
   defp strict_keys(map, true) do
     map
-    |> Map.keys
+    |> Map.keys()
     |> Enum.each(fn key ->
       name = encode_name(key)
+
       if Map.has_key?(map, name) do
-        raise EncodeError, value: name,
+        raise EncodeError,
+          value: name,
           message: "duplicate key found: #{inspect(key)}"
       end
     end)
+
     map
   end
 end
@@ -349,15 +380,18 @@ defimpl Poison.Encoder, for: Any do
     only = options[:only]
     except = options[:except]
 
-    extractor = cond do
-      only ->
-        quote(do: Map.take(struct, unquote(only)))
-      except ->
-        except = [:__struct__ | except]
-        quote(do: Map.drop(struct, unquote(except)))
-      true ->
-        quote(do: :maps.remove(:__struct__, struct))
-    end
+    extractor =
+      cond do
+        only ->
+          quote(do: Map.take(struct, unquote(only)))
+
+        except ->
+          except = [:__struct__ | except]
+          quote(do: Map.drop(struct, unquote(except)))
+
+        true ->
+          quote(do: :maps.remove(:__struct__, struct))
+      end
 
     quote do
       defimpl Encoder, for: unquote(module) do

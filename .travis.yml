@@ -10,11 +10,12 @@ otp_release:
   - 20.1
   - 20.0
 sudo: false
-before_script:
-  - |
-    if [ "$TRAVIS_ELIXIR_VERSION|$TRAVIS_OTP_RELEASE" == "1.7.1|21.0" ]; then
-      set -e;
-      mix archive.install hex bunt '~> 0.2' --force;
-      mix archive.install hex credo '~> 0.9' --force;
-      mix credo --strict;
-    fi
+matrix:
+  include:
+    - install:
+        - mix local.hex --force
+        - mix archive.install hex bunt '~> 0.2' --force
+        - mix archive.install hex credo '~> 0.9' --force
+      script:
+        - mix format --check-formatted --dry-run
+        - mix credo --strict

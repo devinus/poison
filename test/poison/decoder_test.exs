@@ -16,7 +16,7 @@ defmodule Poison.DecoderTest do
   end
 
   defmodule Person2 do
-   defstruct name: nil, age: 42, contacts: []
+    defstruct name: nil, age: 42, contacts: []
   end
 
   defmodule Contact2 do
@@ -99,8 +99,16 @@ defmodule Poison.DecoderTest do
   end
 
   test "decoding into nested structs" do
-    person = %{"name" => "Devin Torres", "contact" => %{"email" => "devin@torres.com"}}
-    expected = %Person{name: "Devin Torres", contact: %Contact{email: "devin@torres.com"}}
+    person = %{
+      "name" => "Devin Torres",
+      "contact" => %{"email" => "devin@torres.com"}
+    }
+
+    expected = %Person{
+      name: "Devin Torres",
+      contact: %Contact{email: "devin@torres.com"}
+    }
+
     assert transform(person, %{as: %Person{contact: %Contact{}}}) == expected
   end
 
@@ -179,7 +187,14 @@ defmodule Poison.DecoderTest do
   end
 
   test "decoding using a defined decoder" do
-    address = %{"street" => "1 Main St.", "city" => "Austin", "state" => "TX", "zip" => "78701"}
-    assert transform(address, %{as: %Address{}}) == "1 Main St., Austin, TX  78701"
+    address = %{
+      "street" => "1 Main St.",
+      "city" => "Austin",
+      "state" => "TX",
+      "zip" => "78701"
+    }
+
+    assert transform(address, %{as: %Address{}}) ==
+             "1 Main St., Austin, TX  78701"
   end
 end

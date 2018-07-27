@@ -1,7 +1,11 @@
 defmodule Poison do
-  alias Poison.{Encoder, EncodeError}
-  alias Poison.{Parser, ParseError}
-  alias Poison.{Decode, Decoder, DecodeError}
+  @readme_path [__DIR__, "..", "README.md"] |> Path.join |> Path.expand
+  @external_resource @readme_path
+  @moduledoc @readme_path |> File.read! |> String.trim
+
+  alias Poison.{Decode, DecodeError, Decoder}
+  alias Poison.{EncodeError, Encoder}
+  alias Poison.{ParseError, Parser}
 
   @doc """
   Encode a value to JSON.

@@ -49,6 +49,14 @@ defmodule Poison.Parser do
 
   @type t :: nil | true | false | list | float | integer | String.t | map
 
+  defmacrop stacktrace do
+    if Version.compare(System.version, "1.7.0") != :lt do
+      quote do: __STACKTRACE__
+    else
+      quote do: System.stacktrace()
+    end
+  end
+
   def parse!(iodata, options) do
     string = IO.iodata_to_binary(iodata)
     keys = Map.get(options, :keys)
@@ -59,8 +67,8 @@ defmodule Poison.Parser do
       {other, pos} -> syntax_error(other, pos)
     end
   rescue
-    _ in [ArgumentError] ->
-      raise %ParseError{value: iodata}
+    ArgumentError ->
+      reraise %ParseError{value: iodata}, stacktrace()
   end
 
   defp value("\"" <> rest, pos, _keys) do
@@ -119,8 +127,8 @@ defmodule Poison.Parser do
   defp object_name(name, pos, :atoms!) do
     String.to_existing_atom(name)
   rescue
-    _ in [ArgumentError] ->
-      raise %ParseError{value: name, pos: pos}
+    ArgumentError ->
+      reraise %ParseError{value: name, pos: pos}, stacktrace()
   end
 
   defp object_name(name, _pos, :atoms), do: String.to_atom(name)
@@ -208,7 +216,7 @@ defmodule Poison.Parser do
   rescue
     ArgumentError ->
       value = iolist |> IO.iodata_to_binary
-      raise %ParseError{pos: pos, value: value}
+      reraise %ParseError{pos: pos, value: value}, stacktrace()
   end
 
   defp number_digits(<<char>> <> rest = string, pos) when char in '0123456789' do
@@ -264,15 +272,16 @@ defmodule Poison.Parser do
   rescue
     ArgumentError ->
       value = <<"\\u", a1, b1, c1, d1, "\\u", a2, b2, c2, d2>>
-      raise %ParseError{pos: pos + 12, value: value}
+      reraise %ParseError{pos: pos + 12, value: value}, stacktrace()
   end
 
   defp string_escape(<<?u, seq :: binary-size(4)>> <> rest, pos, acc) do
-    string_continue(rest, pos + 5, [acc, <<String.to_integer(seq, 16) :: utf8>>])
+    code = String.to_integer(seq, 16)
+    string_continue(rest, pos + 5, [acc, <<code :: utf8>>])
   rescue
     ArgumentError ->
       value = "\\u" <> seq
-      raise %ParseError{pos: pos + 6, value: value}
+      reraise %ParseError{pos: pos + 6, value: value}, stacktrace()
   end
 
   defp string_escape(other, pos, _), do: syntax_error(other, pos)

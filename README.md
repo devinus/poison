@@ -68,9 +68,9 @@ could simply call `Poison.Parser.parse`.
 ## Parser
 
 ```iex
-iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}))
+iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), %{})
 %{"name" => "Devin Torres", "age" => 27}
-iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), keys: :atoms!)
+iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), %{keys: :atoms!})
 %{name: "Devin Torres", age: 27}
 ```
 
@@ -90,7 +90,7 @@ for more info:
 ## Encoder
 
 ```iex
-iex> IO.puts Poison.Encoder.encode([1, 2, 3], [])
+iex> Poison.Encoder.encode([1, 2, 3], %{}) |> IO.iodata_to_binary
 "[1,2,3]"
 ```
 
@@ -148,7 +148,7 @@ ensure that your generated JSON doesn't have this issue, you can pass the
 
 ```iex
 iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
-** (Poison.EncodeError) duplicate key found: "foo"
+** (Poison.EncodeError) duplicate key found: :foo
 ```
 
 ## Benchmarking

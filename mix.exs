@@ -1,7 +1,9 @@
 defmodule Poison.Mixfile do
   use Mix.Project
 
-  @version File.read!("VERSION") |> String.trim
+  @version_path Path.join([__DIR__, "VERSION"])
+  @external_resource @version_path
+  @version @version_path |> File.read! |> String.trim
 
   def project do
     [app: :poison,

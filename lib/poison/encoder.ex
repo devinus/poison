@@ -15,12 +15,12 @@ end
 defmodule Poison.Encode do
   @moduledoc false
 
-  alias Poison.{Encoder, EncodeError}
+  alias Poison.{EncodeError, Encoder}
 
   defmacro __using__(_) do
     quote do
-      alias String.Chars
       alias Poison.EncodeError
+      alias String.Chars
 
       @compile {:inline, encode_name: 1}
 
@@ -53,7 +53,7 @@ defmodule Poison.Pretty do
       @compile {:inline, pretty: 1, indent: 1, offset: 1, offset: 2, spaces: 1}
 
       defp pretty(options) do
-        !!Map.get(options, :pretty)
+        Map.get(options, :pretty) == true
       end
 
       defp indent(options) do
@@ -141,7 +141,7 @@ defimpl Poison.Encoder, for: BitString do
   end
 
   # http://en.wikipedia.org/wiki/UTF-16#Example_UTF-16_encoding_procedure
-  # http://unicodebook.readthedocs.org/unicode_encodings.html#utf-16-surrogate-pairs
+  # http://unicodebook.readthedocs.org/unicode_encodings.html
   defp escape(<<char :: utf8>> <> rest, :unicode) when char > 0xFFFF do
     code = char - 0x10000
     [seq(0xD800 ||| (code >>> 10)),

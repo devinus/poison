@@ -31,7 +31,7 @@ defmodule Poison.ParserTest do
     assert parse!("0.1e-1") == 0.1e-1
     assert parse!("99.99e99") == 99.99e99
     assert parse!("-99.99e-99") == -99.99e-99
-    assert parse!("123456789.123456789e123") == 123456789.123456789e123
+    assert parse!("123456789.123456789e123") == 123_456_789.123456789e123
   end
 
   test "strings" do

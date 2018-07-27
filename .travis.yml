@@ -1,5 +1,6 @@
 language: elixir
 elixir:
+  - 1.7.1
   - 1.7.0
   - 1.6.6
   - 1.6.5
@@ -9,3 +10,11 @@ otp_release:
   - 20.1
   - 20.0
 sudo: false
+before_script:
+  - |
+    if [ "$TRAVIS_ELIXIR_VERSION|$TRAVIS_OTP_RELEASE" == "1.7.1|21.0" ]; then
+      set -e;
+      mix archive.install hex bunt '~> 0.2' --force;
+      mix archive.install hex credo '~> 0.9' --force;
+      mix credo --strict;
+    fi

@@ -1,7 +1,7 @@
 defmodule Poison.EncoderTest do
   use ExUnit.Case, async: true
 
-  alias Poison.EncodeError
+  alias Poison.{EncodeError, Encoder}
 
   test "Atom" do
     assert to_json(nil) == "null"
@@ -53,7 +53,8 @@ defmodule Poison.EncoderTest do
 
     multi_key_map = %{"foo" => "foo1", :foo => "foo2"}
     assert to_json(multi_key_map) == ~s({"foo":"foo1","foo":"foo2"})
-    assert Poison.encode(multi_key_map, strict_keys: true) == {:error, %Poison.EncodeError{message: "duplicate key found: :foo", value: "foo"}}
+    error = %EncodeError{message: "duplicate key found: :foo", value: "foo"}
+    assert Poison.encode(multi_key_map, strict_keys: true) == {:error, error}
   end
 
   test "List" do
@@ -135,14 +136,20 @@ defmodule Poison.EncoderTest do
   end
 
   test "DateTime" do
-    datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-                         microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
-                         std_offset: -1800, utc_offset: 3600}
+    datetime = %DateTime{
+      year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+      microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
+      std_offset: -1800, utc_offset: 3600
+    }
+
     assert to_json(datetime) == ~s("2000-01-01T12:13:14+00:30")
 
-    datetime = %DateTime{year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-                         microsecond: {50000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
-                         std_offset: 0, utc_offset: 0}
+    datetime = %DateTime{
+      year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
+      microsecond: {50_000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
+      std_offset: 0, utc_offset: 0
+    }
+
     assert to_json(datetime) == ~s("2000-01-01T12:13:14.050Z")
   end
 
@@ -168,8 +175,8 @@ defmodule Poison.EncoderTest do
   test "@derive" do
     derived = %Derived{name: "derived"}
     non_derived = %NonDerived{name: "non-derived"}
-    assert Poison.Encoder.impl_for!(derived) == Poison.Encoder.Poison.EncoderTest.Derived
-    assert Poison.Encoder.impl_for!(non_derived) == Poison.Encoder.Any
+    assert Encoder.impl_for!(derived) == Encoder.Poison.EncoderTest.Derived
+    assert Encoder.impl_for!(non_derived) == Encoder.Any
 
     derived_using_only = %DerivedUsingOnly{name: "derived using :only", size: 10}
     assert Poison.decode!(to_json(derived_using_only)) == %{"name" => "derived using :only"}
@@ -194,7 +201,7 @@ defmodule Poison.EncoderTest do
 
   defp to_json(value, options \\ []) do
     value
-    |> Poison.Encoder.encode(Map.new(options))
+    |> Encoder.encode(Map.new(options))
     |> IO.iodata_to_binary
   end
 end

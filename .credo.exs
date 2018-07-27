@@ -21,7 +21,15 @@
         # You can give explicit globs or simply directories.
         # In the latter case `**/*.{ex,exs}` will be used.
         #
-        included: ["lib/", "src/", "test/", "web/", "apps/", "bench/", "mix.exs"],
+        included: [
+          "lib/",
+          "src/",
+          "test/",
+          "web/",
+          "apps/",
+          "bench/",
+          "{mix,.credo,.formatter}.exs"
+        ],
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       #
@@ -115,7 +123,8 @@
         {Credo.Check.Refactor.NegatedConditionsWithElse},
         {Credo.Check.Refactor.Nesting},
         {Credo.Check.Refactor.PipeChainStart,
-         excluded_argument_types: [:atom, :binary, :fn, :keyword], excluded_functions: []},
+         excluded_argument_types: [:atom, :binary, :fn, :keyword],
+         excluded_functions: []},
         {Credo.Check.Refactor.UnlessWithElse},
 
         #

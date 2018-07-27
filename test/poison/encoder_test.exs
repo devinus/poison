@@ -31,25 +31,30 @@ defmodule Poison.EncoderTest do
     assert to_json("𝄞", escape: :unicode) == ~s("\\uD834\\uDD1E")
     assert to_json("\u2028\u2029", escape: :javascript) == ~s("\\u2028\\u2029")
     assert to_json("</script>", escape: :html_safe) == ~s("<\\/script>")
-    assert to_json(~s(<script>var s = "\u2028\u2029";</script>), escape: :html_safe) == ~s("<script>var s = \\\"\\u2028\\u2029\\\";<\\/script>")
+
+    assert to_json(~s(<script>var s = "\u2028\u2029";</script>),
+             escape: :html_safe
+           ) == ~s("<script>var s = \\\"\\u2028\\u2029\\\";<\\/script>")
+
     assert to_json("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
   end
 
   test "Map" do
     assert to_json(%{}) == "{}"
-    assert to_json(%{"foo" => "bar"})  == ~s({"foo":"bar"})
+    assert to_json(%{"foo" => "bar"}) == ~s({"foo":"bar"})
     assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
     assert to_json(%{42 => :bar}) == ~s({"42":"bar"})
     assert to_json(%{'foo' => :bar}) == ~s({"foo":"bar"})
+
     assert to_json(%{foo: %{bar: %{baz: "baz"}}}, pretty: true) == """
-    {
-      "foo": {
-        "bar": {
-          "baz": "baz"
-        }
-      }
-    }\
-    """
+           {
+             "foo": {
+               "bar": {
+                 "baz": "baz"
+               }
+             }
+           }\
+           """
 
     multi_key_map = %{"foo" => "foo1", :foo => "foo2"}
     assert to_json(multi_key_map) == ~s({"foo":"foo1","foo":"foo2"})
@@ -60,37 +65,40 @@ defmodule Poison.EncoderTest do
   test "List" do
     assert to_json([]) == "[]"
     assert to_json([1, 2, 3]) == "[1,2,3]"
+
     assert to_json([1, 2, 3], pretty: true) == """
-    [
-      1,
-      2,
-      3
-    ]\
-    """
+           [
+             1,
+             2,
+             3
+           ]\
+           """
   end
 
   test "Range" do
     assert to_json(1..3) == "[1,2,3]"
+
     assert to_json(1..3, pretty: true) == """
-    [
-      1,
-      2,
-      3
-    ]\
-    """
+           [
+             1,
+             2,
+             3
+           ]\
+           """
   end
 
   test "Stream" do
     range = 1..10
     assert to_json(Stream.take(range, 0)) == "[]"
     assert to_json(Stream.take(range, 3)) == "[1,2,3]"
+
     assert to_json(Stream.take(range, 3), pretty: true) == """
-    [
-      1,
-      2,
-      3
-    ]\
-    """
+           [
+             1,
+             2,
+             3
+           ]\
+           """
   end
 
   # MapSet/HashSet have an unspecified order
@@ -103,20 +111,21 @@ defmodule Poison.EncoderTest do
       set = set |> type.put(1) |> type.put(2)
 
       assert to_json(set) in ~w([1,2] [2,1])
+
       assert to_json(set, pretty: true) in [
-        """
-        [
-          1,
-          2
-        ]\
-        """,
-        """
-        [
-          2,
-          1
-        ]\
-        """
-      ]
+               """
+               [
+                 1,
+                 2
+               ]\
+               """,
+               """
+               [
+                 2,
+                 1
+               ]\
+               """
+             ]
     end
   end
 
@@ -137,17 +146,33 @@ defmodule Poison.EncoderTest do
 
   test "DateTime" do
     datetime = %DateTime{
-      year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-      microsecond: {0, 0}, zone_abbr: "CET", time_zone: "Europe/Warsaw",
-      std_offset: -1800, utc_offset: 3600
+      year: 2000,
+      month: 1,
+      day: 1,
+      hour: 12,
+      minute: 13,
+      second: 14,
+      microsecond: {0, 0},
+      zone_abbr: "CET",
+      time_zone: "Europe/Warsaw",
+      std_offset: -1800,
+      utc_offset: 3600
     }
 
     assert to_json(datetime) == ~s("2000-01-01T12:13:14+00:30")
 
     datetime = %DateTime{
-      year: 2000, month: 1, day: 1, hour: 12, minute: 13, second: 14,
-      microsecond: {50_000, 3}, zone_abbr: "UTC", time_zone: "Etc/UTC",
-      std_offset: 0, utc_offset: 0
+      year: 2000,
+      month: 1,
+      day: 1,
+      hour: 12,
+      minute: 13,
+      second: 14,
+      microsecond: {50_000, 3},
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC",
+      std_offset: 0,
+      utc_offset: 0
     }
 
     assert to_json(datetime) == ~s("2000-01-01T12:13:14.050Z")
@@ -178,10 +203,20 @@ defmodule Poison.EncoderTest do
     assert Encoder.impl_for!(derived) == Encoder.Poison.EncoderTest.Derived
     assert Encoder.impl_for!(non_derived) == Encoder.Any
 
-    derived_using_only = %DerivedUsingOnly{name: "derived using :only", size: 10}
-    assert Poison.decode!(to_json(derived_using_only)) == %{"name" => "derived using :only"}
+    derived_using_only = %DerivedUsingOnly{
+      name: "derived using :only",
+      size: 10
+    }
 
-    derived_using_except = %DerivedUsingExcept{name: "derived using :except", size: 10}
+    assert Poison.decode!(to_json(derived_using_only)) == %{
+             "name" => "derived using :only"
+           }
+
+    derived_using_except = %DerivedUsingExcept{
+      name: "derived using :except",
+      size: 10
+    }
+
     assert Poison.decode!(to_json(derived_using_except)) == %{"size" => 10}
   end
 
@@ -202,6 +237,6 @@ defmodule Poison.EncoderTest do
   defp to_json(value, options \\ []) do
     value
     |> Encoder.encode(Map.new(options))
-    |> IO.iodata_to_binary
+    |> IO.iodata_to_binary()
   end
 end

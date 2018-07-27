@@ -3,17 +3,19 @@ defmodule Poison.Mixfile do
 
   @version_path Path.join([__DIR__, "VERSION"])
   @external_resource @version_path
-  @version @version_path |> File.read! |> String.trim
+  @version @version_path |> File.read!() |> String.trim()
 
   def project do
-    [app: :poison,
-     version: @version,
-     elixir: "~> 1.4",
-     description: "An incredibly fast, pure Elixir JSON library",
-     consolidate_protocols: not(Mix.env in [:dev, :test]),
-     deps: deps(),
-     package: package(),
-     dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"]]
+    [
+      app: :poison,
+      version: @version,
+      elixir: "~> 1.4",
+      description: "An incredibly fast, pure Elixir JSON library",
+      consolidate_protocols: not (Mix.env() in [:dev, :test]),
+      deps: deps(),
+      package: package(),
+      dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"]
+    ]
   end
 
   # Configuration for the OTP application
@@ -22,7 +24,8 @@ defmodule Poison.Mixfile do
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
     spec = [extra_applications: []]
-    if Mix.env != :bench do
+
+    if Mix.env() != :bench do
       spec
     else
       Keyword.put_new(spec, :applications, [:logger])
@@ -39,23 +42,27 @@ defmodule Poison.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:dialyxir, "~> 0.5", only: :dev, runtime: false},
-     {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-     {:benchee, "~> 0.13", only: :bench},
-     {:benchee_json, "~> 0.5", only: :bench},
-     {:benchee_html, "~> 0.5", only: :bench},
-     {:jason, "~> 1.1", only: :bench},
-     {:exjsx, "~> 4.0", only: :bench},
-     {:tiny, "~> 1.0", only: :bench},
-     {:jsone, "~> 1.4", only: :bench},
-     {:jiffy, "~> 0.15",  only: :bench},
-     {:json, "~> 1.2", only: :bench}]
+    [
+      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:benchee, "~> 0.13", only: :bench},
+      {:benchee_json, "~> 0.5", only: :bench},
+      {:benchee_html, "~> 0.5", only: :bench},
+      {:jason, "~> 1.1", only: :bench},
+      {:exjsx, "~> 4.0", only: :bench},
+      {:tiny, "~> 1.0", only: :bench},
+      {:jsone, "~> 1.4", only: :bench},
+      {:jiffy, "~> 0.15", only: :bench},
+      {:json, "~> 1.2", only: :bench}
+    ]
   end
 
   defp package do
-    [files: ~w(lib mix.exs README.md LICENSE VERSION),
-     maintainers: ["Devin Alexander Torres"],
-     licenses: ["CC0-1.0"],
-     links: %{"GitHub" => "https://github.com/devinus/poison"}]
+    [
+      files: ~w(lib mix.exs README.md LICENSE VERSION),
+      maintainers: ["Devin Alexander Torres"],
+      licenses: ["CC0-1.0"],
+      links: %{"GitHub" => "https://github.com/devinus/poison"}
+    ]
   end
 end

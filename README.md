@@ -214,7 +214,7 @@ Issue 90 (JSON)                     1   1964860.00 µs/op
 
 ## License
 
-Poison is released under [CC0-1.0][8] (see [`LICENSE`](LICENSE)).
+Poison is released under [CC0-1.0][8].
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf

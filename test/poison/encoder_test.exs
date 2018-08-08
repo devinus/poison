@@ -88,7 +88,7 @@ defmodule Poison.EncoderTest do
     """
 
     a = 1
-    b = 999999999
+    b = 999_999_999
     assert to_json(a..b, pretty: true) == """
     {
       "last": #{b},

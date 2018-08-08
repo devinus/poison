@@ -369,6 +369,14 @@ defimpl Poison.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
   end
 end
 
+defimpl Poison.Encoder, for: Range do
+  alias Poison.Encoder
+
+  def encode(range, _options) do
+    Encoder.Map.encode(%{first: range.first, last: range.last})
+  end
+end
+
 defimpl Poison.Encoder, for: Any do
   alias Poison.{Encoder, EncodeError}
 

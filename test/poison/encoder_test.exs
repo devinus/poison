@@ -80,21 +80,23 @@ defmodule Poison.EncoderTest do
 
   test "Range" do
     r1 = 1..10
+
     assert to_json(r1, pretty: true) == """
-    {
-      "last": 10,
-      "first": 1
-    }\
-    """
+           {
+             "last": 10,
+             "first": 1
+           }\
+           """
 
     a = 1
     b = 999_999_999
+
     assert to_json(a..b, pretty: true) == """
-    {
-      "last": #{b},
-      "first": #{a}
-    }\
-    """
+           {
+             "last": #{b},
+             "first": #{a}
+           }\
+           """
   end
 
   test "Stream" do

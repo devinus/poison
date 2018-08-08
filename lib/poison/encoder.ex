@@ -329,7 +329,7 @@ defimpl Poison.Encoder, for: List do
   end
 end
 
-defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet] do
+defimpl Poison.Encoder, for: [Stream, MapSet, HashSet] do
   alias Poison.Encoder
 
   use Poison.Pretty
@@ -366,6 +366,14 @@ defimpl Poison.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
 
   def encode(value, options) do
     Encoder.BitString.encode(@for.to_iso8601(value), options)
+  end
+end
+
+defimpl Poison.Encoder, for: Range do
+  alias Poison.Encoder
+
+  def encode(range, options) do
+    Encoder.Map.encode(%{first: range.first, last: range.last}, options)
   end
 end
 

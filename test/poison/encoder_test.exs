@@ -79,14 +79,23 @@ defmodule Poison.EncoderTest do
   end
 
   test "Range" do
-    assert to_json(1..3) == "[1,2,3]"
+    r1 = 1..10
 
-    assert to_json(1..3, pretty: true) == """
-           [
-             1,
-             2,
-             3
-           ]\
+    assert to_json(r1, pretty: true) == """
+           {
+             "last": 10,
+             "first": 1
+           }\
+           """
+
+    a = 1
+    b = 999_999_999
+
+    assert to_json(a..b, pretty: true) == """
+           {
+             "last": #{b},
+             "first": #{a}
+           }\
            """
   end
 

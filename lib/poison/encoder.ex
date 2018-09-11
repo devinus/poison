@@ -390,11 +390,8 @@ defimpl Poison.Encoder, for: Any do
           except = [:__struct__ | except]
           quote(do: json_redact(Map.drop(struct, unquote(except)), unquote(redact)))
 
-        redact ->
-          quote(do: json_redact(:maps.remove(:__struct__, struct), unquote(redact)))
-
         true ->
-          quote(do: :maps.remove(:__struct__, struct))
+          quote(do: json_redact(:maps.remove(:__struct__, struct), unquote(redact)))
       end
 
     quote do

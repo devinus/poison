@@ -196,6 +196,21 @@ defmodule Poison.EncoderTest do
     defstruct name: "", size: 0
   end
 
+  defmodule DerivedUsingRedact do
+    @derive {Poison.Encoder, redact: :empty}
+    defstruct name: :empty, size: 0
+  end
+
+  defmodule DerivedUsingOnlyAndRedact do
+    @derive {Poison.Encoder, only: [:name, :size], redact: :empty}
+    defstruct name: "", size: :empty, shape: "tirangle"
+  end
+
+  defmodule DerivedUsingExceptAndRedact do
+    @derive {Poison.Encoder, except: [:name], redact: :empty}
+    defstruct name: "", size: 10, shape: :empty
+  end
+
   defmodule NonDerived do
     defstruct name: ""
   end
@@ -221,6 +236,29 @@ defmodule Poison.EncoderTest do
     }
 
     assert Poison.decode!(to_json(derived_using_except)) == %{"size" => 10}
+
+    derived_using_redact = %DerivedUsingRedact{
+      name: :empty,
+      size: 10
+    }
+
+    assert Poison.decode!(to_json(derived_using_redact)) == %{"size" => 10}
+
+    derived_using_only_and_redact = %DerivedUsingOnlyAndRedact{
+      name: "test",
+      size: :empty,
+      shape: "tirangle"
+    }
+
+    assert Poison.decode!(to_json(derived_using_only_and_redact)) == %{"name" => "test"}
+
+    derived_using_except_and_redact = %DerivedUsingExceptAndRedact{
+      name: "test",
+      size: 10,
+      shape: :empty
+    }
+
+    assert Poison.decode!(to_json(derived_using_except_and_redact)) == %{"size" => 10}
   end
 
   test "EncodeError" do

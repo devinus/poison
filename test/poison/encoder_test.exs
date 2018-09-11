@@ -250,7 +250,9 @@ defmodule Poison.EncoderTest do
       shape: "tirangle"
     }
 
-    assert Poison.decode!(to_json(derived_using_only_and_redact)) == %{"name" => "test"}
+    assert Poison.decode!(to_json(derived_using_only_and_redact)) == %{
+             "name" => "test"
+           }
 
     derived_using_except_and_redact = %DerivedUsingExceptAndRedact{
       name: "test",
@@ -258,7 +260,9 @@ defmodule Poison.EncoderTest do
       shape: :empty
     }
 
-    assert Poison.decode!(to_json(derived_using_except_and_redact)) == %{"size" => 10}
+    assert Poison.decode!(to_json(derived_using_except_and_redact)) == %{
+             "size" => 10
+           }
   end
 
   test "EncodeError" do

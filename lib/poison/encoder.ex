@@ -384,14 +384,21 @@ defimpl Poison.Encoder, for: Any do
     extractor =
       cond do
         only ->
-          quote(do: json_redact(Map.take(struct, unquote(only)), unquote(redact)))
+          quote(
+            do: json_redact(Map.take(struct, unquote(only)), unquote(redact))
+          )
 
         except ->
           except = [:__struct__ | except]
-          quote(do: json_redact(Map.drop(struct, unquote(except)), unquote(redact)))
+
+          quote(
+            do: json_redact(Map.drop(struct, unquote(except)), unquote(redact))
+          )
 
         true ->
-          quote(do: json_redact(:maps.remove(:__struct__, struct), unquote(redact)))
+          quote(
+            do: json_redact(:maps.remove(:__struct__, struct), unquote(redact))
+          )
       end
 
     quote do
@@ -401,11 +408,13 @@ defimpl Poison.Encoder, for: Any do
         end
 
         def json_redact(struct, nil), do: struct
+
         def json_redact(struct, target) do
           Enum.reduce(struct, %{}, fn {key, value}, redacted ->
             case value do
               ^target ->
                 redacted
+
               value ->
                 Map.put(redacted, key, value)
             end

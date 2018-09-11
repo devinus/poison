@@ -131,6 +131,17 @@ end
 In case both `:only` and `:except` keys are defined, the `:except` option is
 ignored.
 
+It is also possible to exclude all attributes with a specific value.  This can be useful in the case where `Null` might mean something to an API and you don't want to send the attribute at all.
+
+```elixir
+defmodule SparsePerson do
+  @derive {Poison.Encoder, redact: :empty}
+  defstruct name: :empty, age: :empty
+end
+```
+
+The `:redact` option can be included with `:only` and `:except`
+
 ### Key Validation
 
 According to [RFC 7159][4] keys in a JSON object should be unique. This is

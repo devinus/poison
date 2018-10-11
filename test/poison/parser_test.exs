@@ -199,68 +199,78 @@ defmodule Poison.ParserTest do
   end
 
   test "parse date" do
-    date =
-      %Date{
-        calendar: Calendar.ISO,
-        day: 10,
-        month: 10,
-        year: 2018
-      }
+    date = %Date{
+      calendar: Calendar.ISO,
+      day: 10,
+      month: 10,
+      year: 2018
+    }
 
     assert parse!("\"2018-10-10\"", %{format_datetime: :date}) == date
-    assert parse!("{ \"date\": \"2018-10-10\" }", %{format_datetime: :date}) == %{"date" => date}
+
+    assert parse!("{ \"date\": \"2018-10-10\" }", %{format_datetime: :date}) ==
+             %{"date" => date}
   end
 
   test "parse time" do
-    time =
-      %Time{
-        calendar: Calendar.ISO,
-        hour: 1,
-        minute: 8,
-        second: 52,
-        microsecond: {735272, 6}
-      }
+    time = %Time{
+      calendar: Calendar.ISO,
+      hour: 1,
+      minute: 8,
+      second: 52,
+      microsecond: {735_272, 6}
+    }
 
     assert parse!("\"01:08:52.735272\"", %{format_datetime: :time}) == time
-    assert parse!("{ \"time\": \"01:08:52.735272\" }", %{format_datetime: :time}) == %{"time" => time}
+
+    assert parse!("{ \"time\": \"01:08:52.735272\" }", %{format_datetime: :time}) ==
+             %{"time" => time}
   end
 
   test "parse datetime" do
-    datetime =
-      %DateTime{
-        calendar: Calendar.ISO,
-        day: 11,
-        hour: 0,
-        microsecond: {262450, 6},
-        minute: 12,
-        month: 10,
-        second: 41,
-        std_offset: 0,
-        time_zone: "Etc/UTC",
-        utc_offset: 0,
-        year: 2018,
-        zone_abbr: "UTC"
-      }
+    datetime = %DateTime{
+      calendar: Calendar.ISO,
+      day: 11,
+      hour: 0,
+      microsecond: {262_450, 6},
+      minute: 12,
+      month: 10,
+      second: 41,
+      std_offset: 0,
+      time_zone: "Etc/UTC",
+      utc_offset: 0,
+      year: 2018,
+      zone_abbr: "UTC"
+    }
 
-    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: :datetime}) == datetime
-    assert parse!("{ \"datetime\": \"2018-10-11T00:12:41.262450Z\" }", %{format_datetime: :datetime}) == %{"datetime" => datetime}
+    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{
+             format_datetime: :datetime
+           }) == datetime
+
+    assert parse!("{ \"datetime\": \"2018-10-11T00:12:41.262450Z\" }", %{
+             format_datetime: :datetime
+           }) == %{"datetime" => datetime}
   end
 
   test "parse naive datetime" do
-    naive_datetime =
-      %NaiveDateTime{
-        calendar: Calendar.ISO,
-        day: 10,
-        hour: 1,
-        minute: 13,
-        month: 10,
-        second: 20,
-        microsecond: {712433, 6},
-        year: 2018
-      }
+    naive_datetime = %NaiveDateTime{
+      calendar: Calendar.ISO,
+      day: 10,
+      hour: 1,
+      minute: 13,
+      month: 10,
+      second: 20,
+      microsecond: {712_433, 6},
+      year: 2018
+    }
 
-    assert parse!("\"2018-10-10T01:13:20.712433\"", %{format_datetime: :naive_datetime}) == naive_datetime
-    assert parse!("{ \"naive_datetime\": \"2018-10-10T01:13:20.712433\" }", %{format_datetime: :naive_datetime}) == %{"naive_datetime" => naive_datetime}
+    assert parse!("\"2018-10-10T01:13:20.712433\"", %{
+             format_datetime: :naive_datetime
+           }) == naive_datetime
+
+    assert parse!("{ \"naive_datetime\": \"2018-10-10T01:13:20.712433\" }", %{
+             format_datetime: :naive_datetime
+           }) == %{"naive_datetime" => naive_datetime}
   end
 
   defp parse!(iodata) do

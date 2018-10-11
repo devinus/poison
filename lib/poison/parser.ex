@@ -89,9 +89,14 @@ defmodule Poison.Parser do
     array_values(rest, pos, keys, [])
   end
 
-  defp value("null" <> rest, pos, _keys, _format_datetime), do: {nil, pos + 4, rest}
-  defp value("true" <> rest, pos, _keys, _format_datetime), do: {true, pos + 4, rest}
-  defp value("false" <> rest, pos, _keys, _format_datetime), do: {false, pos + 5, rest}
+  defp value("null" <> rest, pos, _keys, _format_datetime),
+    do: {nil, pos + 4, rest}
+
+  defp value("true" <> rest, pos, _keys, _format_datetime),
+    do: {true, pos + 4, rest}
+
+  defp value("false" <> rest, pos, _keys, _format_datetime),
+    do: {false, pos + 5, rest}
 
   defp value(<<char, _::binary>> = string, pos, _keys, _format_datetime)
        when char in '-0123456789' do

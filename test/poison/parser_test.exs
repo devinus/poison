@@ -198,7 +198,32 @@ defmodule Poison.ParserTest do
     assert parse!(~s({"foo": "bar"}), %{keys: :atoms}) == %{foo: "bar"}
   end
 
-  test "date and time" do
+  test "parse date" do
+    date =
+      %Date{
+        calendar: Calendar.ISO,
+        day: 10,
+        month: 10,
+        year: 2018
+      }
+
+    assert parse!("\"2018-10-10\"", %{format_datetime: :date}) == date
+  end
+
+  test "parse time" do
+    time =
+      %Time{
+        calendar: Calendar.ISO,
+        hour: 1,
+        minute: 8,
+        second: 52,
+        microsecond: {735272, 6}
+      }
+
+    assert parse!("\"01:08:52.735272\"", %{format_datetime: :time}) == time
+  end
+
+  test "parse datetime" do
     datetime =
       %DateTime{
         calendar: Calendar.ISO,
@@ -215,23 +240,10 @@ defmodule Poison.ParserTest do
         zone_abbr: "UTC"
       }
 
-    time =
-      %Time{
-        calendar: Calendar.ISO,
-        hour: 1,
-        minute: 8,
-        second: 52,
-        microsecond: {735272, 6}
-      }
+    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: :datetime}) == datetime
+  end
 
-    date =
-      %Date{
-        calendar: Calendar.ISO,
-        day: 10,
-        month: 10,
-        year: 2018
-      }
-
+  test "parse naive datetime" do
     naive_datetime =
       %NaiveDateTime{
         calendar: Calendar.ISO,
@@ -244,12 +256,9 @@ defmodule Poison.ParserTest do
         year: 2018
       }
 
-    assert parse!("\"2018-10-11T00:12:41.262450Z\"") == "2018-10-11T00:12:41.262450Z"
-    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: :datetime}) == datetime
-    assert parse!("\"2018-10-10\"", %{format_datetime: :date}) == date
-    assert parse!("\"01:08:52.735272\"", %{format_datetime: :time}) == time
     assert parse!("\"2018-10-10T01:13:20.712433\"", %{format_datetime: :naive_datetime}) == naive_datetime
   end
+
 
   defp parse!(iodata) do
     parse!(iodata, %{})

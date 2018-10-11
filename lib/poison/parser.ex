@@ -75,29 +75,7 @@ defmodule Poison.Parser do
 
   defp value("\"" <> rest, pos, _keys, format_datetime) do
     {parsed_str, pos, rest} = string_continue(rest, pos + 1, [])
-
-    parsed_date =
-      case format_datetime do
-        :datetime ->
-          {:ok, datetime, _} = DateTime.from_iso8601(parsed_str)
-          datetime
-
-        :date ->
-          {:ok, date} = Date.from_iso8601(parsed_str)
-          date
-
-        :time ->
-          {:ok, time} = Time.from_iso8601(parsed_str)
-          time
-
-        :naive_datetime ->
-          {:ok, naive_datetime} = NaiveDateTime.from_iso8601(parsed_str)
-          naive_datetime
-
-        _ ->
-          parsed_str
-      end
-
+    parsed_date = parse_date(parsed_str, format_datetime)
     {parsed_date, pos, rest}
   end
 
@@ -381,4 +359,26 @@ defmodule Poison.Parser do
   defp syntax_error(_, pos) do
     raise %ParseError{pos: pos, value: ""}
   end
+
+  defp parse_date(parsed_str, :date) do
+    {:ok, date} = Date.from_iso8601(parsed_str)
+    date
+  end
+
+  defp parse_date(parsed_str, :datetime) do
+    {:ok, datetime, _} = DateTime.from_iso8601(parsed_str)
+    datetime
+  end
+
+  defp parse_date(parsed_str, :time) do
+    {:ok, time} = Time.from_iso8601(parsed_str)
+    time
+  end
+
+  defp parse_date(parsed_str, :naive_datetime) do
+      {:ok, naive_datetime} = NaiveDateTime.from_iso8601(parsed_str)
+      naive_datetime
+  end
+
+  defp parse_date(parsed_str, _), do: parsed_str
 end

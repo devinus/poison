@@ -215,8 +215,40 @@ defmodule Poison.ParserTest do
         zone_abbr: "UTC"
       }
 
+    time =
+      %Time{
+        calendar: Calendar.ISO,
+        hour: 1,
+        minute: 8,
+        second: 52,
+        microsecond: {735272, 6}
+      }
+
+    date =
+      %Date{
+        calendar: Calendar.ISO,
+        day: 10,
+        month: 10,
+        year: 2018
+      }
+
+    naive_datetime =
+      %NaiveDateTime{
+        calendar: Calendar.ISO,
+        day: 10,
+        hour: 1,
+        minute: 13,
+        month: 10,
+        second: 20,
+        microsecond: {712433, 6},
+        year: 2018
+      }
+
     assert parse!("\"2018-10-11T00:12:41.262450Z\"") == "2018-10-11T00:12:41.262450Z"
-    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: true}) == datetime
+    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: :datetime}) == datetime
+    assert parse!("\"2018-10-10\"", %{format_datetime: :date}) == date
+    assert parse!("\"01:08:52.735272\"", %{format_datetime: :time}) == time
+    assert parse!("\"2018-10-10T01:13:20.712433\"", %{format_datetime: :naive_datetime}) == naive_datetime
   end
 
   defp parse!(iodata) do

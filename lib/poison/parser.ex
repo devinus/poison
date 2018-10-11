@@ -60,7 +60,7 @@ defmodule Poison.Parser do
   def parse!(iodata, options) do
     string = IO.iodata_to_binary(iodata)
     keys = Map.get(options, :keys)
-    format_datetime = Map.get(options, :format_datetime, false)
+    format_datetime = Map.get(options, :format_datetime)
     {rest, pos} = skip_whitespace(skip_bom(string), 0)
     {value, pos, rest} = value(rest, pos, keys, format_datetime)
 
@@ -76,12 +76,29 @@ defmodule Poison.Parser do
   defp value("\"" <> rest, pos, _keys, format_datetime) do
     {parsed_str, pos, rest} = string_continue(rest, pos + 1, [])
 
-    if format_datetime do
-      {:ok, datetime, _} = DateTime.from_iso8601(parsed_str)
-      {datetime, pos, rest}
-    else
-      {parsed_str, pos, rest}
-    end
+    parsed_date =
+      case format_datetime do
+        :datetime ->
+          {:ok, datetime, _} = DateTime.from_iso8601(parsed_str)
+          datetime
+
+        :date ->
+          {:ok, date} = Date.from_iso8601(parsed_str)
+          date
+
+        :time ->
+          {:ok, time} = Time.from_iso8601(parsed_str)
+          time
+
+        :naive_datetime ->
+          {:ok, naive_datetime} = NaiveDateTime.from_iso8601(parsed_str)
+          naive_datetime
+
+        _ ->
+          parsed_str
+      end
+
+    {parsed_date, pos, rest}
   end
 
   defp value("{" <> rest, pos, keys, _format_datetime) do

@@ -75,13 +75,13 @@ defmodule Poison.Parser do
 
   defp value("\"" <> rest, pos, _keys, format_datetime) do
     {parsed_str, pos, rest} = string_continue(rest, pos + 1, [])
-    parsed_date = parse_date(parsed_str, format_datetime)
-    {parsed_date, pos, rest}
+    maybe_parsed_date = parse_date(parsed_str, format_datetime)
+    {maybe_parsed_date, pos, rest}
   end
 
-  defp value("{" <> rest, pos, keys, _format_datetime) do
+  defp value("{" <> rest, pos, keys, format_datetime) do
     {rest, pos} = skip_whitespace(rest, pos + 1)
-    object_pairs(rest, pos, keys, [])
+    object_pairs(rest, pos, keys, format_datetime, [])
   end
 
   defp value("[" <> rest, pos, keys, _format_datetime) do
@@ -102,14 +102,14 @@ defmodule Poison.Parser do
 
   ## Objects
 
-  defp object_pairs("\"" <> rest, pos, keys, acc) do
+  defp object_pairs("\"" <> rest, pos, keys, format_datetime, acc) do
     {name, pos, rest} = string_continue(rest, pos + 1, [])
 
     {value, start, pos, rest} =
       case skip_whitespace(rest, pos) do
         {":" <> rest, start} ->
           {rest, pos} = skip_whitespace(rest, start + 1)
-          {value, pos, rest} = value(rest, pos, keys, false)
+          {value, pos, rest} = value(rest, pos, keys, format_datetime)
           {value, start, pos, rest}
 
         {other, pos} ->
@@ -121,7 +121,7 @@ defmodule Poison.Parser do
     case skip_whitespace(rest, pos) do
       {"," <> rest, pos} ->
         {rest, pos} = skip_whitespace(rest, pos + 1)
-        object_pairs(rest, pos, keys, acc)
+        object_pairs(rest, pos, keys, format_datetime, acc)
 
       {"}" <> rest, pos} ->
         {:maps.from_list(acc), pos + 1, rest}
@@ -131,11 +131,11 @@ defmodule Poison.Parser do
     end
   end
 
-  defp object_pairs("}" <> rest, pos, _, []) do
+  defp object_pairs("}" <> rest, pos, _, _, []) do
     {:maps.new(), pos + 1, rest}
   end
 
-  defp object_pairs(other, pos, _, _), do: syntax_error(other, pos)
+  defp object_pairs(other, pos, _, _, _), do: syntax_error(other, pos)
 
   defp object_name(name, pos, :atoms!) do
     String.to_existing_atom(name)
@@ -361,23 +361,35 @@ defmodule Poison.Parser do
   end
 
   defp parse_date(parsed_str, :date) do
-    {:ok, date} = Date.from_iso8601(parsed_str)
-    date
+    with {:ok, date} <- Date.from_iso8601(parsed_str) do
+      date
+    else
+      _ -> parsed_str
+    end
   end
 
   defp parse_date(parsed_str, :datetime) do
-    {:ok, datetime, _} = DateTime.from_iso8601(parsed_str)
-    datetime
+    with {:ok, datetime, _} <- DateTime.from_iso8601(parsed_str) do
+      datetime
+    else
+      _ -> parsed_str
+    end
   end
 
   defp parse_date(parsed_str, :time) do
-    {:ok, time} = Time.from_iso8601(parsed_str)
-    time
+    with {:ok, time} <- Time.from_iso8601(parsed_str) do
+      time
+    else
+      _ -> parsed_str
+    end
   end
 
   defp parse_date(parsed_str, :naive_datetime) do
-      {:ok, naive_datetime} = NaiveDateTime.from_iso8601(parsed_str)
+    with {:ok, naive_datetime} <- NaiveDateTime.from_iso8601(parsed_str) do
       naive_datetime
+    else
+      _ -> parsed_str
+    end
   end
 
   defp parse_date(parsed_str, _), do: parsed_str

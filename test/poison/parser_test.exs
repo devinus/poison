@@ -208,6 +208,7 @@ defmodule Poison.ParserTest do
       }
 
     assert parse!("\"2018-10-10\"", %{format_datetime: :date}) == date
+    assert parse!("{ \"date\": \"2018-10-10\" }", %{format_datetime: :date}) == %{"date" => date}
   end
 
   test "parse time" do
@@ -221,6 +222,7 @@ defmodule Poison.ParserTest do
       }
 
     assert parse!("\"01:08:52.735272\"", %{format_datetime: :time}) == time
+    assert parse!("{ \"time\": \"01:08:52.735272\" }", %{format_datetime: :time}) == %{"time" => time}
   end
 
   test "parse datetime" do
@@ -241,6 +243,7 @@ defmodule Poison.ParserTest do
       }
 
     assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: :datetime}) == datetime
+    assert parse!("{ \"datetime\": \"2018-10-11T00:12:41.262450Z\" }", %{format_datetime: :datetime}) == %{"datetime" => datetime}
   end
 
   test "parse naive datetime" do
@@ -257,8 +260,8 @@ defmodule Poison.ParserTest do
       }
 
     assert parse!("\"2018-10-10T01:13:20.712433\"", %{format_datetime: :naive_datetime}) == naive_datetime
+    assert parse!("{ \"naive_datetime\": \"2018-10-10T01:13:20.712433\" }", %{format_datetime: :naive_datetime}) == %{"naive_datetime" => naive_datetime}
   end
-
 
   defp parse!(iodata) do
     parse!(iodata, %{})

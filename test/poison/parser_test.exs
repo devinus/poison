@@ -198,6 +198,27 @@ defmodule Poison.ParserTest do
     assert parse!(~s({"foo": "bar"}), %{keys: :atoms}) == %{foo: "bar"}
   end
 
+  test "date and time" do
+    datetime =
+      %DateTime{
+        calendar: Calendar.ISO,
+        day: 11,
+        hour: 0,
+        microsecond: {262450, 6},
+        minute: 12,
+        month: 10,
+        second: 41,
+        std_offset: 0,
+        time_zone: "Etc/UTC",
+        utc_offset: 0,
+        year: 2018,
+        zone_abbr: "UTC"
+      }
+
+    assert parse!("\"2018-10-11T00:12:41.262450Z\"") == "2018-10-11T00:12:41.262450Z"
+    assert parse!("\"2018-10-11T00:12:41.262450Z\"", %{format_datetime: true}) == datetime
+  end
+
   defp parse!(iodata) do
     parse!(iodata, %{})
   end

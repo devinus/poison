@@ -60,8 +60,9 @@ defmodule Poison.Parser do
   def parse!(iodata, options) do
     string = IO.iodata_to_binary(iodata)
     keys = Map.get(options, :keys)
+    format_datetime = Map.get(options, :format_datetime, false)
     {rest, pos} = skip_whitespace(skip_bom(string), 0)
-    {value, pos, rest} = value(rest, pos, keys)
+    {value, pos, rest} = value(rest, pos, keys, format_datetime)
 
     case skip_whitespace(rest, pos) do
       {"", _pos} -> value
@@ -72,30 +73,37 @@ defmodule Poison.Parser do
       reraise %ParseError{value: iodata}, stacktrace()
   end
 
-  defp value("\"" <> rest, pos, _keys) do
-    string_continue(rest, pos + 1, [])
+  defp value("\"" <> rest, pos, _keys, format_datetime) do
+    {parsed_str, pos, rest} = string_continue(rest, pos + 1, [])
+
+    if format_datetime do
+      {:ok, datetime, _} = DateTime.from_iso8601(parsed_str)
+      {datetime, pos, rest}
+    else
+      {parsed_str, pos, rest}
+    end
   end
 
-  defp value("{" <> rest, pos, keys) do
+  defp value("{" <> rest, pos, keys, _format_datetime) do
     {rest, pos} = skip_whitespace(rest, pos + 1)
     object_pairs(rest, pos, keys, [])
   end
 
-  defp value("[" <> rest, pos, keys) do
+  defp value("[" <> rest, pos, keys, _format_datetime) do
     {rest, pos} = skip_whitespace(rest, pos + 1)
     array_values(rest, pos, keys, [])
   end
 
-  defp value("null" <> rest, pos, _keys), do: {nil, pos + 4, rest}
-  defp value("true" <> rest, pos, _keys), do: {true, pos + 4, rest}
-  defp value("false" <> rest, pos, _keys), do: {false, pos + 5, rest}
+  defp value("null" <> rest, pos, _keys, _format_datetime), do: {nil, pos + 4, rest}
+  defp value("true" <> rest, pos, _keys, _format_datetime), do: {true, pos + 4, rest}
+  defp value("false" <> rest, pos, _keys, _format_datetime), do: {false, pos + 5, rest}
 
-  defp value(<<char, _::binary>> = string, pos, _keys)
+  defp value(<<char, _::binary>> = string, pos, _keys, _format_datetime)
        when char in '-0123456789' do
     number_start(string, pos)
   end
 
-  defp value(other, pos, _keys), do: syntax_error(other, pos)
+  defp value(other, pos, _keys, _format_datetime), do: syntax_error(other, pos)
 
   ## Objects
 
@@ -106,7 +114,7 @@ defmodule Poison.Parser do
       case skip_whitespace(rest, pos) do
         {":" <> rest, start} ->
           {rest, pos} = skip_whitespace(rest, start + 1)
-          {value, pos, rest} = value(rest, pos, keys)
+          {value, pos, rest} = value(rest, pos, keys, false)
           {value, start, pos, rest}
 
         {other, pos} ->
@@ -151,7 +159,7 @@ defmodule Poison.Parser do
   end
 
   defp array_values(string, pos, keys, acc) do
-    {value, pos, rest} = value(string, pos, keys)
+    {value, pos, rest} = value(string, pos, keys, false)
 
     acc = [value | acc]
 

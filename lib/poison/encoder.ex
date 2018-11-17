@@ -311,13 +311,11 @@ defimpl Poison.Encoder, for: Map do
   end
 
   defp strict_keys(map, false, _), do: map
-
   defp strict_keys(map, true, :default) do
     map
     |> Map.keys()
     |> Enum.each(fn key ->
       name = encode_name(key, :default)
-
       if Map.has_key?(map, name) do
         raise EncodeError,
           value: name,
@@ -330,19 +328,15 @@ defimpl Poison.Encoder, for: Map do
 
   defp strict_keys(map, true, :camel_case) do
     map
-    |> Map.keys()
-    |> Enum.reduce(%{}, fn key, acc ->
+    |> Map.keys
+    |> Enum.reduce(%{}, fn (key, acc) ->
       name = encode_name(key, :camel_case)
-
       if Map.has_key?(acc, name) do
-        raise EncodeError,
-          value: name,
+        raise EncodeError, value: name,
           message: "duplicate key found: #{inspect(key)}"
       end
-
       Map.put(acc, name, :ok)
     end)
-
     map
   end
 end

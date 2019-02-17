@@ -73,6 +73,10 @@ iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), %{})
 %{"name" => "Devin Torres", "age" => 27}
 iex> Poison.Parser.parse!(~s({"name": "Devin Torres", "age": 27}), %{keys: :atoms!})
 %{name: "Devin Torres", age: 27}
+iex> Poison.Parser.parse(~s({"name": "Devin Torres", "age": 27}), %{})
+{:ok, %{"name" => "Devin Torres", "age" => 27}}
+iex> Poison.Parser.parse(~s({"name": "Devin Torres", "age": 27}), %{keys: :atoms!})
+{:ok, %{name: "Devin Torres", age: 27}}
 ```
 
 Note that `keys: :atoms!` reuses existing atoms, i.e. if `:name` was not

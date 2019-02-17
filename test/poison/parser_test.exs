@@ -198,7 +198,55 @@ defmodule Poison.ParserTest do
     assert parse!(~s({"foo": "bar"}), %{keys: :atoms}) == %{foo: "bar"}
   end
 
+  test "parse/2" do
+    assert_parse_error("Unexpected end of input at position 1", fn ->
+      parse("-")
+    end)
+
+    assert_parse_error("Unexpected end of input at position 1", fn ->
+      parse(~s("))
+    end)
+
+    assert_parse_error("Unexpected end of input at position 1", fn ->
+      parse("{")
+    end)
+
+    assert_parse_error("Unexpected end of input at position 1", fn ->
+      parse("[")
+    end)
+
+    assert_parse_error("Unexpected end of input at position 0", fn ->
+      parse("")
+    end)
+
+    hash = :erlang.phash2(:crypto.strong_rand_bytes(8))
+
+    assert_parse_error(
+      ~s(Cannot parse value at position 3: "key#{hash}"),
+      fn ->
+        parse(~s({"key#{hash}": null}), %{keys: :atoms!})
+      end
+    )
+
+    assert parse("0") == {:ok, 0}
+    assert parse(~s("\\"\\\\\\/\\b\\f\\n\\r\\t")) == {:ok, ~s("\\/\b\f\n\r\t)}
+    assert parse("{}") == {:ok, %{}}
+    assert parse("[]") == {:ok, []}
+    assert parse("  [  ]  ") == {:ok, []}
+    assert parse(~s({"foo": "bar"}), %{keys: :atoms!}) == {:ok, %{foo: "bar"}}
+    assert parse(~s({"foo": "bar"}), %{keys: :atoms}) == {:ok, %{foo: "bar"}}
+  end
+
   defp parse!(iodata) do
     parse!(iodata, %{})
+  end
+
+  defp parse(iodata) do
+    parse(iodata, %{})
+  end
+
+  defp assert_parse_error(message, fun) do
+    {:error, %ParseError{} = error} = fun.()
+    assert Exception.message(error) == message
   end
 end

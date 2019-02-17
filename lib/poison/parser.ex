@@ -72,6 +72,13 @@ defmodule Poison.Parser do
       reraise %ParseError{value: iodata}, stacktrace()
   end
 
+  def parse(iodata, options) do
+    {:ok, parse!(iodata, options)}
+  rescue
+    error in [ParseError] ->
+      {:error, error}
+  end
+
   defp value("\"" <> rest, pos, _keys) do
     string_continue(rest, pos + 1, [])
   end

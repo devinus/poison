@@ -154,8 +154,8 @@ iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
 
 ### 64bit Integers
 
-Some programming languages such as Javascript which can not support 64bit integers.
-So sometime 64bit integers should be converted to string type.
+Some programming languages such as Javascript do not support 64bit integers.
+You can pass the `bigint_to_string: true` option to convert it to string type.
 
 ```iex
 iex> Poison.encode!(4_294_967_296, %{bigint_to_string: true})

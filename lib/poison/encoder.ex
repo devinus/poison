@@ -224,8 +224,10 @@ end
 
 defimpl Poison.Encoder, for: Integer do
   def encode(integer, options) do
-    if Map.get(options, :bigint_to_string, false) && (integer > 0xffffffff || integer < -0x80000000) do
-      Integer.to_string(integer) |> Poison.Encoder.encode(options)
+    if Map.get(options, :bigint_to_string, false) &&
+         (integer > 0xFFFFFFFF || integer < -0x80000000) do
+      Integer.to_string(integer)
+      |> Poison.Encoder.encode(options)
     else
       Integer.to_string(integer)
     end

@@ -14,6 +14,17 @@ defmodule Poison.EncoderTest do
     assert to_json(42) == "42"
   end
 
+  test "BigInteger to string" do
+    assert to_json(0xFFFFFFFF + 1) == "#{0xFFFFFFFF + 1}"
+    assert to_json(-0x80000000 - 1) == "#{-0x80000000 - 1}"
+
+    assert to_json(0xFFFFFFFF + 1, bigint_to_string: true) ==
+             ~s("#{0xFFFFFFFF + 1}")
+
+    assert to_json(-0x80000000 - 1, bigint_to_string: true) ==
+             ~s("#{-0x80000000 - 1}")
+  end
+
   test "Float" do
     assert to_json(99.99) == "99.99"
     assert to_json(9.9e100) == "9.9e100"

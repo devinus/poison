@@ -152,6 +152,16 @@ iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
 ** (Poison.EncodeError) duplicate key found: :foo
 ```
 
+### 64bit Integers
+
+Some programming languages such as Javascript do not support 64bit integers.
+You can pass the `bigint_to_string: true` option to convert it to string type.
+
+```iex
+iex> Poison.encode!(4_294_967_296, %{bigint_to_string: true})
+"\"4294967296\""
+```
+
 ## Benchmarking
 
 ```sh-session

@@ -86,13 +86,15 @@ defprotocol Poison.Encoder do
   @typep indent :: non_neg_integer
   @typep offset :: non_neg_integer
   @typep strict_keys :: boolean
+  @typep bigint_to_string :: boolean
 
   @type options :: %{
           optional(:escape) => escape,
           optional(:pretty) => pretty,
           optional(:indent) => indent,
           optional(:offset) => offset,
-          optional(:strict_keys) => strict_keys
+          optional(:strict_keys) => strict_keys,
+          optional(:bigint_to_string) => bigint_to_string
         }
 
   @spec encode(t, options) :: iodata
@@ -221,8 +223,13 @@ defimpl Poison.Encoder, for: BitString do
 end
 
 defimpl Poison.Encoder, for: Integer do
-  def encode(integer, _options) do
-    Integer.to_string(integer)
+  def encode(integer, options) do
+    if Map.get(options, :bigint_to_string, false) &&
+         (integer > 0xFFFFFFFF || integer < -0x80000000) do
+      integer |> Integer.to_string() |> Poison.Encoder.encode(options)
+    else
+      Integer.to_string(integer)
+    end
   end
 end
 

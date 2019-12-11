@@ -36,7 +36,7 @@ jobs:
             - deps
             - ~/.mix
 
-  format_check:
+  format:
     docker:
       - image: circleci/elixir:1.9.4
         environment:
@@ -88,7 +88,10 @@ jobs:
           path: cover
           destination: coverage_results
 
-  generate_documentation:
+      - store_test_results:
+          path: _build/test/lib/poison
+
+  docs:
     docker:
       - image: circleci/elixir:1.9.4
         environment:
@@ -109,7 +112,7 @@ workflows:
   build_and_test:
     jobs:
       - build
-      - format_check:
+      - format:
           requires:
             - build
       - credo:
@@ -121,6 +124,6 @@ workflows:
       - test:
           requires:
             - build
-      - generate_documentation:
+      - docs:
           requires:
             - build

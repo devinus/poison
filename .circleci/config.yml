@@ -91,21 +91,19 @@ jobs:
       - store_test_results:
           path: _build/test/lib/poison
 
-  docs:
-    docker:
-      - image: circleci/elixir:1.9.4
-        environment:
-          MIX_ENV: test
-
-    steps:
-      - checkout
-      - restore_cache:
-          key: v1-deps-cache-{{ checksum "mix.lock" }}
-      - run: mix docs
-
-      - store_artifacts:
-          path: doc
-          destination: documentation
+  # docs:
+  #   docker:
+  #     - image: circleci/elixir:1.9.4
+  #       environment:
+  #         MIX_ENV: test
+  #   steps:
+  #     - checkout
+  #     - restore_cache:
+  #         key: v1-deps-cache-{{ checksum "mix.lock" }}
+  #     - run: mix docs
+  #     - store_artifacts:
+  #         path: doc
+  #         destination: documentation
 
 workflows:
   version: 2
@@ -124,6 +122,6 @@ workflows:
       - test:
           requires:
             - build
-      - docs:
-          requires:
-            - build
+      # - docs:
+      #     requires:
+      #       - build

@@ -72,7 +72,8 @@ defmodule Poison.Mixfile do
       {:jason, "~> 1.1", only: [:test, :bench, :profile]},
       {:jiffy, "~> 1.0", only: [:test, :bench, :profile]},
       {:json, "~> 1.3", only: [:test, :bench, :profile]},
-      {:jsone, "~> 1.5", only: [:test, :bench, :profile]}
+      {:jsone, "~> 1.5", only: [:test, :bench, :profile]},
+      {:junit_formatter, "~> 3.0", only: :test}
     ]
   end
 

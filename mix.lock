@@ -18,6 +18,7 @@
   "json": {:hex, :json, "1.3.0", "2c6bac5303713d1b43ca6f3c881767f57b2adf668cde3013bd7157dc65ef299c", [:mix], [], "hexpm"},
   "jsone": {:hex, :jsone, "1.5.2", "87adea283c9cf24767b4deed44602989a5331156df5d60a2660e9c9114d54046", [:rebar3], [], "hexpm"},
   "jsx": {:hex, :jsx, "2.8.3", "a05252d381885240744d955fbe3cf810504eb2567164824e19303ea59eef62cf", [:mix, :rebar3], [], "hexpm"},
+  "junit_formatter": {:hex, :junit_formatter, "3.0.1", "4ed76a50886717a6d683a978cec775abdcb88d9d51cfddd3d8fbf8e6af4625da", [:mix], [], "hexpm"},
   "makeup": {:hex, :makeup, "1.0.0", "671df94cf5a594b739ce03b0d0316aa64312cee2574b6a44becb83cd90fb05dc", [:mix], [{:nimble_parsec, "~> 0.5.0", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},
   "makeup_elixir": {:hex, :makeup_elixir, "0.14.0", "cf8b7c66ad1cff4c14679698d532f0b5d45a3968ffbcbfd590339cb57742f1ae", [:mix], [{:makeup, "~> 1.0", [hex: :makeup, repo: "hexpm", optional: false]}], "hexpm"},
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm"},

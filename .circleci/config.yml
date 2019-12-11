@@ -44,7 +44,6 @@ jobs:
 
     steps:
       - checkout
-
       - run: mix format --check-formatted
 
   credo:
@@ -54,6 +53,7 @@ jobs:
           MIX_ENV: test
 
     steps:
+      - checkout
       - run: mix archive.install hex bunt '~> 0.2' --force
       - run: mix archive.install hex credo '~> 1.1' --force
       - run: mix credo --strict
@@ -80,8 +80,10 @@ jobs:
 
     steps:
       - checkout
+
       - restore_cache:
           key: v1-deps-cache-{{ checksum "mix.lock" }}
+
       - run: mix coveralls.html
 
       - store_artifacts:

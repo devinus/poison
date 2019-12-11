@@ -1,111 +1,112 @@
 version: 2.1
+
+executors:
+  elixir:
+    docker:
+      - image: circleci/elixir:1.11.3
+        environment:
+          MIX_ENV: test
+
 jobs:
   build:
-    docker:
-      - image: circleci/elixir:1.9.4
-        environment:
-          MIX_ENV: test
-
+    executor: elixir
     steps:
       - checkout
 
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-
+      - run: elixir -e 'IO.binwrite("#{System.version}-otp-#{:erlang.system_info(:otp_release)}")' | tee -i ~/.elixir-version
       - restore_cache:
-          key: v1-deps-cache-{{ checksum "mix.lock" }}
-      - run: mix do deps.get, deps.compile
-      - save_cache:
-          key: v1-deps-cache-{{ checksum "mix.lock" }}
-          paths:
-            - deps
-            - ~/.mix
-            - _build
+          keys:
+            - v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+            - v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-
+            - v1-build-cache-{{ checksum "~/.elixir-version" }}-
 
+      - run: mix local.hex --force --if-missing
+      - run: mix local.rebar --force --if-missing
+
+      - run: mix deps.get
+      - run: mix deps.compile
       - run: mix compile
 
-      - run: echo "$OTP_VERSION $ELIXIR_VERSION" > .version_file
-      - restore_cache:
-          keys:
-            - plt-cache-{{ checksum ".version_file" }}-{{ checksum "mix.lock" }}
-      - run: mix dialyzer --plt
       - save_cache:
-          key: plt-cache-{{ checksum ".version_file"  }}-{{ checksum "mix.lock" }}
+          key: v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
           paths:
-            - _build
-            - deps
             - ~/.mix
+            - deps
+            - _build
+
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - .elixir-version
+            - .mix
+            - .hex
 
   format:
-    docker:
-      - image: circleci/elixir:1.9.4
-        environment:
-          MIX_ENV: test
-
+    executor: elixir
     steps:
+      - attach_workspace:
+          at: ~/
       - checkout
-      - run: mix format --check-formatted
+      - restore_cache:
+          key: v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+      - run: mix format --check-formatted --dry-run
 
   credo:
-    docker:
-      - image: circleci/elixir:1.9.4
-        environment:
-          MIX_ENV: test
-
+    executor: elixir
     steps:
+      - attach_workspace:
+          at: ~/
       - checkout
-      - run: mix archive.install hex bunt '~> 0.2' --force
-      - run: mix archive.install hex credo '~> 1.1' --force
-      - run: mix credo --strict
+      - restore_cache:
+          key: v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+      - run: mix credo
 
   dialyzer:
-    docker:
-      - image: circleci/elixir:1.9.4
-        environment:
-          MIX_ENV: test
-
+    executor: elixir
     steps:
+      - attach_workspace:
+          at: ~/
       - checkout
-      - run: echo "$OTP_VERSION $ELIXIR_VERSION" > .version_file
       - restore_cache:
           keys:
-            - plt-cache-{{ checksum ".version_file" }}-{{ checksum "mix.lock" }}
-      - run:
-          name: Execute dialyzer
-          command: mix dialyzer --halt-exit-status
+            - v1-plt-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+            - v1-plt-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-
+            - v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+      - run: mix dialyzer --plt
+      - save_cache:
+          key: v1-plt-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+          paths:
+            - ~/.mix
+            - deps
+            - _build
+      - run: mix dialyzer --no-check
 
   test:
-    docker:
-      - image: circleci/elixir:1.9.4
-
+    executor: elixir
     steps:
+      - attach_workspace:
+          at: ~/
       - checkout
-
+      - run: git submodule update --init
       - restore_cache:
-          key: v1-deps-cache-{{ checksum "mix.lock" }}
-
+          key: v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
       - run: mix coveralls.html
-
-      - store_artifacts:
-          path: cover
-          destination: coverage_results
-
       - store_test_results:
           path: _build/test/lib/poison
+      - store_artifacts:
+          path: cover
 
-  # docs:
-  #   docker:
-  #     - image: circleci/elixir:1.9.4
-  #       environment:
-  #         MIX_ENV: test
-  #   steps:
-  #     - checkout
-  #     - restore_cache:
-  #         key: v1-deps-cache-{{ checksum "mix.lock" }}
-  #     - run: mix docs
-  #     - store_artifacts:
-  #         path: doc
-  #         destination: documentation
+  docs:
+    executor: elixir
+    steps:
+      - attach_workspace:
+          at: ~/
+      - checkout
+      - restore_cache:
+          key: v1-build-cache-{{ checksum "~/.elixir-version" }}-{{ checksum "mix.lock" }}-{{ .Revision }}
+      - run: mix docs
+      - store_artifacts:
+          path: doc
 
 workflows:
   version: 2
@@ -124,6 +125,6 @@ workflows:
       - test:
           requires:
             - build
-      # - docs:
-      #     requires:
-      #       - build
+      - docs:
+          requires:
+            - build

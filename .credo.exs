@@ -10,7 +10,7 @@
   configs: [
     %{
       #
-      # Run any exec using `mix credo -C <name>`. If no exec name is given
+      # Run any config using `mix credo -C <name>`. If no config name is given
       # "default" is used.
       #
       name: "default",
@@ -21,7 +21,16 @@
         # You can give explicit globs or simply directories.
         # In the latter case `**/*.{ex,exs}` will be used.
         #
-        included: ["lib/", "src/", "test/", "web/", "apps/"],
+        included: [
+          "lib/",
+          "src/",
+          "test/",
+          "web/",
+          "apps/*/lib/",
+          "apps/*/src/",
+          "apps/*/test/",
+          "apps/*/web/"
+        ],
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       #
@@ -38,6 +47,10 @@
       # experience, you can change `strict` to `true` below:
       #
       strict: true,
+      #
+      # To modify the timeout for parsing files, change this value:
+      #
+      parse_timeout: 5000,
       #
       # If you want to use uncolored output by default, you can change `color`
       # to `false` below:
@@ -96,7 +109,6 @@
         {Credo.Check.Readability.StringSigils, false},
         {Credo.Check.Readability.TrailingBlankLine, []},
         {Credo.Check.Readability.TrailingWhiteSpace, []},
-        # TODO: enable by default in Credo 1.1
         {Credo.Check.Readability.UnnecessaryAliasExpansion, []},
         {Credo.Check.Readability.VariableNames, []},
 
@@ -118,11 +130,13 @@
         #
         ## Warnings
         #
+        {Credo.Check.Warning.ApplicationConfigInModuleAttribute, []},
         {Credo.Check.Warning.BoolOperationOnSameValues, []},
         {Credo.Check.Warning.ExpensiveEmptyEnumCheck, []},
         {Credo.Check.Warning.IExPry, []},
         {Credo.Check.Warning.IoInspect, []},
         {Credo.Check.Warning.LazyLogging, false},
+        {Credo.Check.Warning.MixEnv, false},
         {Credo.Check.Warning.OperationOnSameValues, []},
         {Credo.Check.Warning.OperationWithConstantResult, []},
         {Credo.Check.Warning.RaiseInsideRescue, []},
@@ -134,6 +148,10 @@
         {Credo.Check.Warning.UnusedRegexOperation, []},
         {Credo.Check.Warning.UnusedStringOperation, []},
         {Credo.Check.Warning.UnusedTupleOperation, []},
+        {Credo.Check.Warning.UnsafeExec, []},
+
+        #
+        # Checks scheduled for next check update (opt-in for now, just replace `false` with `[]`)
 
         #
         # Controversial and experimental checks (opt-in, just replace `false` with `[]`)
@@ -142,15 +160,22 @@
         {Credo.Check.Consistency.UnusedVariableNames, []},
         {Credo.Check.Design.DuplicatedCode, []},
         {Credo.Check.Readability.AliasAs, []},
+        {Credo.Check.Readability.BlockPipe, []},
+        {Credo.Check.Readability.ImplTrue, []},
         {Credo.Check.Readability.MultiAlias, false},
-        {Credo.Check.Readability.Specs, false},
+        {Credo.Check.Readability.SeparateAliasRequire, []},
         {Credo.Check.Readability.SinglePipe, []},
+        {Credo.Check.Readability.Specs, false},
+        {Credo.Check.Readability.StrictModuleLayout, []},
+        {Credo.Check.Readability.WithCustomTaggedTuple, []},
         {Credo.Check.Refactor.ABCSize, []},
         {Credo.Check.Refactor.AppendSingleItem, []},
         {Credo.Check.Refactor.DoubleBooleanNegation, []},
         {Credo.Check.Refactor.ModuleDependencies, false},
+        {Credo.Check.Refactor.NegatedIsNil, []},
         {Credo.Check.Refactor.PipeChainStart, []},
         {Credo.Check.Refactor.VariableRebinding, false},
+        {Credo.Check.Warning.LeakyEnvironment, []},
         {Credo.Check.Warning.MapGetUnsafePass, []},
         {Credo.Check.Warning.UnsafeToAtom, []}
 

@@ -1,5 +1,6 @@
 defmodule Poison.ParserTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   import Poison.Parser
   alias Poison.ParseError
@@ -33,18 +34,6 @@ defmodule Poison.ParserTest do
       parse!("1.0e+")
     end
 
-    assert_raise ParseError,
-                 ~s(cannot parse value at position 8: "100e-999"),
-                 fn ->
-                   parse!("100e-999")
-                 end
-
-    assert_raise ParseError,
-                 ~s(cannot parse value at position 10: "1000e-1000"),
-                 fn ->
-                   parse!("100.0e-999")
-                 end
-
     assert parse!("0") == 0
     assert parse!("1") == 1
     assert parse!("-0") == 0
@@ -63,7 +52,7 @@ defmodule Poison.ParserTest do
     assert parse!("99.99e99") == 99.99e99
 
     # credo:disable-for-next-line Credo.Check.Readability.LargeNumbers
-    assert parse!("123456789.123456789e123") == 1.2345678912345678e131
+    assert parse!("123456789.123456789e123") == 1.234567891234568e131
 
     assert parse!("0", %{decimal: true}) == Decimal.new("0")
     assert parse!("-0", %{decimal: true}) == Decimal.new("-0")
@@ -74,6 +63,16 @@ defmodule Poison.ParserTest do
     assert parse!("99.99e99", %{decimal: true}) == Decimal.new("99.99e99")
     assert parse!("-99.99e99", %{decimal: true}) == Decimal.new("-99.99e99")
     assert parse!("-9.9999999999e9999999999", %{decimal: true}) == Decimal.new("-9.9999999999e9999999999")
+  end
+
+  property "number" do
+    check all int <- integer() do
+      assert parse!(Integer.to_string(int)) == int
+    end
+
+    check all value <- float() do
+      assert parse!(Float.to_string(value)) == value
+    end
   end
 
   test "strings" do
@@ -128,6 +127,27 @@ defmodule Poison.ParserTest do
     assert parse!(~s("\\uD834\\uDD1E")) == "𝄞"
     assert parse!(~s("\\uD799\\uD799")) == "힙힙"
     assert parse!(~s("✔︎")) == "✔︎"
+  end
+
+  property "strings" do
+    check all str <- string(:printable) do
+      assert parse!(~s("#{str}")) == str
+    end
+
+    check all value <- integer(0x0..0xD800) do
+      seq = value |> Integer.to_string(16) |> String.pad_leading(4, "0")
+      assert parse!(~s("\\u#{seq}")) == <<value::utf8>>
+    end
+
+    check all hi <- integer(0xD800..0xDBFF),
+              lo <- integer(0xDC00..0xDFFF) do
+      seq1 = hi |> Integer.to_string(16) |> String.pad_leading(4, "0")
+      seq2 = lo |> Integer.to_string(16) |> String.pad_leading(4, "0")
+      <<codepoint::utf16>> = <<hi::16, lo::16>>
+
+      expected = :unicode.characters_to_binary([codepoint], :utf16, :utf8)
+      assert parse!(~s("\\u#{seq1}\\u#{seq2}")) == expected
+    end
   end
 
   test "objects" do

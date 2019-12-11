@@ -1,11 +1,11 @@
 defmodule Bench do
   alias Benchee.Formatters.{Console, HTML}
 
-  def run_decode() do
+  def run_decode do
     Benchee.run(decode_jobs(),
-      parallel: 4,
+      parallel: 8,
       warmup: 1,
-      time: 5,
+      time: 10,
       memory_time: 1,
       pre_check: true,
       inputs:
@@ -15,7 +15,7 @@ defmodule Bench do
           |> (&{name, &1}).()
         end,
       before_each: fn input -> :binary.copy(input) end,
-      after_scenario: fn _ -> gc() end,
+      after_scenario: fn _input -> gc() end,
       formatters: [
         {Console, extended_statistics: true},
         {HTML, extended_statistics: true, file: Path.expand("output/decode.html", __DIR__)}
@@ -23,11 +23,11 @@ defmodule Bench do
     )
   end
 
-  def run_encode() do
+  def run_encode do
     Benchee.run(encode_jobs(),
-      parallel: 4,
+      parallel: 8,
       warmup: 1,
-      time: 5,
+      time: 10,
       memory_time: 1,
       pre_check: true,
       inputs:
@@ -37,7 +37,7 @@ defmodule Bench do
           |> Poison.decode!()
           |> (&{name, &1}).()
         end,
-      after_scenario: fn _ -> gc() end,
+      after_scenario: fn _input -> gc() end,
       formatters: [
         {Console, extended_statistics: true},
         {HTML, extended_statistics: true, file: Path.expand("output/encode.html", __DIR__)}
@@ -45,12 +45,12 @@ defmodule Bench do
     )
   end
 
-  defp gc() do
+  defp gc do
     request_id = System.monotonic_time()
     :erlang.garbage_collect(self(), async: request_id)
 
     receive do
-      {:garbage_collect, ^request_id, _} -> :ok
+      {:garbage_collect, ^request_id, _dead} -> :ok
     end
   end
 
@@ -64,7 +64,7 @@ defmodule Bench do
     |> File.read!()
   end
 
-  defp decode_jobs() do
+  defp decode_jobs do
     %{
       "Jason" => &Jason.decode!/1,
       "jiffy" => &:jiffy.decode(&1, [:return_maps, :use_nil]),
@@ -75,7 +75,7 @@ defmodule Bench do
     }
   end
 
-  defp encode_jobs() do
+  defp encode_jobs do
     %{
       "Jason" => &Jason.encode!/1,
       "jiffy" => &:jiffy.encode/1,
@@ -86,7 +86,7 @@ defmodule Bench do
     }
   end
 
-  defp decode_inputs() do
+  defp decode_inputs do
     [
       "Benchee",
       "Blockchain",
@@ -99,12 +99,13 @@ defmodule Bench do
       "JSON Generator",
       "Pokedex",
       "Reddit",
+      "Stocks",
       "UTF-8 escaped",
       "UTF-8 unescaped"
     ]
   end
 
-  defp encode_inputs() do
+  defp encode_inputs do
     decode_inputs() -- ["JSON Generator (Pretty)"]
   end
 end

@@ -79,8 +79,8 @@ Note that `keys: :atoms!` reuses existing atoms, i.e. if `:name` was not
 allocated before the call, you will encounter an `argument error` message.
 
 You can use the `keys: :atoms` variant to make sure all atoms are created as
-needed.  However, unless you absolutely know what you're doing, do **not** do
-it.  Atoms are not garbage-collected, see
+needed. However, unless you absolutely know what you're doing, do **not** do
+it. Atoms are not garbage-collected, see
 [Erlang Efficiency Guide](http://www.erlang.org/doc/efficiency_guide/commoncaveats.html)
 for more info:
 
@@ -145,7 +145,7 @@ with atom and string keys whose encoded names would clash. If you'd like to
 ensure that your generated JSON doesn't have this issue, you can pass the
 `strict_keys: true` option when encoding. This will force the encoding to fail.
 
-*Note:* Validating keys can cause a small performance hit.
+_Note:_ Validating keys can cause a small performance hit.
 
 ```iex
 iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
@@ -160,62 +160,16 @@ $ MIX_ENV=bench mix run bench/run.exs
 
 ### Current Benchmarks
 
-As of 2017-05-15 on a 2.8 GHz Intel Core i7:
+As of 2019-12-11:
 
-```
-## EncoderBench
-benchmark name             iterations   average time
-maps (jiffy)                   500000   7.88 µs/op
-structs (Poison)               200000   9.46 µs/op
-structs (Jazz)                 100000   15.43 µs/op
-structs (JSX)                  100000   18.45 µs/op
-maps (Poison)                  100000   19.45 µs/op
-maps (Jazz)                    100000   21.61 µs/op
-maps (JSX)                      50000   31.76 µs/op
-maps (JSON)                     50000   34.08 µs/op
-structs (JSON)                  50000   47.56 µs/op
-strings (jiffy)                 10000   107.68 µs/op
-lists (Poison)                  10000   120.79 µs/op
-string escaping (jiffy)         10000   139.92 µs/op
-lists (jiffy)                   10000   229.18 µs/op
-lists (Jazz)                    10000   236.86 µs/op
-strings (JSON)                  10000   237.97 µs/op
-strings (JSX)                   10000   283.87 µs/op
-lists (JSX)                      5000   336.96 µs/op
-jiffy                            5000   429.92 µs/op
-strings (Jazz)                   5000   430.78 µs/op
-jiffy (pretty)                   5000   431.55 µs/op
-lists (JSON)                     5000   559.31 µs/op
-strings (Poison)                 5000   574.26 µs/op
-string escaping (Jazz)           1000   1313.51 µs/op
-string escaping (JSX)            1000   1474.66 µs/op
-Poison                           1000   1546.53 µs/op
-string escaping (Poison)         1000   1728.66 µs/op
-Poison (pretty)                  1000   1784.37 µs/op
-Jazz                             1000   2060.77 µs/op
-JSON                             1000   2250.89 µs/op
-JSX                              1000   2252.77 µs/op
-Jazz (pretty)                    1000   2317.55 µs/op
-JSX (pretty)                      500   5577.33 µs/op
-## ParserBench
-benchmark name             iterations   average time
-UTF-8 unescaping (jiffy)        50000   60.05 µs/op
-UTF-8 unescaping (Poison)       10000   112.53 µs/op
-UTF-8 unescaping (JSX)          10000   282.83 µs/op
-UTF-8 unescaping (JSON)          5000   469.26 µs/op
-jiffy                            5000   479.07 µs/op
-Poison                           5000   730.85 µs/op
-JSX                              1000   1947.77 µs/op
-JSON                              500   5175.11 µs/op
-Issue 90 (jiffy)                  100   18864.70 µs/op
-Issue 90 (Poison)                  50   50091.16 µs/op
-Issue 90 (JSX)                     10   155975.20 µs/op
-Issue 90 (JSON)                     1   1964860.00 µs/op
-```
+- Amazon EC2 c5n.2xlarge instance running Ubuntu Server 18.04:
+  https://gist.github.com/devinus/e0af1d75d70146e5d89b5e308edd1abd
 
 ## License
 
-Poison is released under [CC0-1.0][8].
+Poison is released into the public domain (see `LICENSE`).
+Poison is also optionally available under the [CC0-1.0][8] license,
+meant especially for jurisdictions that do not recognize public domain works.
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf

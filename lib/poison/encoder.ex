@@ -228,7 +228,7 @@ end
 
 defimpl Poison.Encoder, for: Float do
   def encode(float, _options) do
-    :io_lib_format.fwrite_g(float)
+    Float.to_string(float)
   end
 end
 
@@ -419,7 +419,7 @@ defimpl Poison.Encoder, for: Any do
           quote(do: Map.drop(struct, unquote(except)))
 
         true ->
-          quote(do: Maps.delete(struct, :__struct__))
+          quote(do: Map.delete(struct, :__struct__))
       end
 
     quote do

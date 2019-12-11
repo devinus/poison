@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  project:
+    build:
+      context: .
+      args:
+        MIX_ENV: test
+    volumes:
+      - .:/usr/src/project:cached
+      - /usr/src/project/deps
+      - /usr/src/project/_build
+    init: true

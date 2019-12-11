@@ -9,15 +9,14 @@ defmodule Poison.MissingDependencyError do
 end
 
 defmodule Poison.ParseError do
+  alias Code.Identifier
   alias Poison.Parser
 
   @type t :: %__MODULE__{data: String.t(), skip: non_neg_integer, value: Parser.t()}
 
-  alias Code.Identifier
-
   defexception data: "", skip: 0, value: nil
 
-  def message(%{data: data, skip: skip, value: value}) when not is_nil(value) do
+  def message(%{data: data, skip: skip, value: value}) when value != nil do
     <<head::binary-size(skip), _rest::bits>> = data
     pos = String.length(head)
     "cannot parse value at position #{pos}: #{inspect(value)}"
@@ -79,6 +78,9 @@ defmodule Poison.Parser do
     @type t :: value
   end
 
+  whitespace = '\s\t\n\r'
+  digits = ?0..?9
+
   defmacrop stacktrace do
     if Version.compare(System.version(), "1.7.0") != :lt do
       quote do: __STACKTRACE__
@@ -96,45 +98,44 @@ defmodule Poison.Parser do
   @spec parse!(iodata | binary, Decoder.options()) :: t | no_return
   def parse!(value, options \\ %{})
 
-  def parse!(iodata, options) when not is_binary(iodata) do
-    iodata |> IO.iodata_to_binary() |> parse!(options)
-  end
-
-  def parse!(data, options) do
-    {value, skip} = value(data, data, 0, Map.get(options, :keys), Map.get(options, :decimal))
+  def parse!(data, options) when is_bitstring(data) do
+    {value, skip} = value(data, data, 0, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil))
     <<_::binary-size(skip), rest::bits>> = data
     skip_whitespace(rest, skip, value)
   rescue
-    exception in [ParseError] ->
+    exception in ParseError ->
       reraise ParseError, [data: data, skip: exception.skip, value: exception.value], stacktrace()
+  end
+
+  def parse!(iodata, options) do
+    iodata |> IO.iodata_to_binary() |> parse!(options)
   end
 
   @compile {:inline, value: 5}
 
-  for char <- '\s\t\n\r' do
-    defp value(<<unquote(char), rest::bits>>, data, skip, keys, decimal) do
-      value(rest, data, skip + 1, keys, decimal)
+  defp value(<<?f, rest::bits>>, _data, skip, _keys, _decimal) do
+    case rest do
+      <<"alse", _rest::bits>> -> {false, skip + 5}
+      _other -> syntax_error(skip)
     end
   end
 
-  defp value(<<"false", _rest::bits>>, _data, skip, _keys, _decimal) do
-    {false, skip + 5}
+  defp value(<<?t, rest::bits>>, _data, skip, _keys, _decimal) do
+    case rest do
+      <<"rue", _rest::bits>> -> {true, skip + 4}
+      _other -> syntax_error(skip)
+    end
   end
 
-  defp value(<<"true", _rest::bits>>, _data, skip, _keys, _decimal) do
-    {true, skip + 4}
-  end
-
-  defp value(<<"null", _rest::bits>>, _data, skip, _keys, _decimal) do
-    {nil, skip + 4}
-  end
-
-  defp value(<<"-0", rest::bits>>, _data, skip, _keys, decimal) do
-    number_frac(rest, skip + 2, decimal, -1, 0, 0)
+  defp value(<<?n, rest::bits>>, _data, skip, _keys, _decimal) do
+    case rest do
+      <<"ull", _rest::bits>> -> {nil, skip + 4}
+      _other -> syntax_error(skip)
+    end
   end
 
   defp value(<<?-, rest::bits>>, _data, skip, _keys, decimal) do
-    number_int(rest, skip + 1, decimal, -1, 0, 0)
+    number_neg(rest, skip + 1, decimal)
   end
 
   defp value(<<?0, rest::bits>>, _data, skip, _keys, decimal) do
@@ -161,35 +162,60 @@ defmodule Poison.Parser do
     object_pairs(rest, data, skip + 1, keys, decimal, [])
   end
 
+  for char <- whitespace do
+    defp value(<<unquote(char), rest::bits>>, data, skip, keys, decimal) do
+      value(rest, data, skip + 1, keys, decimal)
+    end
+  end
+
   defp value(_rest, _data, skip, _keys, _decimal) do
     syntax_error(skip)
   end
 
   ## Objects
 
-  @compile {:inline, object_pairs: 6}
+  defmacrop object_name(name, skip, keys) do
+    quote do
+      case unquote(keys) do
+        :atoms! ->
+          try do
+            String.to_existing_atom(unquote(name))
+          rescue
+            ArgumentError ->
+              reraise ParseError, [skip: unquote(skip), value: unquote(name)], stacktrace()
+          end
 
-  for char <- '\s\t\n\r' do
-    defp object_pairs(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
-      object_pairs(rest, data, skip + 1, keys, decimal, acc)
+        :atoms ->
+          # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+          String.to_atom(unquote(name))
+
+        _keys ->
+          unquote(name)
+      end
     end
   end
 
-  defp object_pairs(<<?}, _rest::bits>>, _data, skip, _keys, _decimal, []) do
-    {%{}, skip + 1}
-  end
+  @compile {:inline, object_pairs: 6}
 
   defp object_pairs(<<?", rest::bits>>, data, skip, keys, decimal, acc) do
     start = skip + 1
     {name, skip} = string_continue(rest, data, start)
 
     <<_::binary-size(skip), rest::bits>> = data
-
     {value, skip} = object_value(rest, data, skip, keys, decimal)
 
     <<_::binary-size(skip), rest::bits>> = data
-
     object_pairs_continue(rest, data, skip, keys, decimal, [{object_name(name, start, keys), value} | acc])
+  end
+
+  defp object_pairs(<<?}, _rest::bits>>, _data, skip, _keys, _decimal, []) do
+    {%{}, skip + 1}
+  end
+
+  for char <- whitespace do
+    defp object_pairs(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
+      object_pairs(rest, data, skip + 1, keys, decimal, acc)
+    end
   end
 
   defp object_pairs(_rest, _data, skip, _keys, _decimal, _acc) do
@@ -197,12 +223,6 @@ defmodule Poison.Parser do
   end
 
   @compile {:inline, object_pairs_continue: 6}
-
-  for char <- '\s\t\n\r' do
-    defp object_pairs_continue(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
-      object_pairs_continue(rest, data, skip + 1, keys, decimal, acc)
-    end
-  end
 
   defp object_pairs_continue(<<?,, rest::bits>>, data, skip, keys, decimal, acc) do
     object_pairs(rest, data, skip + 1, keys, decimal, acc)
@@ -212,51 +232,44 @@ defmodule Poison.Parser do
     {:maps.from_list(acc), skip + 1}
   end
 
+  for char <- whitespace do
+    defp object_pairs_continue(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
+      object_pairs_continue(rest, data, skip + 1, keys, decimal, acc)
+    end
+  end
+
   defp object_pairs_continue(_rest, _data, skip, _keys, _decimal, _acc) do
     syntax_error(skip)
   end
 
   @compile {:inline, object_value: 5}
 
-  for char <- '\s\t\n\r' do
+  defp object_value(<<?:, rest::bits>>, data, skip, keys, decimal) do
+    value(rest, data, skip + 1, keys, decimal)
+  end
+
+  for char <- whitespace do
     defp object_value(<<unquote(char), rest::bits>>, data, skip, keys, decimal) do
       object_value(rest, data, skip + 1, keys, decimal)
     end
-  end
-
-  defp object_value(<<?:, rest::bits>>, data, skip, keys, decimal) do
-    value(rest, data, skip + 1, keys, decimal)
   end
 
   defp object_value(_rest, _data, skip, _keys, _decimal) do
     syntax_error(skip)
   end
 
-  @compile {:inline, object_name: 3}
-
-  defp object_name(name, skip, :atoms!) do
-    String.to_existing_atom(name)
-  rescue
-    ArgumentError ->
-      reraise ParseError, [skip: skip, value: name], stacktrace()
-  end
-
-  # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-  defp object_name(name, _skip, :atoms), do: String.to_atom(name)
-  defp object_name(name, _skip, _keys), do: name
-
   ## Arrays
 
   @compile {:inline, array_values: 6}
 
-  for char <- '\s\t\n\r' do
+  defp array_values(<<?], _rest::bits>>, _data, skip, _keys, _decimal, _acc) do
+    {[], skip + 1}
+  end
+
+  for char <- whitespace do
     defp array_values(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
       array_values(rest, data, skip + 1, keys, decimal, acc)
     end
-  end
-
-  defp array_values(<<?], _rest::bits>>, _data, skip, _keys, _decimal, _acc) do
-    {[], skip + 1}
   end
 
   defp array_values(rest, data, skip, keys, decimal, acc) do
@@ -268,12 +281,6 @@ defmodule Poison.Parser do
   end
 
   @compile {:inline, array_values_continue: 6}
-
-  for char <- '\s\t\n\r' do
-    defp array_values_continue(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
-      array_values_continue(rest, data, skip + 1, keys, decimal, acc)
-    end
-  end
 
   defp array_values_continue(<<?,, rest::bits>>, data, skip, keys, decimal, acc) do
     {value, skip} = value(rest, data, skip + 1, keys, decimal)
@@ -287,22 +294,40 @@ defmodule Poison.Parser do
     {:lists.reverse(acc), skip + 1}
   end
 
+  for char <- whitespace do
+    defp array_values_continue(<<unquote(char), rest::bits>>, data, skip, keys, decimal, acc) do
+      array_values_continue(rest, data, skip + 1, keys, decimal, acc)
+    end
+  end
+
   defp array_values_continue(_rest, _data, skip, _keys, _decimal, _acc) do
     syntax_error(skip)
   end
 
   ## Numbers
 
-  @compile {:inline, number_int: 6}
+  @compile {:inline, number_neg: 3}
 
-  for char <- '0123456789' do
-    defp number_int(<<unquote(char), rest::bits>>, skip, decimal, sign, coef, exp) do
-      number_int(rest, skip + 1, decimal, sign, coef * 10 + unquote(char - ?0), exp)
+  defp number_neg(<<?0, rest::bits>>, skip, decimal) do
+    number_frac(rest, skip + 1, decimal, -1, 0, 0)
+  end
+
+  for char <- ?1..?9 do
+    defp number_neg(<<unquote(char), rest::bits>>, skip, decimal) do
+      number_int(rest, skip + 1, decimal, -1, unquote(char - ?0), 0)
     end
   end
 
-  defp number_int(_rest, skip, _decimal, -1, 0, _exp) do
+  defp number_neg(_rest, skip, _decimal) do
     syntax_error(skip)
+  end
+
+  @compile {:inline, number_int: 6}
+
+  for char <- digits do
+    defp number_int(<<unquote(char), rest::bits>>, skip, decimal, sign, coef, exp) do
+      number_int(rest, skip + 1, decimal, sign, coef * 10 + unquote(char - ?0), exp)
+    end
   end
 
   defp number_int(rest, skip, decimal, sign, coef, exp) do
@@ -321,7 +346,7 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_frac_continue: 6}
 
-  for char <- '0123456789' do
+  for char <- digits do
     defp number_frac_continue(<<unquote(char), rest::bits>>, skip, decimal, sign, coef, exp) do
       number_frac_continue(rest, skip + 1, decimal, sign, coef * 10 + unquote(char - ?0), exp - 1)
     end
@@ -337,9 +362,11 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_exp: 6}
 
-  defp number_exp(<<e, rest::bits>>, skip, decimal, sign, coef, exp) when e in 'eE' do
-    {value, skip} = number_exp_continue(rest, skip + 1)
-    number_complete(decimal, sign, coef, exp + value, skip)
+  for e <- 'eE' do
+    defp number_exp(<<unquote(e), rest::bits>>, skip, decimal, sign, coef, exp) do
+      {value, skip} = number_exp_continue(rest, skip + 1)
+      number_complete(decimal, sign, coef, exp + value, skip)
+    end
   end
 
   defp number_exp(_rest, skip, decimal, sign, coef, exp) do
@@ -377,7 +404,7 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_digits: 3}
 
-  for char <- '0123456789' do
+  for char <- digits do
     defp number_digits(<<unquote(char), rest::bits>>, skip, acc) do
       number_digits(rest, skip + 1, acc * 10 + unquote(char - ?0))
     end
@@ -403,8 +430,18 @@ defmodule Poison.Parser do
     {sign * coef, skip}
   end
 
+  max_sig = 1 <<< 52
+
+  defp number_complete(_decimal, sign, coef, exp, skip) when coef < unquote(max_sig) and exp in -10..10 do
+    if exp > 0 do
+      {sign * coef * pow10(exp), skip}
+    else
+      {sign * coef / pow10(-exp), skip}
+    end
+  end
+
   defp number_complete(_decimal, sign, coef, exp, skip) do
-    {1.0 * sign * coef * pow10(exp), skip}
+    {String.to_float(<<Integer.to_string(sign * coef)::bits, ".0e"::bits, Integer.to_string(exp)::bits>>), skip}
   rescue
     ArithmeticError ->
       reraise ParseError, [skip: skip, value: "#{sign * coef}e#{exp}"], stacktrace()
@@ -412,16 +449,23 @@ defmodule Poison.Parser do
 
   @compile {:inline, pow10: 1}
 
-  Enum.reduce(0..10, 1, fn n, acc ->
-    defp pow10(unquote(n)), do: unquote(acc)
-    acc * 10
-  end)
+  for n <- 1..10 do
+    defp pow10(unquote(n)), do: unquote(:math.pow(10, n))
+  end
 
-  defp pow10(n) when n > 10, do: 10_000_000_000 * pow10(n - 10)
-
-  defp pow10(n), do: 1 / pow10(-n)
+  defp pow10(n), do: 1.0e10 * pow10(n - 10)
 
   ## Strings
+
+  defmacrop string_codepoint_size(codepoint) do
+    quote do
+      cond do
+        unquote(codepoint) <= 0x7FF -> 2
+        unquote(codepoint) <= 0xFFFF -> 3
+        true -> 4
+      end
+    end
+  end
 
   @compile {:inline, string_continue: 3}
 
@@ -435,43 +479,37 @@ defmodule Poison.Parser do
 
   @compile {:inline, string_continue: 6}
 
-  defp string_continue(<<?", _rest::bits>>, _data, skip, _unicode, 0, []) do
-    {"", skip + 1}
-  end
+  defp string_continue(<<?", _rest::bits>>, data, skip, unicode, len, acc) do
+    cond do
+      acc == [] ->
+        if len > 0 do
+          {binary_part(data, skip, len), skip + len + 1}
+        else
+          {"", skip + 1}
+        end
 
-  defp string_continue(<<?", _rest::bits>>, data, skip, _unicode, len, []) do
-    {string_extract(data, skip, len), skip + len + 1}
-  end
+      unicode ->
+        {:unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8), skip + len + 1}
 
-  defp string_continue(<<?", _rest::bits>>, data, skip, false, len, acc) do
-    {IO.iodata_to_binary([acc | string_extract(data, skip, len)]), skip + len + 1}
-  end
-
-  defp string_continue(<<?", _rest::bits>>, data, skip, _unicode, len, acc) do
-    {:unicode.characters_to_binary([acc | string_extract(data, skip, len)], :utf8), skip + len + 1}
+      true ->
+        {IO.iodata_to_binary([acc | binary_part(data, skip, len)]), skip + len + 1}
+    end
   end
 
   defp string_continue(<<?\\, rest::bits>>, data, skip, unicode, len, acc) do
-    string_escape(rest, data, skip + len + 1, unicode, [acc | string_extract(data, skip, len)])
+    string_escape(rest, data, skip + len + 1, unicode, [acc | binary_part(data, skip, len)])
   end
 
-  defp string_continue(<<char, rest::bits>>, data, skip, unicode, len, acc) when char in 0x20..0x80 do
+  defp string_continue(<<char, rest::bits>>, data, skip, unicode, len, acc) when char >= 0x20 do
     string_continue(rest, data, skip, unicode, len + 1, acc)
   end
 
   defp string_continue(<<codepoint::utf8, rest::bits>>, data, skip, _unicode, len, acc) when codepoint > 0x80 do
-    string_continue(rest, data, skip, true, len + byte_size(<<codepoint::utf8>>), acc)
+    string_continue(rest, data, skip, true, len + string_codepoint_size(codepoint), acc)
   end
 
   defp string_continue(_other, _data, skip, _unicode, len, _acc) do
     syntax_error(skip + len)
-  end
-
-  @compile {:inline, string_extract: 3}
-
-  defp string_extract(<<data::bits>>, skip, len) do
-    <<_::binary-size(skip), part::binary-size(len), _::bits>> = data
-    part
   end
 
   @compile {:inline, string_escape: 5}
@@ -489,7 +527,7 @@ defmodule Poison.Parser do
          _unicode,
          acc
        ) do
-    string_escape_continue(rest, data, skip, acc, seq1)
+    string_escape_unicode(rest, data, skip, acc, seq1)
   end
 
   defp string_escape(_rest, _data, skip, _unicode, _acc), do: syntax_error(skip)
@@ -500,9 +538,20 @@ defmodule Poison.Parser do
   defguardp is_surrogate(cp) when cp in 0xD800..0xDFFF
   defguardp is_surrogate_pair(hi, lo) when hi in 0xD800..0xDBFF and lo in 0xDC00..0xDFFF
 
-  @compile {:inline, string_escape_continue: 5}
+  defmacrop get_codepoint(seq, skip) do
+    quote do
+      try do
+        String.to_integer(unquote(seq), 16)
+      rescue
+        ArgumentError ->
+          reraise ParseError, [skip: unquote(skip), value: "\\u#{unquote(seq)}"], stacktrace()
+      end
+    end
+  end
 
-  defp string_escape_continue(<<"\\u", seq2::binary-size(4), rest::bits>>, data, skip, acc, seq1) do
+  @compile {:inline, string_escape_unicode: 5}
+
+  defp string_escape_unicode(<<"\\u", seq2::binary-size(4), rest::bits>>, data, skip, acc, seq1) do
     hi = get_codepoint(seq1, skip)
     lo = get_codepoint(seq2, skip + 6)
 
@@ -522,17 +571,8 @@ defmodule Poison.Parser do
     end
   end
 
-  defp string_escape_continue(rest, data, skip, acc, seq1) do
+  defp string_escape_unicode(rest, data, skip, acc, seq1) do
     string_continue(rest, data, skip + 5, true, 0, [acc, get_codepoint(seq1, skip)])
-  end
-
-  @compile {:inline, get_codepoint: 2}
-
-  defp get_codepoint(seq, skip) do
-    String.to_integer(seq, 16)
-  rescue
-    ArgumentError ->
-      reraise ParseError, [skip: skip, value: "\\u#{seq}"], stacktrace()
   end
 
   ## Whitespace
@@ -543,7 +583,7 @@ defmodule Poison.Parser do
     value
   end
 
-  for char <- '\s\n\t\r' do
+  for char <- whitespace do
     defp skip_whitespace(<<unquote(char), rest::bits>>, skip, value) do
       skip_whitespace(rest, skip + 1, value)
     end

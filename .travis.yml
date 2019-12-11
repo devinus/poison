@@ -1,29 +1,29 @@
 dist: bionic
+sudo: false
 language: elixir
 elixir:
-  - 1.9.4
-  - 1.9.3
-  - 1.9.2
-  - 1.9.1
-  - 1.9.0
-  - 1.8.2
-  - 1.8.1
-  - 1.8.0
+  - 1.11.3
+  - 1.11.2
+  - 1.11.1
+  - 1.11.0
+  - 1.10.4
+  - 1.10.3
+  - 1.10.2
+  - 1.10.1
+  - 1.10.0
 otp_release:
+  - 23.2
+  - 23.1
+  - 23.0
+  - 22.2
   - 22.1
   - 22.0
-  - 21.3
-  - 21.2
-  - 21.1
-  - 21.0
-sudo: false
+before_script: git submodule update --init
 matrix:
   include:
     - install:
         - mix local.rebar --force
         - mix local.hex --force
-        - mix archive.install hex bunt '~> 0.2' --force
-        - mix archive.install hex credo '~> 1.1' --force
       script:
         - mix format --check-formatted --dry-run
         - mix credo --strict

@@ -1,5 +1,6 @@
 defmodule Poison.EncoderTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   alias Poison.{EncodeError, Encoder}
 
@@ -10,13 +11,34 @@ defmodule Poison.EncoderTest do
     assert to_json(:poison) == ~s("poison")
   end
 
+  property "Atom" do
+    check all str <- string(:printable),
+              str not in ~w(nil true false),
+              value = String.to_atom(str) do
+      # credo:disable-for-previous-line Credo.Check.Warning.UnsafeToAtom
+      assert to_json(value) == ~s("#{value}")
+    end
+  end
+
   test "Integer" do
     assert to_json(42) == "42"
+  end
+
+  property "Integer" do
+    check all value <- integer() do
+      assert to_json(value) == to_string(value)
+    end
   end
 
   test "Float" do
     assert to_json(99.99) == "99.99"
     assert to_json(9.9e100) == "9.9e100"
+  end
+
+  property "Float" do
+    check all value <- float() do
+      assert to_json(value) == to_string(value)
+    end
   end
 
   test "BitString" do
@@ -42,12 +64,41 @@ defmodule Poison.EncoderTest do
     assert to_json("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
   end
 
+  property "BitString" do
+    check all value <- string(:printable) do
+      assert to_json(value) == ~s("#{value}")
+    end
+
+    check all str <- string(Enum.concat(0xA0..0xD800, 0xE000..0x10000)),
+              str != "",
+              elem <- member_of(String.codepoints(str)),
+              <<codepoint::utf8>> = elem do
+      seq = codepoint |> Integer.to_string(16) |> String.pad_leading(4, "0")
+      assert to_json(<<codepoint::utf8>>, escape: :unicode) == ~s("\\u#{seq}")
+    end
+
+    check all hi <- integer(0xD800..0xDBFF),
+              lo <- integer(0xDC00..0xDFFF) do
+      seq1 = hi |> Integer.to_string(16) |> String.pad_leading(4, "0")
+      seq2 = lo |> Integer.to_string(16) |> String.pad_leading(4, "0")
+      <<codepoint::utf16>> = <<hi::16, lo::16>>
+      value = :unicode.characters_to_binary([codepoint], :utf16, :utf8)
+      assert to_json(value, escape: :unicode) == ~s("\\u#{seq1}\\u#{seq2}")
+    end
+  end
+
+  property "List" do
+    check all value <- list_of(gen_value()),
+              value != [] do
+      assert String.match?(to_json(value), ~r/^\[.*\]$/)
+    end
+  end
+
   test "Map" do
     assert to_json(%{}) == "{}"
     assert to_json(%{"foo" => "bar"}) == ~s({"foo":"bar"})
     assert to_json(%{foo: :bar}) == ~s({"foo":"bar"})
     assert to_json(%{42 => :bar}) == ~s({"42":"bar"})
-    assert to_json(%{'foo' => :bar}) == ~s({"foo":"bar"})
 
     assert to_json(%{foo: %{bar: %{baz: "baz"}}}, pretty: true) == """
            {
@@ -65,17 +116,11 @@ defmodule Poison.EncoderTest do
     assert Poison.encode(multi_key_map, strict_keys: true) == {:error, error}
   end
 
-  test "List" do
-    assert to_json([]) == "[]"
-    assert to_json([1, 2, 3]) == "[1,2,3]"
-
-    assert to_json([1, 2, 3], pretty: true) == """
-           [
-             1,
-             2,
-             3
-           ]\
-           """
+  property "Map" do
+    check all value <- map_of(string(:printable), gen_value()),
+              value != %{} do
+      assert String.match?(to_json(value), ~r/^{.*}$/)
+    end
   end
 
   test "Range" do
@@ -229,9 +274,39 @@ defmodule Poison.EncoderTest do
     end
   end
 
+  property "complex nested input" do
+    check all value <-
+                one_of([
+                  gen_value(),
+                  list_of(gen_value()),
+                  map_of(
+                    string(:printable),
+                    one_of([
+                      gen_value(),
+                      list_of(gen_value()),
+                      map_of(string(:printable), gen_value())
+                    ])
+                  )
+                ]) do
+      assert to_json(value) != ""
+    end
+  end
+
   defp to_json(value, options \\ []) do
     value
     |> Encoder.encode(Map.new(options))
     |> IO.iodata_to_binary()
+  end
+
+  defp gen_value do
+    one_of([
+      constant(nil),
+      constant(true),
+      constant(false),
+      integer(),
+      float(),
+      string(:printable),
+      map(float(), &Decimal.from_float/1)
+    ])
   end
 end

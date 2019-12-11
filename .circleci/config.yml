@@ -1,0 +1,126 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/elixir:1.9.4
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - checkout
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      - restore_cache:
+          key: v1-deps-cache-{{ checksum "mix.lock" }}
+      - run: mix do deps.get, deps.compile
+      - save_cache:
+          key: v1-deps-cache-{{ checksum "mix.lock" }}
+          paths:
+            - deps
+            - ~/.mix
+            - _build
+
+      - run: mix compile
+
+      - run: echo "$OTP_VERSION $ELIXIR_VERSION" > .version_file
+      - restore_cache:
+          keys:
+            - plt-cache-{{ checksum ".version_file" }}-{{ checksum "mix.lock" }}
+      - run: mix dialyzer --plt
+      - save_cache:
+          key: plt-cache-{{ checksum ".version_file"  }}-{{ checksum "mix.lock" }}
+          paths:
+            - _build
+            - deps
+            - ~/.mix
+
+  format_check:
+    docker:
+      - image: circleci/elixir:1.9.4
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - checkout
+
+      - run: mix format --check-formatted
+
+  credo:
+    docker:
+      - image: circleci/elixir:1.9.4
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - run: mix archive.install hex bunt '~> 0.2' --force
+      - run: mix archive.install hex credo '~> 1.1' --force
+      - run: mix credo --strict
+
+  dialyzer:
+    docker:
+      - image: circleci/elixir:1.9.4
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - checkout
+      - run: echo "$OTP_VERSION $ELIXIR_VERSION" > .version_file
+      - restore_cache:
+          keys:
+            - plt-cache-{{ checksum ".version_file" }}-{{ checksum "mix.lock" }}
+      - run:
+          name: Execute dialyzer
+          command: mix dialyzer --halt-exit-status
+
+  test:
+    docker:
+      - image: circleci/elixir:1.9.4
+
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-deps-cache-{{ checksum "mix.lock" }}
+      - run: mix coveralls.html
+
+      - store_artifacts:
+          path: cover
+          destination: coverage_results
+
+  generate_documentation:
+    docker:
+      - image: circleci/elixir:1.9.4
+        environment:
+          MIX_ENV: test
+
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-deps-cache-{{ checksum "mix.lock" }}
+      - run: mix docs
+
+      - store_artifacts:
+          path: doc
+          destination: documentation
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - format_check:
+          requires:
+            - build
+      - credo:
+          requires:
+            - build
+      - dialyzer:
+          requires:
+            - build
+      - test:
+          requires:
+            - build
+      - generate_documentation:
+          requires:
+            - build

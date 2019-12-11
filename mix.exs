@@ -62,7 +62,7 @@ defmodule Poison.Mixfile do
   defp deps do
     [
       {:decimal, "~> 1.8", optional: true},
-      {:dialyxir, "~> 1.0.0-rc", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.0.0-rc", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:excoveralls, "~> 0.12", only: :test},
       {:benchee, "~> 1.0", only: :bench},

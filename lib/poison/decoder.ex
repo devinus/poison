@@ -52,7 +52,7 @@ defmodule Poison.Decode do
         value when is_map(value) or is_list(value) ->
           Map.put(acc, key, transform(value, keys, as, options))
 
-        _ ->
+        _value ->
           acc
       end
     end)
@@ -106,11 +106,11 @@ end
 defprotocol Poison.Decoder do
   @fallback_to_any true
 
-  @typep keys :: :atoms | :atoms!
   @typep as :: map | struct | [as]
 
   @type options :: %{
-          optional(:keys) => keys,
+          optional(:keys) => :atoms | :atoms!,
+          optional(:decimal) => boolean,
           optional(:as) => as
         }
 

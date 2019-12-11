@@ -1,7 +1,8 @@
 defmodule Poison do
-  @readme_path [__DIR__, "..", "README.md"] |> Path.join() |> Path.expand()
-  @external_resource @readme_path
-  @moduledoc @readme_path |> File.read!() |> String.trim()
+  readme_path = [__DIR__, "..", "README.md"] |> Path.join() |> Path.expand()
+
+  @external_resource readme_path
+  @moduledoc readme_path |> File.read!() |> String.trim()
 
   alias Poison.{Decode, DecodeError, Decoder}
   alias Poison.{EncodeError, Encoder}
@@ -13,9 +14,9 @@ defmodule Poison do
       iex> Poison.encode([1, 2, 3])
       {:ok, "[1,2,3]"}
   """
-  @spec encode(Encoder.t(), keyword | Encoder.options()) ::
+  @spec encode(Encoder.t(), Encoder.options()) ::
           {:ok, iodata}
-          | {:error, EncodeError.t()}
+          | {:error, Exception.t()}
   def encode(value, options \\ %{}) do
     {:ok, encode!(value, options)}
   rescue
@@ -29,7 +30,7 @@ defmodule Poison do
       iex> Poison.encode!([1, 2, 3])
       "[1,2,3]"
   """
-  @spec encode!(Encoder.t(), keyword | Encoder.options()) :: iodata | no_return
+  @spec encode!(Encoder.t(), Encoder.options()) :: iodata | no_return
   def encode!(value, options \\ %{})
 
   def encode!(value, options) when is_list(options) do
@@ -37,12 +38,10 @@ defmodule Poison do
   end
 
   def encode!(value, options) do
-    iodata = Encoder.encode(value, options)
-
     if options[:iodata] do
-      iodata
+      Encoder.encode(value, options)
     else
-      iodata |> IO.iodata_to_binary()
+      value |> Encoder.encode(options) |> IO.iodata_to_binary()
     end
   end
 
@@ -54,10 +53,10 @@ defmodule Poison do
   """
   @spec decode(iodata) ::
           {:ok, Parser.t()}
-          | {:error, ParseError.t()}
-  @spec decode(iodata, keyword | Decoder.options()) ::
-          {:ok, any}
-          | {:error, ParseError.t() | DecodeError.t()}
+          | {:error, Exception.t()}
+  @spec decode(iodata, Decoder.options()) ::
+          {:ok, Parser.t()}
+          | {:error, Exception.t()}
   def decode(iodata, options \\ %{}) do
     {:ok, decode!(iodata, options)}
   rescue
@@ -76,7 +75,7 @@ defmodule Poison do
     Parser.parse!(value, %{})
   end
 
-  @spec decode!(iodata, keyword | Decoder.options()) :: Decoder.t() | no_return
+  @spec decode!(iodata, Decoder.options()) :: Decoder.t() | no_return
   def decode!(value, options) when is_list(options) do
     decode!(value, Map.new(options))
   end

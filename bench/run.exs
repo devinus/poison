@@ -1,96 +1,113 @@
-encode_jobs = %{
-  "Poison" => &Poison.encode!/1,
-  "Jason" => &Jason.encode!/1,
-  "JSX" => &JSX.encode!/1,
-  "Tiny" => &Tiny.encode!/1,
-  "jsone" => &:jsone.encode/1,
-  "jiffy" => &:jiffy.encode/1,
-  "JSON" => &JSON.encode!/1
-}
+defmodule Bench do
+  alias Benchee.Formatters.{Console, HTML}
 
-encode_inputs = [
-  "GitHub",
-  "Giphy",
-  "GovTrack",
-  "Blockchain",
-  "Pokedex",
-  "JSON Generator",
-  "UTF-8 unescaped",
-  "Issue 90"
-]
+  def run_decode() do
+    Benchee.run(decode_jobs(),
+      parallel: 4,
+      warmup: 1,
+      time: 5,
+      memory_time: 1,
+      pre_check: true,
+      inputs:
+        for name <- decode_inputs(), into: %{} do
+          name
+          |> read_data()
+          |> (&{name, &1}).()
+        end,
+      before_each: fn input -> :binary.copy(input) end,
+      after_scenario: fn _ -> gc() end,
+      formatters: [
+        {Console, extended_statistics: true},
+        {HTML, extended_statistics: true, file: Path.expand("output/decode.html", __DIR__)}
+      ]
+    )
+  end
 
-decode_jobs = %{
-  "Poison" => &Poison.decode!/1,
-  "Jason" => &Jason.decode!/1,
-  "JSX" => &JSX.decode!(&1, [:strict]),
-  "Tiny" => &Tiny.decode!/1,
-  "jsone" => &:jsone.decode/1,
-  "jiffy" => &:jiffy.decode(&1, [:return_maps]),
-  "JSON" => &JSON.decode!/1
-}
+  def run_encode() do
+    Benchee.run(encode_jobs(),
+      parallel: 4,
+      warmup: 1,
+      time: 5,
+      memory_time: 1,
+      pre_check: true,
+      inputs:
+        for name <- encode_inputs(), into: %{} do
+          name
+          |> read_data()
+          |> Poison.decode!()
+          |> (&{name, &1}).()
+        end,
+      after_scenario: fn _ -> gc() end,
+      formatters: [
+        {Console, extended_statistics: true},
+        {HTML, extended_statistics: true, file: Path.expand("output/encode.html", __DIR__)}
+      ]
+    )
+  end
 
-decode_inputs = [
-  "GitHub",
-  "Giphy",
-  "GovTrack",
-  "Blockchain",
-  "Pokedex",
-  "JSON Generator",
-  "JSON Generator (Pretty)",
-  "UTF-8 escaped",
-  "UTF-8 unescaped",
-  "Issue 90"
-]
+  defp gc() do
+    request_id = System.monotonic_time()
+    :erlang.garbage_collect(self(), async: request_id)
 
-read_data = fn name ->
-  name
-  |> String.downcase()
-  |> String.replace(~r/([^\w]|-|_)+/, "-")
-  |> String.trim("-")
-  |> (&"data/#{&1}.json").()
-  |> Path.expand(__DIR__)
-  |> File.read!()
+    receive do
+      {:garbage_collect, ^request_id, _} -> :ok
+    end
+  end
+
+  defp read_data(name) do
+    name
+    |> String.downcase()
+    |> String.replace(~r/([^\w]|-|_)+/, "-")
+    |> String.trim("-")
+    |> (&"data/#{&1}.json").()
+    |> Path.expand(__DIR__)
+    |> File.read!()
+  end
+
+  defp decode_jobs() do
+    %{
+      "Jason" => &Jason.decode!/1,
+      "jiffy" => &:jiffy.decode(&1, [:return_maps, :use_nil]),
+      "JSON" => &JSON.decode!/1,
+      "jsone" => &:jsone.decode/1,
+      "JSX" => &JSX.decode!(&1, [:strict]),
+      "Poison" => &Poison.Parser.parse!/1
+    }
+  end
+
+  defp encode_jobs() do
+    %{
+      "Jason" => &Jason.encode!/1,
+      "jiffy" => &:jiffy.encode/1,
+      "JSON" => &JSON.encode!/1,
+      "jsone" => &:jsone.encode/1,
+      "JSX" => &JSX.encode!/1,
+      "Poison" => &Poison.encode!/1
+    }
+  end
+
+  defp decode_inputs() do
+    [
+      "Benchee",
+      "Blockchain",
+      "GeoJSON",
+      "Giphy",
+      "GitHub",
+      "GovTrack",
+      "Issue 90",
+      "JSON Generator (Pretty)",
+      "JSON Generator",
+      "Pokedex",
+      "Reddit",
+      "UTF-8 escaped",
+      "UTF-8 unescaped"
+    ]
+  end
+
+  defp encode_inputs() do
+    decode_inputs() -- ["JSON Generator (Pretty)"]
+  end
 end
 
-Benchee.run(encode_jobs,
-  parallel: 4,
-  # warmup: 5,
-  # time: 30,
-  inputs:
-    for name <- encode_inputs, into: %{} do
-      name
-      |> read_data.()
-      |> Poison.decode!()
-      |> (&{name, &1}).()
-    end,
-  formatters: [
-    &Benchee.Formatters.HTML.output/1,
-    &Benchee.Formatters.Console.output/1
-  ],
-  formatter_options: [
-    html: [
-      file: Path.expand("output/encode.html", __DIR__)
-    ]
-  ]
-)
-
-Benchee.run(decode_jobs,
-  parallel: 4,
-  # warmup: 5,
-  # time: 30,
-  inputs:
-    for name <- decode_inputs, into: %{} do
-      name
-      |> read_data.()
-      |> (&{name, &1}).()
-    end,
-  formatters: [
-    &Benchee.Formatters.HTML.output/1,
-    &Benchee.Formatters.Console.output/1
-  ],
-  formatter_options: [
-    html: [
-      file: Path.expand("output/decode.html", __DIR__)
-    ]
-  ]
-)
+Bench.run_decode()
+Bench.run_encode()

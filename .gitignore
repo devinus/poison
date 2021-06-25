@@ -26,4 +26,5 @@ poison-*.tar
 /tmp
 
 .elixir_ls
+*.benchee
 /bench/output/

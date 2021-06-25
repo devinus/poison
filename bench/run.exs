@@ -8,6 +8,8 @@ defmodule Bench do
       time: 10,
       memory_time: 1,
       pre_check: true,
+      load: Path.join(__DIR__, "decode.benchee"),
+      save: [path: Path.join(__DIR__, "decode.benchee")],
       inputs:
         for name <- decode_inputs(), into: %{} do
           name
@@ -15,7 +17,6 @@ defmodule Bench do
           |> (&{name, &1}).()
         end,
       before_each: fn input -> :binary.copy(input) end,
-      after_scenario: fn _input -> gc() end,
       formatters: [
         {Console, extended_statistics: true},
         {HTML, extended_statistics: true, file: Path.expand("output/decode.html", __DIR__)}
@@ -30,6 +31,8 @@ defmodule Bench do
       time: 10,
       memory_time: 1,
       pre_check: true,
+      load: Path.join(__DIR__, "encode.benchee"),
+      save: [path: Path.join(__DIR__, "encode.benchee")],
       inputs:
         for name <- encode_inputs(), into: %{} do
           name
@@ -37,21 +40,11 @@ defmodule Bench do
           |> Poison.decode!()
           |> (&{name, &1}).()
         end,
-      after_scenario: fn _input -> gc() end,
       formatters: [
         {Console, extended_statistics: true},
         {HTML, extended_statistics: true, file: Path.expand("output/encode.html", __DIR__)}
       ]
     )
-  end
-
-  defp gc do
-    request_id = System.monotonic_time()
-    :erlang.garbage_collect(self(), async: request_id)
-
-    receive do
-      {:garbage_collect, ^request_id, _dead} -> :ok
-    end
   end
 
   defp read_data(name) do

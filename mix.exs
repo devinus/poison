@@ -15,7 +15,7 @@ defmodule Poison.Mixfile do
       description: "An incredibly fast, pure Elixir JSON library",
       source_url: "https://github.com/devinus/poison",
       start_permanent: Mix.env() == :prod,
-      consolidate_protocols: not (Mix.env() in [:dev, :test]),
+      consolidate_protocols: Mix.env() not in [:dev, :test],
       elixirc_paths: elixirc_paths(),
       deps: deps(),
       docs: docs(),
@@ -76,7 +76,7 @@ defmodule Poison.Mixfile do
       {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
       {:jiffy, "~> 1.0", only: [:bench, :profile], runtime: false},
       {:json, "~> 1.4", only: [:bench, :profile], runtime: false},
-      {:jsone, "~> 1.5", only: [:bench, :profile], runtime: false},
+      {:jsone, "~> 1.6", only: [:bench, :profile], runtime: false},
       {:junit_formatter, "~> 3.3", only: :test, runtime: false},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false}
     ]

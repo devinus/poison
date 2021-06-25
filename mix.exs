@@ -20,9 +20,9 @@ defmodule Poison.Mixfile do
       deps: deps(),
       docs: docs(),
       package: package(),
-      xref: [exclude: [:xmerl, :eex, Decimal]],
+      xref: [exclude: [Decimal]],
       dialyzer: [
-        ignore_warnings: "dialyzer.ignore-warnings",
+        ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:decimal],
         flags: [
           :error_handling,

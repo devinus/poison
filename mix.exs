@@ -94,7 +94,7 @@ defmodule Poison.Mixfile do
     [
       files: ~w(lib mix.exs README.md LICENSE VERSION),
       maintainers: ["Devin Alexander Torres <d@devinus.io>"],
-      licenses: ["Unlicense", "CC0-1.0"],
+      licenses: ["0BSD"],
       links: %{"GitHub" => "https://github.com/devinus/poison"}
     ]
   end

@@ -69,15 +69,15 @@ defmodule Poison.Mixfile do
       {:benchee, "~> 1.0", only: :bench, runtime: false},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:decimal, "~> 2.0", optional: true},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.23", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.13", only: :test, runtime: false},
+      {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.24", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.14", only: :test, runtime: false},
       {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
       {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
       {:jiffy, "~> 1.0", only: [:bench, :profile], runtime: false},
       {:json, "~> 1.4", only: [:bench, :profile], runtime: false},
       {:jsone, "~> 1.5", only: [:bench, :profile], runtime: false},
-      {:junit_formatter, "~> 3.1", only: :test, runtime: false},
+      {:junit_formatter, "~> 3.3", only: :test, runtime: false},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false}
     ]
   end

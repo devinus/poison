@@ -17,8 +17,7 @@ several techniques that are [known to benefit HiPE][2] for native compilation,
 Poison benchmarks sometimes puts Poison's performance close to `jiffy` and
 usually faster than other Erlang/Elixir libraries.
 
-Poison fully conforms to [RFC 7159][4], [ECMA 404][5], and the
-[JSONTestSuite][6].
+Poison fully conforms to [RFC 7159][4], [ECMA 404][5], and fully passes the [JSONTestSuite][6].
 
 ## Installation
 

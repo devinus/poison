@@ -99,7 +99,6 @@ defmodule Bench do
       "JSON Generator",
       "Pokedex",
       "Reddit",
-      "Stocks",
       "UTF-8 escaped",
       "UTF-8 unescaped"
     ]

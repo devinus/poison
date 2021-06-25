@@ -1,4 +1,4 @@
-FROM elixir:1.11.3-alpine as base
+FROM elixir:1.12.1-alpine as base
 ARG MIX_ENV
 ENV MIX_ENV ${MIX_ENV:-test}
 RUN apk --no-cache add git build-base
@@ -20,7 +20,7 @@ RUN mix deps.compile
 RUN mix compile
 
 
-FROM base AS test
+FROM base AS dev
 COPY --chown=user --from=build /usr/src/project/deps deps
 COPY --chown=user --from=build /usr/src/project/_build _build
 COPY --chown=user . .

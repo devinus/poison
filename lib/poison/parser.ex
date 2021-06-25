@@ -430,9 +430,11 @@ defmodule Poison.Parser do
     {sign * coef, skip}
   end
 
-  max_sig = 1 <<< 52
+  is_64bit = :erlang.system_info(:wordsize) == 8
+  max_sig = if is_64bit, do: 1 <<< 53, else: 1 <<< 24
 
-  defp number_complete(_decimal, sign, coef, exp, skip) when coef < unquote(max_sig) and exp in -10..10 do
+  # See: https://arxiv.org/pdf/2101.11408.pdf
+  defp number_complete(_decimal, sign, coef, exp, skip) when coef <= unquote(max_sig) and exp in -10..10 do
     if exp > 0 do
       {sign * coef * pow10(exp), skip}
     else

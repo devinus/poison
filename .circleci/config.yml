@@ -3,7 +3,7 @@ version: 2.1
 executors:
   elixir:
     docker:
-      - image: circleci/elixir:1.11.3
+      - image: cimg/elixir:1.12.1
         environment:
           MIX_ENV: test
 

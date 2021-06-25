@@ -11,7 +11,7 @@ defmodule Poison.Mixfile do
       app: :poison,
       name: "Poison",
       version: @version,
-      elixir: "~> 1.10",
+      elixir: "~> 1.11",
       description: "An incredibly fast, pure Elixir JSON library",
       source_url: "https://github.com/devinus/poison",
       start_permanent: Mix.env() == :prod,

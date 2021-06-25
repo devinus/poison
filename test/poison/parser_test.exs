@@ -236,6 +236,17 @@ defmodule Poison.ParserTest do
     assert {:ok, _} = parse(data)
   end
 
+  property "complex nested input" do
+    check all value <- gen_complex_value(),
+              options <-
+                optional_map(%{
+                  keys: one_of([:atoms!, :atoms]),
+                  decimal: boolean()
+                }) do
+      assert {:ok, _} = parse(Poison.encode!(value, options))
+    end
+  end
+
   describe "JSONTestSuite" do
     root = Path.expand(Path.join(__DIR__, "../../vendor/JSONTestSuite/test_parsing"))
 
@@ -263,5 +274,35 @@ defmodule Poison.ParserTest do
   rescue
     exception ->
       {:error, exception}
+  end
+
+  defp gen_string do
+    string([0x0..0xD7FF, 0xE000..0xFFFF])
+  end
+
+  defp gen_value do
+    one_of([
+      constant(nil),
+      boolean(),
+      integer(),
+      float(),
+      gen_string(),
+      map(float(), &Decimal.from_float/1)
+    ])
+  end
+
+  defp gen_complex_value do
+    one_of([
+      gen_value(),
+      list_of(gen_value()),
+      map_of(
+        gen_string(),
+        one_of([
+          gen_value(),
+          list_of(gen_value()),
+          map_of(gen_string(), gen_value())
+        ])
+      )
+    ])
   end
 end

@@ -275,20 +275,15 @@ defmodule Poison.EncoderTest do
   end
 
   property "complex nested input" do
-    check all value <-
-                one_of([
-                  gen_value(),
-                  list_of(gen_value()),
-                  map_of(
-                    string(:printable),
-                    one_of([
-                      gen_value(),
-                      list_of(gen_value()),
-                      map_of(string(:printable), gen_value())
-                    ])
-                  )
-                ]) do
-      assert to_json(value) != ""
+    check all value <- gen_complex_value(),
+              options <-
+                optional_map(%{
+                  escape: one_of([:unicode, :javascript, :html_safe]),
+                  pretty: boolean(),
+                  indent: positive_integer(),
+                  offset: positive_integer()
+                }) do
+      assert to_json(value, options) != ""
     end
   end
 
@@ -298,15 +293,33 @@ defmodule Poison.EncoderTest do
     |> IO.iodata_to_binary()
   end
 
+  defp gen_string do
+    string([0x0..0xD7FF, 0xE000..0xFFFF])
+  end
+
   defp gen_value do
     one_of([
       constant(nil),
-      constant(true),
-      constant(false),
+      boolean(),
       integer(),
       float(),
-      string(:printable),
+      gen_string(),
       map(float(), &Decimal.from_float/1)
+    ])
+  end
+
+  defp gen_complex_value do
+    one_of([
+      gen_value(),
+      list_of(gen_value()),
+      map_of(
+        gen_string(),
+        one_of([
+          gen_value(),
+          list_of(gen_value()),
+          map_of(gen_string(), gen_value())
+        ])
+      )
     ])
   end
 end

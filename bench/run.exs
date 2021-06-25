@@ -60,7 +60,6 @@ defmodule Bench do
   defp decode_jobs do
     %{
       "Jason" => &Jason.decode!/1,
-      "Jaxon" => &Jaxon.decode!/1,
       "jiffy" => &:jiffy.decode(&1, [:return_maps, :use_nil]),
       "JSON" => &JSON.decode!/1,
       "jsone" => &:jsone.decode/1,
@@ -73,7 +72,6 @@ defmodule Bench do
   defp encode_jobs do
     %{
       "Jason" => &Jason.encode!/1,
-      "Jaxon" => &Jaxon.encode!/1,
       "jiffy" => &:jiffy.encode(&1, [:use_nil]),
       "JSON" => &JSON.encode!/1,
       "jsone" => &:jsone.encode/1,

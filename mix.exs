@@ -74,7 +74,6 @@ defmodule Poison.Mixfile do
       {:excoveralls, "~> 0.14", only: :test, runtime: false},
       {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
       {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
-      {:jaxon, "~> 2.0", only: [:bench, :profile], runtime: false},
       {:jiffy, "~> 1.0", only: [:bench, :profile], runtime: false},
       {:json, "~> 1.4", only: [:bench, :profile], runtime: false},
       {:jsone, "~> 1.6", only: [:bench, :profile], runtime: false},

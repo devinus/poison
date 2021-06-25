@@ -11,13 +11,14 @@ without sacrificing **simplicity**, **completeness**, or **correctness**.
 Poison takes several approaches to be the fastest JSON library for Elixir.
 
 Poison uses extensive [sub binary matching][1], a **hand-rolled parser** using
-several techniques that are [known to benefit HiPE][2] for native compilation,
+several techniques that are [known to benefit BeamAsm][2] for JIT compilation,
 [IO list][3] encoding and **single-pass** decoding.
 
 Poison benchmarks sometimes puts Poison's performance close to `jiffy` and
 usually faster than other Erlang/Elixir libraries.
 
-Poison fully conforms to [RFC 7159][4], [ECMA 404][5], and fully passes the [JSONTestSuite][6].
+Poison fully conforms to [RFC 7159][4], [ECMA 404][5], and fully passes the
+[JSONTestSuite][6].
 
 ## Installation
 
@@ -166,15 +167,14 @@ As of 2019-12-11:
 
 ## License
 
-Poison is released into the public domain (see `LICENSE`).
-Poison is also optionally available under the [CC0-1.0][8] license,
-meant especially for jurisdictions that do not recognize public domain works.
+Poison is released under the [public-domain-equivalent][8] [0BSD][9] license.
 
 [1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
-[2]: http://www.erlang.org/workshop/2003/paper/p36-sagonas.pdf
+[2]: https://erlang.org/documentation/doc-12.0-rc1/erts-12.0/doc/html/BeamAsm.html
 [3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
 [4]: https://tools.ietf.org/html/rfc7159
 [5]: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
 [6]: https://github.com/nst/JSONTestSuite
 [7]: http://prog21.dadgum.com/70.html
-[8]: https://creativecommons.org/publicdomain/zero/1.0/
+[8]: https://en.wikipedia.org/wiki/Public-domain-equivalent_license
+[9]: https://opensource.org/licenses/0BSD

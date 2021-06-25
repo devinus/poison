@@ -60,22 +60,26 @@ defmodule Bench do
   defp decode_jobs do
     %{
       "Jason" => &Jason.decode!/1,
+      "Jaxon" => &Jaxon.decode!/1,
       "jiffy" => &:jiffy.decode(&1, [:return_maps, :use_nil]),
       "JSON" => &JSON.decode!/1,
       "jsone" => &:jsone.decode/1,
       "JSX" => &JSX.decode!(&1, [:strict]),
-      "Poison" => &Poison.Parser.parse!/1
+      "Poison" => &Poison.Parser.parse!/1,
+      "Tiny" => &Tiny.decode!/1
     }
   end
 
   defp encode_jobs do
     %{
       "Jason" => &Jason.encode!/1,
-      "jiffy" => &:jiffy.encode/1,
+      "Jaxon" => &Jaxon.encode!/1,
+      "jiffy" => &:jiffy.encode(&1, [:use_nil]),
       "JSON" => &JSON.encode!/1,
       "jsone" => &:jsone.encode/1,
       "JSX" => &JSX.encode!/1,
-      "Poison" => &Poison.encode!/1
+      "Poison" => &Poison.encode!/1,
+      "Tiny" => &Tiny.encode!/1
     }
   end
 

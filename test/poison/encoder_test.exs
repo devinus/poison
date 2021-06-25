@@ -69,7 +69,7 @@ defmodule Poison.EncoderTest do
       assert to_json(value) == ~s("#{value}")
     end
 
-    check all str <- string(Enum.concat(0xA0..0xD800, 0xE000..0x10000)),
+    check all str <- string(Enum.concat(0xA0..0xD7FF, 0xE000..0x10000)),
               str != "",
               elem <- member_of(String.codepoints(str)),
               <<codepoint::utf8>> = elem do

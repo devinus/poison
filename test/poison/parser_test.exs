@@ -134,7 +134,7 @@ defmodule Poison.ParserTest do
       assert parse!(~s("#{str}")) == str
     end
 
-    check all value <- integer(0x0..0xD800) do
+    check all value <- integer(0x0..0xD7FF) do
       seq = value |> Integer.to_string(16) |> String.pad_leading(4, "0")
       assert parse!(~s("\\u#{seq}")) == <<value::utf8>>
     end

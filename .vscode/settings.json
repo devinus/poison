@@ -1,6 +1,9 @@
 {
   "editor.formatOnSave": true,
+  "editor.formatOnType": true,
   "files.watcherExclude": {
     "**/target": true
-  }
+  },
+  "elixirLS.enableTestLenses": true,
+  "elixirLS.dialyzerWarnOpts": ["no_improper_lists"]
 }

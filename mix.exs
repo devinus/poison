@@ -20,6 +20,7 @@ defmodule Poison.Mixfile do
       deps: deps(),
       docs: docs(),
       package: package(),
+      aliases: aliases(),
       xref: [exclude: [Decimal]],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
@@ -70,7 +71,7 @@ defmodule Poison.Mixfile do
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:decimal, "~> 2.0", optional: true},
       {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.24", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.25", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.14", only: :test, runtime: false},
       {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
       {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
@@ -97,6 +98,17 @@ defmodule Poison.Mixfile do
       maintainers: ["Devin Alexander Torres <d@devinus.io>"],
       licenses: ["0BSD"],
       links: %{"GitHub" => "https://github.com/devinus/poison"}
+    ]
+  end
+
+  defp aliases do
+    [
+      "deps.get": [
+        fn _ ->
+          System.cmd("git", ["submodule", "update", "--init"], cd: __DIR__, parallelism: true)
+        end,
+        "deps.get"
+      ]
     ]
   end
 end

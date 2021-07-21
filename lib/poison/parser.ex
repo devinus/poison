@@ -62,10 +62,6 @@ defmodule Poison.Parser do
   @compile {:inline_size, 150}
   @compile {:inline_unroll, 3}
 
-  if Application.get_env(:poison, :native) do
-    @compile [:native, {:hipe, [:o3]}]
-  end
-
   use Bitwise
 
   alias Poison.{Decoder, ParseError}
@@ -81,14 +77,6 @@ defmodule Poison.Parser do
   whitespace = '\s\t\n\r'
   digits = ?0..?9
 
-  defmacrop stacktrace do
-    if Version.compare(System.version(), "1.7.0") != :lt do
-      quote do: __STACKTRACE__
-    else
-      quote do: System.stacktrace()
-    end
-  end
-
   defmacrop syntax_error(skip) do
     quote do
       raise ParseError, skip: unquote(skip)
@@ -99,12 +87,16 @@ defmodule Poison.Parser do
   def parse!(value, options \\ %{})
 
   def parse!(data, options) when is_bitstring(data) do
-    [value | skip] = value(data, data, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil), 0)
+    [value | skip] =
+      value(data, data, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil), 0)
+
     <<_::binary-size(skip), rest::bits>> = data
     skip_whitespace(rest, skip, value)
   rescue
     exception in ParseError ->
-      reraise ParseError, [data: data, skip: exception.skip, value: exception.value], stacktrace()
+      reraise ParseError,
+              [data: data, skip: exception.skip, value: exception.value],
+              __STACKTRACE__
   end
 
   def parse!(iodata, options) do
@@ -175,22 +167,22 @@ defmodule Poison.Parser do
   ## Objects
 
   defmacrop object_name(keys, skip, name) do
-    quote do
-      case unquote(keys) do
+    quote bind_quoted: [keys: keys, skip: skip, name: name] do
+      case keys do
         :atoms! ->
           try do
-            String.to_existing_atom(unquote(name))
+            String.to_existing_atom(name)
           rescue
             ArgumentError ->
-              reraise ParseError, [skip: unquote(skip), value: unquote(name)], stacktrace()
+              reraise ParseError, [skip: skip, value: name], __STACKTRACE__
           end
 
         :atoms ->
           # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-          String.to_atom(unquote(name))
+          String.to_atom(name)
 
         _keys ->
-          unquote(name)
+          name
       end
     end
   end
@@ -200,12 +192,14 @@ defmodule Poison.Parser do
   defp object_pairs(<<?", rest::bits>>, data, keys, decimal, skip, acc) do
     start = skip + 1
     [name | skip] = string_continue(rest, data, start)
-
     <<_::binary-size(skip), rest::bits>> = data
+
     [value | skip] = object_value(rest, data, keys, decimal, skip)
-
     <<_::binary-size(skip), rest::bits>> = data
-    object_pairs_continue(rest, data, keys, decimal, skip, [{object_name(keys, start, name), value} | acc])
+
+    object_pairs_continue(rest, data, keys, decimal, skip, [
+      {object_name(keys, start, name), value} | acc
+    ])
   end
 
   defp object_pairs(<<?}, _rest::bits>>, _data, _keys, _decimal, skip, []) do
@@ -274,9 +268,7 @@ defmodule Poison.Parser do
 
   defp array_values(rest, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip)
-
     <<_::binary-size(skip), rest::bits>> = data
-
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -284,9 +276,7 @@ defmodule Poison.Parser do
 
   defp array_values_continue(<<?,, rest::bits>>, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip + 1)
-
     <<_::binary-size(skip), rest::bits>> = data
-
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -427,25 +417,31 @@ defmodule Poison.Parser do
   end
 
   defp number_complete(_decimal, skip, sign, coef, 0) do
-    [sign * coef | skip]
+    [coef * sign | skip]
   end
 
   max_sig = 1 <<< 53
 
   # See: https://arxiv.org/pdf/2101.11408.pdf
-  defp number_complete(_decimal, skip, sign, coef, exp) when exp in -10..10 and coef <= unquote(max_sig) do
+  defp number_complete(_decimal, skip, sign, coef, exp)
+       when exp in -10..10 and coef <= unquote(max_sig) do
     if exp < 0 do
-      [sign * coef / pow10(-exp) | skip]
+      [coef / pow10(-exp) * sign | skip]
     else
-      [sign * coef * pow10(exp) | skip]
+      [coef * pow10(exp) * sign | skip]
     end
   end
 
   defp number_complete(_decimal, skip, sign, coef, exp) do
-    [String.to_float(<<Integer.to_string(sign * coef)::bits, ".0e"::bits, Integer.to_string(exp)::bits>>) | skip]
+    [
+      String.to_float(
+        <<Integer.to_string(coef * sign)::bits, ".0e"::bits, Integer.to_string(exp)::bits>>
+      )
+      | skip
+    ]
   rescue
     ArithmeticError ->
-      reraise ParseError, [skip: skip, value: "#{sign * coef}e#{exp}"], stacktrace()
+      reraise ParseError, [skip: skip, value: "#{coef * sign}e#{exp}"], __STACKTRACE__
   end
 
   @compile {:inline, pow10: 1}
@@ -459,10 +455,10 @@ defmodule Poison.Parser do
   ## Strings
 
   defmacrop string_codepoint_size(codepoint) do
-    quote do
+    quote bind_quoted: [codepoint: codepoint] do
       cond do
-        unquote(codepoint) <= 0x7FF -> 2
-        unquote(codepoint) <= 0xFFFF -> 3
+        codepoint <= 0x7FF -> 2
+        codepoint <= 0xFFFF -> 3
         true -> 4
       end
     end
@@ -490,7 +486,10 @@ defmodule Poison.Parser do
         end
 
       unicode ->
-        [:unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8) | skip + len + 1]
+        [
+          :unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8)
+          | skip + len + 1
+        ]
 
       true ->
         [IO.iodata_to_binary([acc | binary_part(data, skip, len)]) | skip + len + 1]
@@ -505,7 +504,8 @@ defmodule Poison.Parser do
     string_continue(rest, data, skip, unicode, len + 1, acc)
   end
 
-  defp string_continue(<<codepoint::utf8, rest::bits>>, data, skip, _unicode, len, acc) when codepoint > 0x80 do
+  defp string_continue(<<codepoint::utf8, rest::bits>>, data, skip, _unicode, len, acc)
+       when codepoint > 0x80 do
     string_continue(rest, data, skip, true, len + string_codepoint_size(codepoint), acc)
   end
 
@@ -540,12 +540,12 @@ defmodule Poison.Parser do
   defguardp is_surrogate_pair(hi, lo) when hi in 0xD800..0xDBFF and lo in 0xDC00..0xDFFF
 
   defmacrop get_codepoint(seq, skip) do
-    quote do
+    quote bind_quoted: [seq: seq, skip: skip] do
       try do
-        String.to_integer(unquote(seq), 16)
+        String.to_integer(seq, 16)
       rescue
         ArgumentError ->
-          reraise ParseError, [skip: unquote(skip), value: "\\u#{unquote(seq)}"], stacktrace()
+          reraise ParseError, [skip: skip, value: "\\u#{seq}"], __STACKTRACE__
       end
     end
   end

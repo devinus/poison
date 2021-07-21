@@ -62,15 +62,17 @@ defmodule Poison.ParserTest do
     assert parse!("-99.99", %{decimal: true}) == Decimal.new("-99.99")
     assert parse!("99.99e99", %{decimal: true}) == Decimal.new("99.99e99")
     assert parse!("-99.99e99", %{decimal: true}) == Decimal.new("-99.99e99")
-    assert parse!("-9.9999999999e9999999999", %{decimal: true}) == Decimal.new("-9.9999999999e9999999999")
+
+    assert parse!("-9.9999999999e9999999999", %{decimal: true}) ==
+             Decimal.new("-9.9999999999e9999999999")
   end
 
   property "number" do
-    check all int <- integer() do
+    check all(int <- integer()) do
       assert parse!(Integer.to_string(int)) == int
     end
 
-    check all value <- float() do
+    check all(value <- float()) do
       assert parse!(Float.to_string(value)) == value
     end
   end
@@ -130,17 +132,19 @@ defmodule Poison.ParserTest do
   end
 
   property "strings" do
-    check all str <- string(:printable) do
+    check all(str <- string(:printable)) do
       assert parse!(~s("#{str}")) == str
     end
 
-    check all value <- member_of(Enum.concat(0x0..0xD7FF, 0xE000..0xFFFF)) do
+    check all(value <- member_of(Enum.concat(0x0..0xD7FF, 0xE000..0xFFFF))) do
       seq = value |> Integer.to_string(16) |> String.pad_leading(4, "0")
       assert parse!(~s("\\u#{seq}")) == <<value::utf8>>
     end
 
-    check all hi <- integer(0xD800..0xDBFF),
-              lo <- integer(0xDC00..0xDFFF) do
+    check all(
+            hi <- integer(0xD800..0xDBFF),
+            lo <- integer(0xDC00..0xDFFF)
+          ) do
       seq1 = hi |> Integer.to_string(16) |> String.pad_leading(4, "0")
       seq2 = lo |> Integer.to_string(16) |> String.pad_leading(4, "0")
       <<codepoint::utf16>> = <<hi::16, lo::16>>
@@ -237,12 +241,14 @@ defmodule Poison.ParserTest do
   end
 
   property "complex nested input" do
-    check all value <- gen_complex_value(),
-              options <-
-                optional_map(%{
-                  keys: one_of([:atoms!, :atoms]),
-                  decimal: boolean()
-                }) do
+    check all(
+            value <- gen_complex_value(),
+            options <-
+              optional_map(%{
+                keys: one_of([:atoms!, :atoms]),
+                decimal: boolean()
+              })
+          ) do
       assert {:ok, _} = parse(Poison.encode!(value, options))
     end
   end

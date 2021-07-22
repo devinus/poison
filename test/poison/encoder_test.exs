@@ -2,6 +2,8 @@ defmodule Poison.EncoderTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  import Poison.TestGenerators
+
   alias Poison.{EncodeError, Encoder}
 
   test "Atom" do
@@ -12,11 +14,12 @@ defmodule Poison.EncoderTest do
   end
 
   property "Atom" do
-    check all str <- string(:printable),
-              str not in ~w(nil true false),
-              value = String.to_atom(str) do
-      # credo:disable-for-previous-line Credo.Check.Warning.UnsafeToAtom
-      assert to_json(value) == ~s("#{value}")
+    check all(
+            str <- filter(json_string(max_length: 255), &(&1 not in ~w(nil true false))),
+            # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+            value = String.to_atom(str)
+          ) do
+      assert to_json(value) == inspect(str)
     end
   end
 
@@ -25,7 +28,7 @@ defmodule Poison.EncoderTest do
   end
 
   property "Integer" do
-    check all value <- integer() do
+    check all(value <- integer()) do
       assert to_json(value) == to_string(value)
     end
   end
@@ -36,7 +39,7 @@ defmodule Poison.EncoderTest do
   end
 
   property "Float" do
-    check all value <- float() do
+    check all(value <- float()) do
       assert to_json(value) == to_string(value)
     end
   end
@@ -65,20 +68,23 @@ defmodule Poison.EncoderTest do
   end
 
   property "BitString" do
-    check all value <- string(:printable) do
-      assert to_json(value) == ~s("#{value}")
+    check all(value <- json_string()) do
+      assert to_json(value) == inspect(value)
     end
 
-    check all str <- string(Enum.concat(0xA0..0xD7FF, 0xE000..0x10000)),
-              str != "",
-              elem <- member_of(String.codepoints(str)),
-              <<codepoint::utf8>> = elem do
+    check all(
+            str <- string(Enum.concat(0xA0..0xD7FF, 0xE000..0x10000), min_length: 1),
+            elem <- member_of(String.codepoints(str)),
+            <<codepoint::utf8>> = elem
+          ) do
       seq = codepoint |> Integer.to_string(16) |> String.pad_leading(4, "0")
       assert to_json(<<codepoint::utf8>>, escape: :unicode) == ~s("\\u#{seq}")
     end
 
-    check all hi <- integer(0xD800..0xDBFF),
-              lo <- integer(0xDC00..0xDFFF) do
+    check all(
+            hi <- integer(0xD800..0xDBFF),
+            lo <- integer(0xDC00..0xDFFF)
+          ) do
       seq1 = hi |> Integer.to_string(16) |> String.pad_leading(4, "0")
       seq2 = lo |> Integer.to_string(16) |> String.pad_leading(4, "0")
       <<codepoint::utf16>> = <<hi::16, lo::16>>
@@ -88,8 +94,7 @@ defmodule Poison.EncoderTest do
   end
 
   property "List" do
-    check all value <- list_of(gen_value()),
-              value != [] do
+    check all(value <- json_list(min_length: 1)) do
       assert String.match?(to_json(value), ~r/^\[.*\]$/)
     end
   end
@@ -117,8 +122,7 @@ defmodule Poison.EncoderTest do
   end
 
   property "Map" do
-    check all value <- map_of(string(:printable), gen_value()),
-              value != %{} do
+    check all(value <- json_map(min_length: 1)) do
       assert String.match?(to_json(value), ~r/^{.*}$/)
     end
   end
@@ -226,6 +230,22 @@ defmodule Poison.EncoderTest do
     assert to_json(datetime) == ~s("2000-01-01T12:13:14.050Z")
   end
 
+  test "URI" do
+    uri = URI.parse("https://devinus.io")
+    assert to_json(uri) == ~s("https://devinus.io")
+  end
+
+  test "Decimal" do
+    decimal = Decimal.new("99.9")
+    assert to_json(decimal) == "99.9"
+  end
+
+  property "Decimal" do
+    check all(value <- map(float(), &Decimal.from_float/1)) do
+      assert to_json(value) == to_string(value)
+    end
+  end
+
   defmodule Derived do
     @derive [Poison.Encoder]
     defstruct name: ""
@@ -275,14 +295,16 @@ defmodule Poison.EncoderTest do
   end
 
   property "complex nested input" do
-    check all value <- gen_complex_value(),
-              options <-
-                optional_map(%{
-                  escape: one_of([:unicode, :javascript, :html_safe]),
-                  pretty: boolean(),
-                  indent: positive_integer(),
-                  offset: positive_integer()
-                }) do
+    check all(
+            value <- json_complex_value(),
+            options <-
+              optional_map(%{
+                escape: one_of([:unicode, :javascript, :html_safe]),
+                pretty: boolean(),
+                indent: positive_integer(),
+                offset: positive_integer()
+              })
+          ) do
       assert to_json(value, options) != ""
     end
   end
@@ -291,35 +313,5 @@ defmodule Poison.EncoderTest do
     value
     |> Encoder.encode(Map.new(options))
     |> IO.iodata_to_binary()
-  end
-
-  defp gen_string do
-    string([0x0..0xD7FF, 0xE000..0xFFFF])
-  end
-
-  defp gen_value do
-    one_of([
-      constant(nil),
-      boolean(),
-      integer(),
-      float(),
-      gen_string(),
-      map(float(), &Decimal.from_float/1)
-    ])
-  end
-
-  defp gen_complex_value do
-    one_of([
-      gen_value(),
-      list_of(gen_value()),
-      map_of(
-        gen_string(),
-        one_of([
-          gen_value(),
-          list_of(gen_value()),
-          map_of(gen_string(), gen_value())
-        ])
-      )
-    ])
   end
 end

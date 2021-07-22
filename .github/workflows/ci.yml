@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  MIX_ENV: test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    strategy:
+      matrix:
+        otp:
+          - '24.0'
+          - '23.3'
+          - '23.2'
+          - '23.1'
+          - '23.0'
+        elixir:
+          - '1.12.2'
+          - '1.12.1'
+          - '1.12.0'
+          - '1.11.4'
+          - '1.11.3'
+          - '1.11.2'
+          - '1.11.1'
+          - '1.11.0'
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+
+      - uses: actions/cache@v2
+        id: mix-cache
+        with:
+          path: |
+            _build
+            deps
+            vendor
+          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
+
+      - if: steps.mix-cache.outputs.cache-hit != 'true'
+        run: mix deps.get
+
+      - run: mix coveralls.github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

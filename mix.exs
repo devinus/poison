@@ -38,7 +38,7 @@ defmodule Poison.Mixfile do
         "coveralls.detail": :test,
         "coveralls.html": :test,
         "coveralls.post": :test,
-        "coveralls.travis": :test
+        "coveralls.github": :test
       ]
     ]
   end

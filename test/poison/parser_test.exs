@@ -2,7 +2,7 @@ defmodule Poison.ParserTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  import Poison.Parser
+  import Poison.{TestGenerators, Parser}
   alias Poison.ParseError
 
   test "numbers" do
@@ -75,6 +75,10 @@ defmodule Poison.ParserTest do
     check all(value <- float()) do
       assert parse!(Float.to_string(value)) == value
     end
+
+    check all(value <- map(float(), &Float.to_string/1)) do
+      assert Decimal.equal?(parse!(value, %{decimal: true}), value)
+    end
   end
 
   test "strings" do
@@ -132,8 +136,8 @@ defmodule Poison.ParserTest do
   end
 
   property "strings" do
-    check all(str <- string(:printable)) do
-      assert parse!(~s("#{str}")) == str
+    check all(value <- json_string()) do
+      assert parse!(inspect(value)) == value
     end
 
     check all(value <- member_of(Enum.concat(0x0..0xD7FF, 0xE000..0xFFFF))) do
@@ -242,7 +246,7 @@ defmodule Poison.ParserTest do
 
   property "complex nested input" do
     check all(
-            value <- gen_complex_value(),
+            value <- json_complex_value(),
             options <-
               optional_map(%{
                 keys: one_of([:atoms!, :atoms]),
@@ -280,35 +284,5 @@ defmodule Poison.ParserTest do
   rescue
     exception ->
       {:error, exception}
-  end
-
-  defp gen_string do
-    string([0x0..0xD7FF, 0xE000..0xFFFF])
-  end
-
-  defp gen_value do
-    one_of([
-      constant(nil),
-      boolean(),
-      integer(),
-      float(),
-      gen_string(),
-      map(float(), &Decimal.from_float/1)
-    ])
-  end
-
-  defp gen_complex_value do
-    one_of([
-      gen_value(),
-      list_of(gen_value()),
-      map_of(
-        gen_string(),
-        one_of([
-          gen_value(),
-          list_of(gen_value()),
-          map_of(gen_string(), gen_value())
-        ])
-      )
-    ])
   end
 end

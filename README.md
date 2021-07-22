@@ -1,7 +1,7 @@
 # Poison
 
-[![Build Status](https://travis-ci.org/devinus/poison.svg?branch=master)](https://travis-ci.org/devinus/poison)
-[![Coverage Status](https://coveralls.io/repos/github/devinus/poison/badge.svg?branch=master)](https://coveralls.io/github/devinus/poison?branch=master)
+[![Build Status](https://img.shields.io/github/workflow/status/devinus/poison/ci/master)](https://github.com/devinus/poison/actions/workflows/ci.yml)
+[![Coverage Status](https://img.shields.io/coveralls/github/devinus/poison/master)](https://coveralls.io/github/devinus/poison?branch=master)
 [![Hex.pm Version](https://img.shields.io/hexpm/v/poison.svg?style=flat-square)](https://hex.pm/packages/poison)
 [![Hex.pm Download Total](https://img.shields.io/hexpm/dt/poison.svg?style=flat-square)](https://hex.pm/packages/poison)
 
@@ -160,10 +160,10 @@ $ MIX_ENV=bench mix run bench/run.exs
 
 ### Current Benchmarks
 
-As of 2020-06-25:
+As of 2021-07-22:
 
 - Amazon EC2 c5.2xlarge instance running Ubuntu Server 20.04:
-  https://gist.github.com/devinus/c82c2f6eaa22456e7ff0f5705466b1de
+  https://gist.github.com/devinus/f56cff9e5a0aa9de9215cf33212085f6
 
 ## License
 

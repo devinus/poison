@@ -28,7 +28,7 @@ defmodule Poison do
   Encode a value to JSON as iodata.
 
       iex> Poison.encode_to_iodata([1, 2, 3])
-      {:ok, [91, "1", [44, "2", 44, "3"], 93]}
+      {:ok, [91, ["1", 44, "2", 44, "3"], 93]}
   """
   @spec encode_to_iodata(Encoder.t, Keyword.t) :: {:ok, iodata} | {:error, {:invalid, any}}
   def encode_to_iodata(value, options \\ []) do
@@ -60,7 +60,7 @@ defmodule Poison do
   Encode a value to JSON as iodata, raises an exception on error.
 
       iex> Poison.encode_to_iodata!([1, 2, 3])
-      [91, "1", [44, "2", 44, "3"], 93]
+      [91, ["1", 44, "2", 44, "3"], 93]
   """
   @spec encode_to_iodata!(Encoder.t, Keyword.t) :: iodata | no_return
   def encode_to_iodata!(value, options \\ []) do

@@ -53,11 +53,11 @@ end
 Poison.encode!(%Person{name: "Devin Torres", age: 27})
 #=> "{\"name\":\"Devin Torres\",\"age\":27}"
 
-Poison.decode!(~s({"name": "Devin Torres", "age": 27}), as: %Person{})
+Poison.decode!(~s({"name": "Devin Torres", "age": 27}), %{as: %Person{}})
 #=> %Person{name: "Devin Torres", age: 27}
 
 Poison.decode!(~s({"people": [{"name": "Devin Torres", "age": 27}]}),
-  as: %{"people" => [%Person{}]})
+  %{as: %{"people" => [%Person{}]}})
 #=> %{"people" => [%Person{age: 27, name: "Devin Torres"}]}
 ```
 

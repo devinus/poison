@@ -75,7 +75,7 @@ defmodule Poison do
     Parser.parse!(value, %{})
   end
 
-  @spec decode!(iodata, Decoder.options()) :: Decoder.t() | no_return
+  @spec decode!(iodata, Decoder.options() | [Decoder.option()]) :: Decoder.t() | no_return
   def decode!(value, options) when is_list(options) do
     decode!(value, Map.new(options))
   end

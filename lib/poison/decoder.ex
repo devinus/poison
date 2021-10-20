@@ -108,6 +108,7 @@ defprotocol Poison.Decoder do
 
   @typep as :: map | struct | [as]
 
+  @type option :: {:keys, :atoms | :atoms!} | {:decimal, boolean} | {:as, as}
   @type options :: %{
           optional(:keys) => :atoms | :atoms!,
           optional(:decimal) => boolean,

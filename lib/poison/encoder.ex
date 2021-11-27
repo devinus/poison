@@ -347,7 +347,7 @@ defimpl Poison.Encoder, for: List do
   end
 end
 
-defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet] do
+defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet, Date.Range] do
   alias Poison.{Encoder, Pretty}
 
   use Pretty

@@ -13,17 +13,24 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    name: OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} / OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - windows-2022
+          - macos-11
         otp:
+          - '24.1'
           - '24.0'
           - '23.3'
           - '23.2'
           - '23.1'
           - '23.0'
         elixir:
+          - '1.12.3'
           - '1.12.2'
           - '1.12.1'
           - '1.12.0'

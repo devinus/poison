@@ -2,8 +2,23 @@
 
 [![Build Status](https://img.shields.io/github/workflow/status/devinus/poison/ci/master)](https://github.com/devinus/poison/actions/workflows/ci.yml)
 [![Coverage Status](https://img.shields.io/coveralls/github/devinus/poison/master)](https://coveralls.io/github/devinus/poison?branch=master)
-[![Hex.pm Version](https://img.shields.io/hexpm/v/poison.svg?style=flat-square)](https://hex.pm/packages/poison)
-[![Hex.pm Download Total](https://img.shields.io/hexpm/dt/poison.svg?style=flat-square)](https://hex.pm/packages/poison)
+[![Hex Version](https://img.shields.io/hexpm/v/poison.svg)](https://hex.pm/packages/poison)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/poison/)
+[![Total Download](https://img.shields.io/hexpm/dt/poison.svg)](https://hex.pm/packages/poison)
+[![License](https://img.shields.io/hexpm/l/poison.svg)](https://github.com/devinus/poison/blob/master/LICENSE.md)
+[![Last Updated](https://img.shields.io/github/last-commit/devinus/poison.svg)](https://github.com/devinus/poison/commits/master)
+
+<!-- MDOC !-->
+
+[1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
+[2]: https://erlang.org/documentation/doc-12.0-rc1/erts-12.0/doc/html/BeamAsm.html
+[3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
+[4]: https://tools.ietf.org/html/rfc7159
+[5]: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+[6]: https://github.com/nst/JSONTestSuite
+[7]: http://prog21.dadgum.com/70.html
+[8]: https://en.wikipedia.org/wiki/Public-domain-equivalent_license
+[9]: https://opensource.org/licenses/0BSD
 
 Poison is a new JSON library for Elixir focusing on wicked-fast **speed**
 without sacrificing **simplicity**, **completeness**, or **correctness**.
@@ -152,6 +167,8 @@ iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
 ** (Poison.EncodeError) duplicate key found: :foo
 ```
 
+<!-- MDOC !-->
+
 ## Benchmarking
 
 ```sh-session
@@ -165,16 +182,8 @@ As of 2021-07-22:
 - Amazon EC2 c5.2xlarge instance running Ubuntu Server 20.04:
   https://gist.github.com/devinus/f56cff9e5a0aa9de9215cf33212085f6
 
-## License
+## Copyright and License
+
+Copyright (C) 2021 Devin Alexander Torres <d@devinus.io>
 
 Poison is released under the [public-domain-equivalent][8] [0BSD][9] license.
-
-[1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
-[2]: https://erlang.org/documentation/doc-12.0-rc1/erts-12.0/doc/html/BeamAsm.html
-[3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
-[4]: https://tools.ietf.org/html/rfc7159
-[5]: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
-[6]: https://github.com/nst/JSONTestSuite
-[7]: http://prog21.dadgum.com/70.html
-[8]: https://en.wikipedia.org/wiki/Public-domain-equivalent_license
-[9]: https://opensource.org/licenses/0BSD

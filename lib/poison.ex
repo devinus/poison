@@ -2,7 +2,11 @@ defmodule Poison do
   readme_path = [__DIR__, "..", "README.md"] |> Path.join() |> Path.expand()
 
   @external_resource readme_path
-  @moduledoc readme_path |> File.read!() |> String.trim()
+  @moduledoc readme_path
+             |> File.read!()
+             |> String.trim()
+             |> String.split("<!-- MDOC !-->")
+             |> Enum.fetch!(1)
 
   alias Poison.{Decode, DecodeError, Decoder}
   alias Poison.{EncodeError, Encoder}

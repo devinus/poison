@@ -1,3 +1,5 @@
+# BSD Zero Clause License
+
 Copyright (C) 2021 Devin Alexander Torres <d@devinus.io>
 
 Permission to use, copy, modify, and/or distribute this software for any

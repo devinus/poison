@@ -5,6 +5,8 @@ defmodule Poison.Mixfile do
 
   @external_resource version_path
   @version version_path |> File.read!() |> String.trim()
+  @source_url "https://github.com/devinus/poison"
+
 
   def project do
     [
@@ -13,7 +15,6 @@ defmodule Poison.Mixfile do
       version: @version,
       elixir: "~> 1.11",
       description: "An incredibly fast, pure Elixir JSON library",
-      source_url: "https://github.com/devinus/poison",
       start_permanent: Mix.env() == :prod,
       consolidate_protocols: Mix.env() not in [:dev, :test],
       elixirc_paths: elixirc_paths(),
@@ -86,9 +87,15 @@ defmodule Poison.Mixfile do
 
   defp docs do
     [
-      main: "Poison",
+      extras: [
+        "LICENSE.md": [title: "License"],
+        "README.md": [title: "Overview"]
+      ],
+      main: "readme",
+      source_url: @source_url,
+      source_ref: @version,
       canonical: "https://hexdocs.pm/poison",
-      extras: ["README.md"]
+      formatters: ["html"]
     ]
   end
 
@@ -97,7 +104,7 @@ defmodule Poison.Mixfile do
       files: ~w(lib mix.exs README.md LICENSE VERSION),
       maintainers: ["Devin Alexander Torres <d@devinus.io>"],
       licenses: ["0BSD"],
-      links: %{"GitHub" => "https://github.com/devinus/poison"}
+      links: %{"GitHub" => @source_url}
     ]
   end
 

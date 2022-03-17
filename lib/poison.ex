@@ -45,6 +45,13 @@ defmodule Poison do
     end
   end
 
+  @doc """
+  Encodes a value to JSON, returning an iodata.
+
+  Equivalent to `encode!(value, iodata: true)`.
+
+  This function exists for compatibility with Phoenix, always prefer `encode!/1`.
+  """
   def encode_to_iodata!(value) do
     encode!(value, iodata: true)
   end

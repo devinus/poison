@@ -45,6 +45,10 @@ defmodule Poison do
     end
   end
 
+  def encode_to_iodata!(value) do
+    encode!(value, iodata: true)
+  end
+
   @doc """
   Decode JSON to a value.
 

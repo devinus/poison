@@ -11,7 +11,7 @@ defmodule Poison.Mixfile do
       app: :poison,
       name: "Poison",
       version: @version,
-      elixir: "~> 1.11",
+      elixir: "~> 1.14.1",
       description: "An incredibly fast, pure Elixir JSON library",
       source_url: "https://github.com/devinus/poison",
       start_permanent: Mix.env() == :prod,
@@ -66,21 +66,21 @@ defmodule Poison.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:benchee_html, "~> 1.0", only: :bench, runtime: false},
-      {:benchee, "~> 1.0", only: :bench, runtime: false},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:decimal, "~> 2.0", optional: true},
-      {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.26", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.14", only: :test, runtime: false},
-      {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
-      {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
-      {:jiffy, "~> 1.0", only: [:bench, :profile], runtime: false},
-      {:json, "~> 1.4", only: [:bench, :profile], runtime: false},
-      {:jsone, "~> 1.7", only: [:bench, :profile], runtime: false},
-      {:junit_formatter, "~> 3.3", only: :test, runtime: false},
-      {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
-      {:tiny, "~> 1.0", only: [:bench, :profile], runtime: false}
+      {:benchee_html, "~> 1.0.0", only: :bench, runtime: false},
+      {:benchee, "~> 1.1.0", only: :bench, runtime: false},
+      {:credo, "~> 1.7.0", only: [:dev, :test], runtime: false},
+      {:decimal, "~> 2.1.1", optional: true},
+      {:dialyxir, "~> 1.3.0", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.29.4", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.16.1", only: :test, runtime: false},
+      {:exjsx, "~> 4.0.0", only: [:bench, :profile], runtime: false},
+      {:jason, "~> 1.4.0", only: [:dev, :test, :bench, :profile], runtime: false},
+      {:jiffy, "~> 1.1.1", only: [:bench, :profile], runtime: false},
+      {:json, "~> 1.4.1", only: [:bench, :profile], runtime: false},
+      {:jsone, "~> 1.8.0", only: [:bench, :profile], runtime: false},
+      {:junit_formatter, "~> 3.3.1", only: :test, runtime: false},
+      {:stream_data, "~> 0.5.0", only: [:dev, :test], runtime: false},
+      {:tiny, "~> 1.0.1", only: [:bench, :profile], runtime: false}
     ]
   end
 
@@ -108,6 +108,14 @@ defmodule Poison.Mixfile do
           System.cmd("git", ["submodule", "update", "--init"], cd: __DIR__, parallelism: true)
         end,
         "deps.get"
+      ],
+      "dev.update_deps": [
+        "hex.outdated --within-requirements",
+        "deps.update --all --only",
+        "deps.clean --all --only",
+        "deps.get",
+        "deps.compile",
+        "hex.outdated --within-requirements"
       ]
     ]
   end

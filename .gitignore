@@ -28,3 +28,6 @@ poison-*.tar
 .elixir_ls
 *.benchee
 /bench/output/
+
+# Ignore local PLTs
+/priv/plts

@@ -83,7 +83,7 @@ defmodule Poison.Parser do
     end
   end
 
-  @spec parse!(iodata | binary, Decoder.options()) :: t | no_return
+  @spec parse!(iodata, Decoder.options()) :: t | no_return
   def parse!(value, options \\ %{})
 
   def parse!(data, options) when is_bitstring(data) do

@@ -27,7 +27,6 @@ defmodule Poison.Mixfile do
         plt_add_apps: [:decimal],
         flags: [
           :error_handling,
-          :race_conditions,
           :underspecs,
           :unmatched_returns
         ]

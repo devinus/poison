@@ -24,6 +24,7 @@ defmodule Poison.Mixfile do
       xref: [exclude: [Decimal]],
       dialyzer: [
         plt_file: {:no_warn, "priv/plts/project.plt"},
+        plt_add_deps: :apps_direct,
         ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:decimal],
         flags: [

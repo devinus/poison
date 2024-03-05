@@ -25,24 +25,49 @@ defmodule Poison do
   end
 
   @doc """
-  Encode a value to JSON, raises an exception on error.
+  Encode a value to JSON IO data.
+
+      iex> Poison.encode_to_iodata([1, 2, 3])
+      {:ok, [91, ["1", 44, "2", 44, "3"], 93]}
+  """
+  @spec encode_to_iodata(Encoder.t(), Encoder.options()) ::
+          {:ok, iodata}
+          | {:error, Exception.t()}
+  def encode_to_iodata(value, options \\ %{}) do
+    {:ok, encode_to_iodata!(value, options)}
+  rescue
+    exception in [EncodeError] ->
+      {:error, exception}
+  end
+
+  @doc """
+  Encode a value to JSON IO data. Raises an exception on error.
+
+      iex> Poison.encode_to_iodata!([1, 2, 3])
+      [91, ["1", 44, "2", 44, "3"], 93]
+  """
+  @spec encode_to_iodata!(Encoder.t(), Encoder.options()) :: iodata | no_return
+  def encode_to_iodata!(value, options \\ %{})
+
+  def encode_to_iodata!(value, options) when is_list(options) do
+    encode_to_iodata!(value, Map.new(options))
+  end
+
+  def encode_to_iodata!(value, options) do
+    Encoder.encode(value, options)
+  end
+
+  @doc """
+  Encode a value to JSON. Raises an exception on error.
 
       iex> Poison.encode!([1, 2, 3])
       "[1,2,3]"
   """
-  @spec encode!(Encoder.t(), Encoder.options()) :: iodata | no_return
+  @spec encode!(Encoder.t(), Encoder.options()) :: binary | no_return
   def encode!(value, options \\ %{})
 
-  def encode!(value, options) when is_list(options) do
-    encode!(value, Map.new(options))
-  end
-
   def encode!(value, options) do
-    if options[:iodata] do
-      Encoder.encode(value, options)
-    else
-      value |> Encoder.encode(options) |> IO.iodata_to_binary()
-    end
+    value |> encode_to_iodata!(options) |> IO.iodata_to_binary()
   end
 
   @doc """
@@ -65,7 +90,7 @@ defmodule Poison do
   end
 
   @doc """
-  Decode JSON to a value, raises an exception on error.
+  Decode JSON to a value. Raises an exception on error.
 
       iex> Poison.decode!("[1,2,3]")
       [1, 2, 3]

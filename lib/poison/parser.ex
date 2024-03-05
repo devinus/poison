@@ -62,7 +62,7 @@ defmodule Poison.Parser do
   @compile {:inline_size, 150}
   @compile {:inline_unroll, 3}
 
-  use Bitwise
+  import Bitwise
 
   alias Poison.{Decoder, ParseError}
 

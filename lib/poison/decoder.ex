@@ -108,11 +108,14 @@ defprotocol Poison.Decoder do
 
   @typep as :: map | struct | [as]
 
-  @type options :: %{
-          optional(:keys) => :atoms | :atoms!,
-          optional(:decimal) => boolean,
-          optional(:as) => as
-        }
+  @typep option :: {:keys, :atoms | :atoms!} | {:decimal, boolean} | {:as, as}
+  @type options ::
+          %{
+            optional(:keys) => :atoms | :atoms!,
+            optional(:decimal) => boolean,
+            optional(:as) => as
+          }
+          | [option]
 
   @spec decode(t, options) :: any
   def decode(value, options)

@@ -42,6 +42,10 @@ defmodule Poison.Decode do
     for v <- value, do: transform(v, keys, as, options)
   end
 
+  defp transform(value, keys, as, options) when is_function(as, 1) do
+    transform(value, keys, as.(value), options)
+  end
+
   defp transform(value, _keys, _as, _options) do
     value
   end
@@ -106,7 +110,7 @@ end
 defprotocol Poison.Decoder do
   @fallback_to_any true
 
-  @typep as :: map | struct | [as]
+  @typep as :: map | struct | [as] | (t -> as | [as])
 
   @type options :: %{
           optional(:keys) => :atoms | :atoms!,

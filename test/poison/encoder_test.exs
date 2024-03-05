@@ -157,7 +157,7 @@ defmodule Poison.EncoderTest do
 
   test "MapSet/HashSet" do
     for type <- [MapSet, HashSet] do
-      set = type.new
+      set = type.new()
       assert to_json(set) == "[]"
 
       set = set |> type.put(1) |> type.put(2)

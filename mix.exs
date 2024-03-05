@@ -27,8 +27,8 @@ defmodule Poison.Mixfile do
         plt_add_apps: [:decimal],
         flags: [
           :error_handling,
-          :race_conditions,
-          :underspecs,
+          :extra_return,
+          :missing_return,
           :unmatched_returns
         ]
       ],
@@ -46,18 +46,16 @@ defmodule Poison.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    spec = [extra_applications: []]
-
-    if Mix.env() != :bench do
-      spec
+    if Mix.env() == :bench do
+      [extra_applications: [:eex]]
     else
-      Keyword.put_new(spec, :applications, [:logger])
+      []
     end
   end
 
   defp elixirc_paths() do
     if Mix.env() == :profile do
-      ["lib", "profile"]
+      ~w(lib profile)
     else
       ["lib"]
     end
@@ -67,19 +65,21 @@ defmodule Poison.Mixfile do
   defp deps do
     [
       {:benchee_html, "~> 1.0", only: :bench, runtime: false},
-      {:benchee, "~> 1.0", only: :bench, runtime: false},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:decimal, "~> 2.0", optional: true},
-      {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.26", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.14", only: :test, runtime: false},
+      {:benchee, "~> 1.3", only: :bench, runtime: false},
+      {:credo_binary_patterns, "~> 0.2", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:decimal, "~> 2.1", optional: true},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.31", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
-      {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
-      {:jiffy, "~> 1.0", only: [:bench, :profile], runtime: false},
+      {:jason, "~> 1.5.0-alpha", only: [:dev, :test, :bench, :profile], runtime: false},
+      {:jiffy, "~> 1.1", only: [:bench, :profile], runtime: false},
       {:json, "~> 1.4", only: [:bench, :profile], runtime: false},
-      {:jsone, "~> 1.7", only: [:bench, :profile], runtime: false},
+      {:jsone, "~> 1.8", only: [:bench, :profile], runtime: false},
       {:junit_formatter, "~> 3.3", only: :test, runtime: false},
-      {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
+      {:stream_data, "~> 0.6", only: [:dev, :test], runtime: false},
+      {:thoas, "~> 1.2", only: [:bench, :profile], runtime: false},
       {:tiny, "~> 1.0", only: [:bench, :profile], runtime: false}
     ]
   end

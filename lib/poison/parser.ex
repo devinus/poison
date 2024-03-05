@@ -30,7 +30,7 @@ defmodule Poison.ParseError do
       <<>> ->
         "unexpected end of input at position #{pos}"
 
-      <<token::utf8, _::bits>> ->
+      <<token::utf8, _rest::bits>> ->
         "unexpected token at position #{pos}: #{escape(token)}"
 
       _rest ->
@@ -58,11 +58,11 @@ defmodule Poison.Parser do
 
   @compile :inline
   @compile :inline_list_funcs
-  @compile {:inline_effort, 2500}
-  @compile {:inline_size, 150}
+  @compile {:inline_effort, 5000}
+  @compile {:inline_size, 300}
   @compile {:inline_unroll, 3}
 
-  use Bitwise
+  import Bitwise
 
   alias Poison.{Decoder, ParseError}
 
@@ -74,7 +74,7 @@ defmodule Poison.Parser do
     @type t :: value
   end
 
-  whitespace = '\s\t\n\r'
+  whitespace = ~c"\s\t\n\r"
   digits = ?0..?9
 
   defmacrop syntax_error(skip) do
@@ -90,7 +90,7 @@ defmodule Poison.Parser do
     [value | skip] =
       value(data, data, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil), 0)
 
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
     skip_whitespace(rest, skip, value)
   rescue
     exception in ParseError ->
@@ -192,10 +192,10 @@ defmodule Poison.Parser do
   defp object_pairs(<<?", rest::bits>>, data, keys, decimal, skip, acc) do
     start = skip + 1
     [name | skip] = string_continue(rest, data, start)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
 
     [value | skip] = object_value(rest, data, keys, decimal, skip)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
 
     object_pairs_continue(rest, data, keys, decimal, skip, [
       {object_name(keys, start, name), value} | acc
@@ -268,7 +268,7 @@ defmodule Poison.Parser do
 
   defp array_values(rest, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -276,7 +276,7 @@ defmodule Poison.Parser do
 
   defp array_values_continue(<<?,, rest::bits>>, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip + 1)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -352,7 +352,7 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_exp: 6}
 
-  for e <- 'eE' do
+  for e <- ~c"eE" do
     defp number_exp(<<unquote(e), rest::bits>>, decimal, skip, sign, coef, exp) do
       [value | skip] = number_exp_continue(rest, skip + 1)
       number_complete(decimal, skip, sign, coef, exp + value)
@@ -486,10 +486,13 @@ defmodule Poison.Parser do
         end
 
       unicode ->
-        [
-          :unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8)
-          | skip + len + 1
-        ]
+        case :unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8) do
+          string when is_binary(string) ->
+            [string | skip + len + 1]
+
+          _other ->
+            syntax_error(skip + len)
+        end
 
       true ->
         [IO.iodata_to_binary([acc | binary_part(data, skip, len)]) | skip + len + 1]

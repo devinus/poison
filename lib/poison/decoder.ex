@@ -17,6 +17,9 @@ defmodule Poison.Decode do
 
   alias Poison.Decoder
 
+  @compile :inline
+  @compile :inline_list_funcs
+
   def transform(value, options) when is_map(value) or is_list(value) do
     case Map.get(options, :as) do
       nil -> value
@@ -110,16 +113,16 @@ end
 defprotocol Poison.Decoder do
   @fallback_to_any true
 
-  @typep as :: map | struct | [as] | (t -> as | [as])
+  @type keys :: :atoms | :atoms!
+  @type decimal :: boolean
+  @type as :: map | struct | [as] | (t -> as)
 
-  @typep option :: {:keys, :atoms | :atoms!} | {:decimal, boolean} | {:as, as}
-  @type options ::
-          %{
-            optional(:keys) => :atoms | :atoms!,
-            optional(:decimal) => boolean,
-            optional(:as) => as
-          }
-          | [option]
+  @type option :: {:keys, keys} | {:decimal, decimal} | {:as, as}
+  @type options :: %{
+          optional(:keys) => keys,
+          optional(:decimal) => decimal,
+          optional(:as) => as
+        }
 
   @spec decode(t, options) :: any
   def decode(value, options)

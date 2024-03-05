@@ -1,9 +1,10 @@
 # Poison
 
-[![Build Status](https://img.shields.io/github/workflow/status/devinus/poison/ci/master)](https://github.com/devinus/poison/actions/workflows/ci.yml)
-[![Coverage Status](https://img.shields.io/coveralls/github/devinus/poison/master)](https://coveralls.io/github/devinus/poison?branch=master)
-[![Hex.pm Version](https://img.shields.io/hexpm/v/poison.svg?style=flat-square)](https://hex.pm/packages/poison)
-[![Hex.pm Download Total](https://img.shields.io/hexpm/dt/poison.svg?style=flat-square)](https://hex.pm/packages/poison)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/devinus/poison/ci.yml)](https://github.com/devinus/poison/actions/workflows/ci.yml)
+[![Coverage Status](https://img.shields.io/coverallsCoverage/github/devinus/poison)](https://coveralls.io/github/devinus/poison?branch=master))
+[![Hex.pm Version](https://img.shields.io/hexpm/v/poison)](https://hex.pm/packages/poison)
+[![Hex.pm Download Total](https://img.shields.io/hexpm/dt/poison)](https://hex.pm/packages/poison)
+[![Hex.pm Dependents](https://img.shields.io/librariesio/dependents/hex/poison)](https://hex.pm/packages/poison)
 
 Poison is a new JSON library for Elixir focusing on wicked-fast **speed**
 without sacrificing **simplicity**, **completeness**, or **correctness**.
@@ -17,7 +18,7 @@ several techniques that are [known to benefit BeamAsm][2] for JIT compilation,
 Poison benchmarks sometimes puts Poison's performance close to `jiffy` and
 usually faster than other Erlang/Elixir libraries.
 
-Poison fully conforms to [RFC 7159][4], [ECMA 404][5], and fully passes the
+Poison fully conforms to [RFC 8259][4], [ECMA 404][5], and fully passes the
 [JSONTestSuite][6].
 
 ## Installation
@@ -32,8 +33,8 @@ end
 
 Then, update your dependencies:
 
-```sh-session
-$ mix deps.get
+```sh
+mix deps.get
 ```
 
 ## Usage
@@ -133,7 +134,7 @@ ignored.
 
 ### Key Validation
 
-According to [RFC 7159][4] keys in a JSON object should be unique. This is
+According to [RFC 8259][4] keys in a JSON object should be unique. This is
 enforced and resolved in different ways in other libraries. In the Ruby JSON
 library for example, the output generated from encoding a hash with a duplicate
 key (say one is a string, the other an atom) will include both keys. When
@@ -154,16 +155,16 @@ iex> Poison.encode!(%{:foo => "foo1", "foo" => "foo2"}, strict_keys: true)
 
 ## Benchmarking
 
-```sh-session
-$ MIX_ENV=bench mix run bench/run.exs
+```sh
+MIX_ENV=bench mix run bench/run.exs
 ```
 
 ### Current Benchmarks
 
-As of 2021-07-22:
+As of 2024-06-06:
 
-- Amazon EC2 c5.2xlarge instance running Ubuntu Server 20.04:
-  https://gist.github.com/devinus/f56cff9e5a0aa9de9215cf33212085f6
+- Amazon EC2 c6i.2xlarge instance running Ubuntu Server 22.04:
+  <https://gist.github.com/devinus/afb351ae45194a6b93b6db9bf2d4c163>
 
 ## License
 
@@ -171,10 +172,10 @@ Poison is released under the [public-domain-equivalent][8] [0BSD][9] license.
 
 [1]: https://erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: https://erlang.org/documentation/doc-12.0-rc1/erts-12.0/doc/html/BeamAsm.html
-[3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
-[4]: https://tools.ietf.org/html/rfc7159
-[5]: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+[3]: https://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
+[4]: https://datatracker.ietf.org/doc/html/rfc8259
+[5]: https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
 [6]: https://github.com/nst/JSONTestSuite
-[7]: http://prog21.dadgum.com/70.html
+[7]: https://prog21.dadgum.com/70.html
 [8]: https://en.wikipedia.org/wiki/Public-domain-equivalent_license
 [9]: https://opensource.org/licenses/0BSD

@@ -80,11 +80,18 @@ end
 defprotocol Poison.Encoder do
   @fallback_to_any true
 
-  @typep escape :: :unicode | :javascript | :html_safe
-  @typep pretty :: boolean
-  @typep indent :: non_neg_integer
-  @typep offset :: non_neg_integer
-  @typep strict_keys :: boolean
+  @type escape :: :unicode | :javascript | :html_safe
+  @type pretty :: boolean
+  @type indent :: non_neg_integer
+  @type offset :: non_neg_integer
+  @type strict_keys :: boolean
+
+  @type option ::
+          {:escape, escape}
+          | {:pretty, pretty}
+          | {:indent, indent}
+          | {:offset, offset}
+          | {:strict_keys, strict_keys}
 
   @type options :: %{
           optional(:escape) => escape,
@@ -130,7 +137,7 @@ defimpl Poison.Encoder, for: BitString do
     end
   end
 
-  # http://en.wikipedia.org/wiki/Unicode_control_characters
+  # https://en.wikipedia.org/wiki/Unicode_control_characters
   defp escape(<<char, rest::bits>>, mode) when char <= 0x1F or char == 0x7F do
     [seq(char) | escape(rest, mode)]
   end
@@ -147,8 +154,8 @@ defimpl Poison.Encoder, for: BitString do
     [seq(char) | escape(rest, :unicode)]
   end
 
-  # http://en.wikipedia.org/wiki/UTF-16#Example_UTF-16_encoding_procedure
-  # http://unicodebook.readthedocs.org/unicode_encodings.html
+  # https://en.wikipedia.org/wiki/UTF-16#U+D800_to_U+DFFF_(surrogates)
+  # https://unicodebook.readthedocs.io/unicode_encodings.html
   defp escape(<<char::utf8, rest::bits>>, :unicode) when char > 0xFFFF do
     code = char - 0x10000
 
@@ -159,13 +166,28 @@ defimpl Poison.Encoder, for: BitString do
     ]
   end
 
-  defp escape(<<char::utf8, rest::bits>>, mode)
-       when mode in [:html_safe, :javascript] and char in [0x2028, 0x2029] do
-    [seq(char) | escape(rest, mode)]
+  # https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+  # https://rubydoc.info/docs/rails/ActiveSupport%2FJSON%2FEncoding%2Eescape_html_entities_in_json=
+  defp escape(<<?&::utf8, rest::bits>>, :html_safe) do
+    ["\\u0026" | escape(rest, :html_safe)]
   end
 
-  defp escape(<<?/::utf8, rest::bits>>, :html_safe) do
-    ["\\/" | escape(rest, :html_safe)]
+  defp escape(<<?<::utf8, rest::bits>>, :html_safe) do
+    ["\\u003C" | escape(rest, :html_safe)]
+  end
+
+  defp escape(<<?>::utf8, rest::bits>>, :html_safe) do
+    ["\\u003E" | escape(rest, :html_safe)]
+  end
+
+  defp escape(<<"\u2028"::utf8, rest::bits>>, mode)
+       when mode in [:html_safe, :javascript] do
+    ["\\u2028" | escape(rest, mode)]
+  end
+
+  defp escape(<<"\u2029"::utf8, rest::bits>>, mode)
+       when mode in [:html_safe, :javascript] do
+    ["\\u2029" | escape(rest, mode)]
   end
 
   defp escape(string, mode) do
@@ -177,11 +199,11 @@ defimpl Poison.Encoder, for: BitString do
   @compile {:inline, chunk_size: 3}
 
   defp chunk_size(<<char, _rest::bits>>, _mode, acc)
-       when char <= 0x1F or char in '"\\' do
+       when char <= 0x1F or char in ~c("\\) do
     acc
   end
 
-  defp chunk_size(<<?/, _rest::bits>>, :html_safe, acc) do
+  defp chunk_size(<<char, _rest::bits>>, :html_safe, acc) when char in ~c(&<>) do
     acc
   end
 
@@ -189,7 +211,7 @@ defimpl Poison.Encoder, for: BitString do
     chunk_size(rest, mode, acc + 1)
   end
 
-  defp chunk_size(<<_::utf8, _rest::bits>>, :unicode, acc) do
+  defp chunk_size(<<_codepoint::utf8, _rest::bits>>, :unicode, acc) do
     acc
   end
 
@@ -199,7 +221,7 @@ defimpl Poison.Encoder, for: BitString do
   end
 
   defp chunk_size(<<codepoint::utf8, rest::bits>>, mode, acc) do
-    chunk_size(rest, mode, acc + byte_size(<<codepoint::utf8>>))
+    chunk_size(rest, mode, acc + codepoint_size(codepoint))
   end
 
   defp chunk_size(<<>>, _mode, acc), do: acc
@@ -216,6 +238,16 @@ defimpl Poison.Encoder, for: BitString do
       s when length(s) < 3 -> ["\\u00" | s]
       s when length(s) < 4 -> ["\\u0" | s]
       s -> ["\\u" | s]
+    end
+  end
+
+  @compile {:inline, codepoint_size: 1}
+
+  defp codepoint_size(codepoint) do
+    cond do
+      codepoint <= 0x7FF -> 2
+      codepoint <= 0xFFFF -> 3
+      true -> 4
     end
   end
 end
@@ -240,7 +272,7 @@ defimpl Poison.Encoder, for: Map do
   @compile :inline
   @compile :inline_list_funcs
 
-  def encode(map, _) when map_size(map) < 1, do: "{}"
+  def encode(map, _options) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
     map
@@ -347,7 +379,7 @@ defimpl Poison.Encoder, for: List do
   end
 end
 
-defimpl Poison.Encoder, for: [Range, Stream, MapSet, HashSet, Date.Range] do
+defimpl Poison.Encoder, for: [Range, Stream, MapSet, Date.Range] do
   alias Poison.{Encoder, Pretty}
 
   use Pretty

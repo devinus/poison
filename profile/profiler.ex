@@ -11,6 +11,7 @@ defmodule Poison.Profiler do
         path
         |> Path.basename(".json")
         |> String.replace(~r/-+/, "_")
+        # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
         |> String.to_atom()
 
       value = File.read!(path)

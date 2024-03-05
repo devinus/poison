@@ -11,7 +11,7 @@ defmodule Poison.Mixfile do
       app: :poison,
       name: "Poison",
       version: @version,
-      elixir: "~> 1.11",
+      elixir: "~> 1.12",
       description: "An incredibly fast, pure Elixir JSON library",
       source_url: "https://github.com/devinus/poison",
       start_permanent: Mix.env() == :prod,
@@ -23,13 +23,13 @@ defmodule Poison.Mixfile do
       aliases: aliases(),
       xref: [exclude: [Decimal]],
       dialyzer: [
-        ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:decimal],
         flags: [
           :error_handling,
-          :race_conditions,
-          :underspecs,
-          :unmatched_returns
+          :extra_return,
+          :missing_return,
+          :unmatched_returns,
+          :underspecs
         ]
       ],
       test_coverage: [tool: ExCoveralls],
@@ -46,18 +46,16 @@ defmodule Poison.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    spec = [extra_applications: []]
-
-    if Mix.env() != :bench do
-      spec
+    if Mix.env() == :bench do
+      [extra_applications: [:eex]]
     else
-      Keyword.put_new(spec, :applications, [:logger])
+      []
     end
   end
 
-  defp elixirc_paths() do
+  defp elixirc_paths do
     if Mix.env() == :profile do
-      ["lib", "profile"]
+      ~w(lib profile)
     else
       ["lib"]
     end
@@ -67,19 +65,22 @@ defmodule Poison.Mixfile do
   defp deps do
     [
       {:benchee_html, "~> 1.0", only: :bench, runtime: false},
-      {:benchee, "~> 1.0", only: :bench, runtime: false},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:decimal, "~> 2.0", optional: true},
-      {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.26", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.14", only: :test, runtime: false},
+      {:benchee_markdown, "~> 0.3", only: :bench, runtime: false},
+      {:benchee, "~> 1.3", only: :bench, runtime: false},
+      {:castore, "~> 1.0", only: :test, runtime: false},
+      {:credo, "~> 1.7.7-rc", only: [:dev, :test], runtime: false},
+      {:decimal, "~> 2.1", optional: true},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
-      {:jason, "~> 1.2", only: [:dev, :test, :bench, :profile], runtime: false},
-      {:jiffy, "~> 1.0", only: [:bench, :profile], runtime: false},
-      {:json, "~> 1.4", only: [:bench, :profile], runtime: false},
-      {:jsone, "~> 1.7", only: [:bench, :profile], runtime: false},
-      {:junit_formatter, "~> 3.3", only: :test, runtime: false},
-      {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
+      {:jason, "~> 1.5.0-alpha", only: [:dev, :test, :bench, :profile], runtime: false},
+      {:jiffy, "~> 1.1", only: [:bench, :profile], runtime: false},
+      {:jsone, "~> 1.8", only: [:bench, :profile], runtime: false},
+      {:junit_formatter, "~> 3.4", only: :test, runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:stream_data, "~> 1.1", only: [:dev, :test], runtime: false},
+      {:thoas, "~> 1.2", only: [:bench, :profile], runtime: false},
       {:tiny, "~> 1.0", only: [:bench, :profile], runtime: false}
     ]
   end
@@ -88,7 +89,12 @@ defmodule Poison.Mixfile do
     [
       main: "Poison",
       canonical: "https://hexdocs.pm/poison",
-      extras: ["README.md"]
+      extras: [
+        "README.md",
+        "CHANGELOG.md": [title: "Changelog"],
+        LICENSE: [title: "License"]
+      ],
+      source_ref: "master"
     ]
   end
 
@@ -104,8 +110,12 @@ defmodule Poison.Mixfile do
   defp aliases do
     [
       "deps.get": [
-        fn _ ->
-          System.cmd("git", ["submodule", "update", "--init"], cd: __DIR__, parallelism: true)
+        fn _args ->
+          System.cmd("git", ["submodule", "update", "--init"],
+            cd: __DIR__,
+            env: [],
+            parallelism: true
+          )
         end,
         "deps.get"
       ]

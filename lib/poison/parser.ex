@@ -536,8 +536,8 @@ defmodule Poison.Parser do
   # http://www.ietf.org/rfc/rfc2781.txt
   # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
   # http://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
-  defguardp is_surrogate(cp) when cp in 0xD800..0xDFFF
-  defguardp is_surrogate_pair(hi, lo) when hi in 0xD800..0xDBFF and lo in 0xDC00..0xDFFF
+  defguardp is_hi_surrogate(cp) when cp in 0xD800..0xDBFF
+  defguardp is_lo_surrogate(cp) when cp in 0xDC00..0xDFFF
 
   defmacrop get_codepoint(seq, skip) do
     quote bind_quoted: [seq: seq, skip: skip] do
@@ -552,28 +552,36 @@ defmodule Poison.Parser do
 
   @compile {:inline, string_escape_unicode: 5}
 
-  defp string_escape_unicode(<<"\\u", seq2::binary-size(4), rest::bits>>, data, skip, acc, seq1) do
-    hi = get_codepoint(seq1, skip)
-    lo = get_codepoint(seq2, skip + 6)
+  defp string_escape_unicode(rest, data, skip, acc, seq1) do
+    cp1 = get_codepoint(seq1, skip)
 
     cond do
-      is_surrogate_pair(hi, lo) ->
-        codepoint = 0x10000 + ((hi &&& 0x03FF) <<< 10) + (lo &&& 0x03FF)
-        string_continue(rest, data, skip + 11, true, 0, [acc, codepoint])
-
-      is_surrogate(hi) ->
-        raise ParseError, skip: skip, value: "\\u#{seq1}\\u#{seq2}"
-
-      is_surrogate(lo) ->
-        raise ParseError, skip: skip + 6, value: "\\u#{seq2}"
-
-      true ->
-        string_continue(rest, data, skip + 11, true, 0, [acc, hi, lo])
+      is_hi_surrogate(cp1) -> string_escape_surrogate_pair(rest, data, skip, acc, seq1, cp1)
+      is_lo_surrogate(cp1) -> raise ParseError, skip: skip, value: "\\u#{seq1}"
+      true -> string_continue(rest, data, skip + 5, true, 0, [acc, cp1])
     end
   end
 
-  defp string_escape_unicode(rest, data, skip, acc, seq1) do
-    string_continue(rest, data, skip + 5, true, 0, [acc, get_codepoint(seq1, skip)])
+  @compile {:inline, string_escape_surrogate_pair: 6}
+
+  defp string_escape_surrogate_pair(
+         <<"\\u", seq2::binary-size(4), rest::bits>>,
+         data,
+         skip,
+         acc,
+         seq1,
+         hi
+       ) do
+    with lo when is_lo_surrogate(lo) <- get_codepoint(seq2, skip + 6) do
+      codepoint = 0x10000 + ((hi &&& 0x03FF) <<< 10) + (lo &&& 0x03FF)
+      string_continue(rest, data, skip + 11, true, 0, [acc, codepoint])
+    else
+      _ -> raise ParseError, skip: skip, value: "\\u#{seq1}\\u#{seq2}"
+    end
+  end
+
+  defp string_escape_surrogate_pair(_rest, _data, skip, _acc, seq1, _hi) do
+    raise ParseError, skip: skip, value: "\\u#{seq1}"
   end
 
   ## Whitespace

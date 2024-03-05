@@ -126,6 +126,24 @@ defmodule Poison.ParserTest do
                    parse!(~s("\\uxxxx"))
                  end
 
+    assert_raise ParseError,
+                 ~s(cannot parse value at position 2: "\\\\uD800\\\\uDBFF"),
+                 fn ->
+                   parse!(~s("\\uD800\\uDBFF"))
+                 end
+
+    assert_raise ParseError,
+                 ~s(cannot parse value at position 2: "\\\\uD800"),
+                 fn ->
+                   parse!(~s("\\uD800"))
+                 end
+
+    assert_raise ParseError,
+                 ~s(cannot parse value at position 2: "\\\\uDC00"),
+                 fn ->
+                   parse!(~s("\\uDC00"))
+                 end
+
     assert parse!(~s("\\"\\\\\\/\\b\\f\\n\\r\\t")) == ~s("\\/\b\f\n\r\t)
     assert parse!(~s("\\u2603")) == "☃"
     assert parse!(~s("\\u2028\\u2029")) == "\u2028\u2029"
@@ -133,6 +151,7 @@ defmodule Poison.ParserTest do
     assert parse!(~s("\\uD834\\uDD1E")) == "𝄞"
     assert parse!(~s("\\uD799\\uD799")) == "힙힙"
     assert parse!(~s("✔︎")) == "✔︎"
+    assert parse!(~s("\\uD83D\\uDC68\\u200D\\uD83D\\uDC76")) == "👨‍👶"
   end
 
   property "strings" do

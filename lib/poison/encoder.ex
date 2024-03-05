@@ -109,7 +109,7 @@ defimpl Poison.Encoder, for: Atom do
 end
 
 defimpl Poison.Encoder, for: BitString do
-  use Bitwise
+  import Bitwise
 
   @compile :inline
   @compile :inline_list_funcs
@@ -177,7 +177,7 @@ defimpl Poison.Encoder, for: BitString do
   @compile {:inline, chunk_size: 3}
 
   defp chunk_size(<<char, _rest::bits>>, _mode, acc)
-       when char <= 0x1F or char in '"\\' do
+       when char <= 0x1F or char in ~c("\\) do
     acc
   end
 
@@ -189,7 +189,7 @@ defimpl Poison.Encoder, for: BitString do
     chunk_size(rest, mode, acc + 1)
   end
 
-  defp chunk_size(<<_::utf8, _rest::bits>>, :unicode, acc) do
+  defp chunk_size(<<_codepoint::utf8, _rest::bits>>, :unicode, acc) do
     acc
   end
 
@@ -240,7 +240,7 @@ defimpl Poison.Encoder, for: Map do
   @compile :inline
   @compile :inline_list_funcs
 
-  def encode(map, _) when map_size(map) < 1, do: "{}"
+  def encode(map, _options) when map_size(map) < 1, do: "{}"
 
   def encode(map, options) do
     map

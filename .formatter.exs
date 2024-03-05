@@ -2,7 +2,7 @@
 [
   import_deps: [:stream_data],
   inputs: [
-    "{mix,.credo,.formatter}.exs",
-    "{config,lib,test,bench,profile}/**/*.{ex,exs}"
+    "{.credo,.dialyzer_ignore,.formatter,mix}.exs",
+    "{config,bench,lib,profile,test}/**/*.{ex,exs}"
   ]
 ]

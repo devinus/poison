@@ -169,7 +169,7 @@ As of 2021-07-22:
 
 Poison is released under the [public-domain-equivalent][8] [0BSD][9] license.
 
-[1]: http://www.erlang.org/euc/07/papers/1700Gustafsson.pdf
+[1]: https://erlang.org/euc/07/papers/1700Gustafsson.pdf
 [2]: https://erlang.org/documentation/doc-12.0-rc1/erts-12.0/doc/html/BeamAsm.html
 [3]: http://jlouisramblings.blogspot.com/2013/07/problematic-traits-in-erlang.html
 [4]: https://tools.ietf.org/html/rfc7159

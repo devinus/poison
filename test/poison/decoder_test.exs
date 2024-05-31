@@ -197,4 +197,40 @@ defmodule Poison.DecoderTest do
     assert transform(address, %{as: %Address{}}) ==
              "1 Main St., Austin, TX  78701"
   end
+
+  test "decoding a sigle :as function with string keys" do
+    person = %{"name" => "Devin Torres"}
+    as = fn %{"name" => _name} -> %Person{} end
+    expected = %Person{name: "Devin Torres"}
+    assert transform(person, %{as: as}) == expected
+  end
+
+  test "decoding a single :as function with atom keys" do
+    person = %{name: "Devin Torres"}
+    as = fn %{name: _name} -> %Person{} end
+    expected = %Person{name: "Devin Torres"}
+    assert transform(person, %{as: as, keys: :atoms!}) == expected
+  end
+
+  test "decoding a :as list function with string keys" do
+    person = [%{"name" => "Devin Torres"}]
+    as = fn _value -> [%Person{}] end
+    expected = [%Person{name: "Devin Torres"}]
+    assert transform(person, %{as: as}) == expected
+  end
+
+  test "decoding nested :as function with string keys" do
+    person = %{"person" => %{"name" => "Devin Torres"}}
+    as = fn _value -> %{"person" => %Person{}} end
+    actual = transform(person, %{as: as})
+    expected = %{"person" => %Person{name: "Devin Torres"}}
+    assert actual == expected
+  end
+
+  test "decoding nested structs in :as function with string keys" do
+    person = %{"name" => "Devin Torres", "contact" => %{"email" => "test@email.com"}}
+    as = fn _value -> %Person{contact: %Contact{}} end
+    expected = %Person{name: "Devin Torres", contact: %Contact{email: "test@email.com"}}
+    assert transform(person, %{as: as}) == expected
+  end
 end

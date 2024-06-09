@@ -100,8 +100,8 @@ defmodule Poison do
   @spec decode(iodata) :: {:ok, Parser.t()} | {:error, ParseError.t() | DecodeError.t()}
   @spec decode(iodata, Decoder.options() | [Decoder.option()]) ::
           {:ok, Decoder.t()} | {:error, ParseError.t() | DecodeError.t()}
-  def decode(iodata, options \\ %{}) do
-    {:ok, decode!(iodata, options)}
+  def decode(value, options \\ %{}) do
+    {:ok, decode!(value, options)}
   rescue
     exception in [ParseError, DecodeError] ->
       {:error, exception}

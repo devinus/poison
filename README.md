@@ -111,6 +111,25 @@ end
 For maximum performance, make sure you `@derive [Poison.Encoder]` for any
 struct you plan on encoding.
 
+### Pretty print and other options
+
+
+You can set options for the encoder.
+
+```
+Poison.encode!(data, pretty: true)
+```
+
+List of all options found in [/lib/poison/encoder.ex](https://github.com/devinus/poison/blob/e21f5f92c39dcbd192185cd41c89e4d58fa753f3/lib/poison/encoder.ex#L84).
+
+```
+  @typep escape :: :unicode | :javascript | :html_safe
+  @typep pretty :: boolean
+  @typep indent :: non_neg_integer
+  @typep offset :: non_neg_integer
+  @typep strict_keys :: boolean
+```
+
 ### Encoding only some attributes
 
 When deriving structs for encoding, it is possible to select or exclude

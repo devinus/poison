@@ -105,6 +105,47 @@ defprotocol Poison.Encoder do
   def encode(value, options)
 end
 
+defimpl Poison.Encoder, for: Tuple do
+  alias Poison.{Encoder, Pretty}
+
+  use Poison.{Encode, Pretty}
+
+  @compile :inline
+  @compile :inline_list_funcs
+
+  def encode({}, _options), do: "{}"
+
+  def encode(tuple, options) do
+    tuple_to_list = Tuple.to_list(tuple)
+    encode(tuple_to_list, pretty(options), options)
+  end
+
+  @spec encode(list, boolean, any) :: [...]
+  def encode(tuple_to_list, false, options) do
+    [?{, tl(:lists.foldr(&[?,, Encoder.encode(&1, options) | &2], [], tuple_to_list)), ?}]
+  end
+
+  def encode(tuple_to_list, true, options) do
+    indent = indent(options)
+    offset = offset(options) + indent
+    options = offset(options, offset)
+
+    [
+      "{\n",
+      tl(
+        :lists.foldr(
+          &[",\n", spaces(offset), Encoder.encode(&1, options) | &2],
+          [],
+          tuple_to_list
+        )
+      ),
+      ?\n,
+      spaces(offset - indent),
+      ?}
+    ]
+  end
+end
+
 defimpl Poison.Encoder, for: Atom do
   def encode(nil, _options), do: "null"
   def encode(true, _options), do: "true"

@@ -105,6 +105,12 @@ defmodule Poison.EncoderTest do
     end
   end
 
+  property "Tuple" do
+    check all(value <- json_list(min_length: 1)) do
+      assert String.match?(to_json({value}), ~r/^\{.*\}$/)
+    end
+  end
+
   test "Map" do
     assert encode!(%{}) == "{}"
     assert encode!(%{"foo" => "bar"}) == ~s({"foo":"bar"})

@@ -30,7 +30,7 @@ defmodule Poison.ParseError do
       <<>> ->
         "unexpected end of input at position #{pos}"
 
-      <<token::utf8, _::bits>> ->
+      <<token::utf8, _rest::bits>> ->
         "unexpected token at position #{pos}: #{escape(token)}"
 
       _rest ->
@@ -50,31 +50,28 @@ end
 
 defmodule Poison.Parser do
   @moduledoc """
-  An RFC 7159 and ECMA 404 conforming JSON parser.
+  An RFC 8259 and ECMA 404 conforming JSON parser.
 
-  See: https://tools.ietf.org/html/rfc7159
-  See: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+  See: https://datatracker.ietf.org/doc/html/rfc8259
+  See: https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
   """
 
   @compile :inline
   @compile :inline_list_funcs
-  @compile {:inline_effort, 2500}
-  @compile {:inline_size, 150}
-  @compile {:inline_unroll, 3}
 
   import Bitwise
 
   alias Poison.{Decoder, ParseError}
 
-  @typep value :: nil | true | false | map | list | float | integer | String.t()
+  @type scalar :: nil | true | false | float | integer | String.t()
 
   if Code.ensure_loaded?(Decimal) do
-    @type t :: value | Decimal.t()
+    @type t :: scalar | Decimal.t() | [t] | %{optional(String.t()) => t}
   else
-    @type t :: value
+    @type t :: scalar | [t] | %{optional(String.t()) => t}
   end
 
-  whitespace = '\s\t\n\r'
+  whitespace = ~c"\s\t\n\r"
   digits = ?0..?9
 
   defmacrop syntax_error(skip) do
@@ -83,14 +80,14 @@ defmodule Poison.Parser do
     end
   end
 
-  @spec parse!(iodata | binary, Decoder.options()) :: t | no_return
+  @spec parse!(iodata, Decoder.options()) :: t
   def parse!(value, options \\ %{})
 
   def parse!(data, options) when is_bitstring(data) do
     [value | skip] =
       value(data, data, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil), 0)
 
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
     skip_whitespace(rest, skip, value)
   rescue
     exception in ParseError ->
@@ -105,25 +102,16 @@ defmodule Poison.Parser do
 
   @compile {:inline, value: 5}
 
-  defp value(<<?f, rest::bits>>, _data, _keys, _decimal, skip) do
-    case rest do
-      <<"alse", _rest::bits>> -> [false | skip + 5]
-      _other -> syntax_error(skip)
-    end
+  defp value(<<"null", _rest::bits>>, _data, _keys, _decimal, skip) do
+    [nil | skip + 4]
   end
 
-  defp value(<<?t, rest::bits>>, _data, _keys, _decimal, skip) do
-    case rest do
-      <<"rue", _rest::bits>> -> [true | skip + 4]
-      _other -> syntax_error(skip)
-    end
+  defp value(<<"true", _rest::bits>>, _data, _keys, _decimal, skip) do
+    [true | skip + 4]
   end
 
-  defp value(<<?n, rest::bits>>, _data, _keys, _decimal, skip) do
-    case rest do
-      <<"ull", _rest::bits>> -> [nil | skip + 4]
-      _other -> syntax_error(skip)
-    end
+  defp value(<<"false", _rest::bits>>, _data, _keys, _decimal, skip) do
+    [false | skip + 5]
   end
 
   defp value(<<?-, rest::bits>>, _data, _keys, decimal, skip) do
@@ -192,10 +180,10 @@ defmodule Poison.Parser do
   defp object_pairs(<<?", rest::bits>>, data, keys, decimal, skip, acc) do
     start = skip + 1
     [name | skip] = string_continue(rest, data, start)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
 
     [value | skip] = object_value(rest, data, keys, decimal, skip)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
 
     object_pairs_continue(rest, data, keys, decimal, skip, [
       {object_name(keys, start, name), value} | acc
@@ -256,8 +244,8 @@ defmodule Poison.Parser do
 
   @compile {:inline, array_values: 6}
 
-  defp array_values(<<?], _rest::bits>>, _data, _keys, _decimal, skip, _acc) do
-    [[] | skip + 1]
+  defp array_values(<<?], _rest::bits>>, _data, _keys, _decimal, skip, acc) do
+    [acc | skip + 1]
   end
 
   for char <- whitespace do
@@ -268,7 +256,7 @@ defmodule Poison.Parser do
 
   defp array_values(rest, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -276,7 +264,7 @@ defmodule Poison.Parser do
 
   defp array_values_continue(<<?,, rest::bits>>, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip + 1)
-    <<_::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(skip), rest::bits>> = data
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -352,7 +340,7 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_exp: 6}
 
-  for e <- 'eE' do
+  for e <- ~c(eE) do
     defp number_exp(<<unquote(e), rest::bits>>, decimal, skip, sign, coef, exp) do
       [value | skip] = number_exp_continue(rest, skip + 1)
       number_complete(decimal, skip, sign, coef, exp + value)
@@ -424,7 +412,7 @@ defmodule Poison.Parser do
 
   # See: https://arxiv.org/pdf/2101.11408.pdf
   defp number_complete(_decimal, skip, sign, coef, exp)
-       when exp in -10..10 and coef <= unquote(max_sig) do
+       when exp in -22..22 and coef <= unquote(max_sig) do
     if exp < 0 do
       [coef / pow10(-exp) * sign | skip]
     else
@@ -440,7 +428,7 @@ defmodule Poison.Parser do
       | skip
     ]
   rescue
-    ArithmeticError ->
+    ArgumentError ->
       reraise ParseError, [skip: skip, value: "#{coef * sign}e#{exp}"], __STACKTRACE__
   end
 
@@ -486,10 +474,13 @@ defmodule Poison.Parser do
         end
 
       unicode ->
-        [
-          :unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8)
-          | skip + len + 1
-        ]
+        case :unicode.characters_to_binary([acc | binary_part(data, skip, len)], :utf8) do
+          string when is_binary(string) ->
+            [string | skip + len + 1]
+
+          _other ->
+            syntax_error(skip + len)
+        end
 
       true ->
         [IO.iodata_to_binary([acc | binary_part(data, skip, len)]) | skip + len + 1]
@@ -515,27 +506,21 @@ defmodule Poison.Parser do
 
   @compile {:inline, string_escape: 5}
 
-  for {seq, char} <- Enum.zip(~C("\ntr/fb), ~c("\\\n\t\r/\f\b)) do
-    defp string_escape(<<unquote(seq), rest::bits>>, data, skip, unicode, acc) do
-      string_continue(rest, data, skip + 1, unicode, 0, [acc | unquote(<<char>>)])
-    end
+  defp string_escape(<<?u, rest::bits>>, data, skip, _unicode, acc) do
+    string_escape_unicode(rest, data, skip, acc)
   end
 
-  defp string_escape(
-         <<?u, seq1::binary-size(4), rest::bits>>,
-         data,
-         skip,
-         _unicode,
-         acc
-       ) do
-    string_escape_unicode(rest, data, skip, acc, seq1)
+  for {seq, char} <- Enum.zip(~C("\ntr/fb), ~c("\\\n\t\r/\f\b)) do
+    defp string_escape(<<unquote(seq), rest::bits>>, data, skip, unicode, acc) do
+      string_continue(rest, data, skip + 1, unicode, 0, [acc | [unquote(char)]])
+    end
   end
 
   defp string_escape(_rest, _data, skip, _unicode, _acc), do: syntax_error(skip)
 
-  # http://www.ietf.org/rfc/rfc2781.txt
-  # http://perldoc.perl.org/Encode/Unicode.html#Surrogate-Pairs
-  # http://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
+  # https://www.ietf.org/rfc/rfc2781.txt
+  # https://perldoc.perl.org/Encode::Unicode#Surrogate-Pairs
+  # https://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs
   defguardp is_hi_surrogate(cp) when cp in 0xD800..0xDBFF
   defguardp is_lo_surrogate(cp) when cp in 0xDC00..0xDFFF
 
@@ -550,17 +535,22 @@ defmodule Poison.Parser do
     end
   end
 
-  @compile {:inline, string_escape_unicode: 5}
+  @compile {:inline, string_escape_unicode: 4}
 
-  defp string_escape_unicode(rest, data, skip, acc, seq1) do
-    cp1 = get_codepoint(seq1, skip)
+  defp string_escape_unicode(<<seq1::binary-size(4), rest::bits>>, data, skip, acc) do
+    case get_codepoint(seq1, skip) do
+      hi when is_hi_surrogate(hi) ->
+        string_escape_surrogate_pair(rest, data, skip, acc, seq1, hi)
 
-    cond do
-      is_hi_surrogate(cp1) -> string_escape_surrogate_pair(rest, data, skip, acc, seq1, cp1)
-      is_lo_surrogate(cp1) -> raise ParseError, skip: skip, value: "\\u#{seq1}"
-      true -> string_continue(rest, data, skip + 5, true, 0, [acc, cp1])
+      lo when is_lo_surrogate(lo) ->
+        raise ParseError, skip: skip, value: "\\u#{seq1}"
+
+      codepoint ->
+        string_continue(rest, data, skip + 5, true, 0, [acc | [codepoint]])
     end
   end
+
+  defp string_escape_unicode(_rest, _data, skip, _acc), do: syntax_error(skip + 1)
 
   @compile {:inline, string_escape_surrogate_pair: 6}
 
@@ -572,11 +562,13 @@ defmodule Poison.Parser do
          seq1,
          hi
        ) do
-    with lo when is_lo_surrogate(lo) <- get_codepoint(seq2, skip + 6) do
-      codepoint = 0x10000 + ((hi &&& 0x03FF) <<< 10) + (lo &&& 0x03FF)
-      string_continue(rest, data, skip + 11, true, 0, [acc, codepoint])
-    else
-      _ -> raise ParseError, skip: skip, value: "\\u#{seq1}\\u#{seq2}"
+    case get_codepoint(seq2, skip + 6) do
+      lo when is_lo_surrogate(lo) ->
+        codepoint = 0x10000 + ((hi &&& 0x03FF) <<< 10) + (lo &&& 0x03FF)
+        string_continue(rest, data, skip + 11, true, 0, [acc | [codepoint]])
+
+      _other ->
+        raise ParseError, skip: skip, value: "\\u#{seq1}\\u#{seq2}"
     end
   end
 

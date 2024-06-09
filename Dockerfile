@@ -1,4 +1,4 @@
-FROM elixir:1.12.3-alpine as base
+FROM elixir:1.17.0-rc.0-otp-27-alpine AS base
 ARG MIX_ENV
 ENV MIX_ENV ${MIX_ENV:-test}
 RUN apk --no-cache add git build-base

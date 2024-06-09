@@ -23,22 +23,17 @@ defmodule Poison.TestGenerators do
   end
 
   def json_map(options \\ []) do
-    map_of(json_string(), json_value(), options)
+    map_of(json_string(min_length: 1), json_value(), options)
   end
 
   def json_complex_value do
-    one_of([
+    tree(
       json_value(),
-      json_list(),
-      map_of(
-        json_string(),
-        one_of([
-          json_value(),
-          json_list(),
-          json_map()
-        ])
-      )
-    ])
+      &one_of([
+        list_of(&1),
+        map_of(json_string(min_length: 1), &1)
+      ])
+    )
   end
 end
 

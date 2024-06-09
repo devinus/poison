@@ -34,25 +34,25 @@ defmodule Poison.ParserTest do
       parse!("1.0e+")
     end
 
-    assert parse!("0") == 0
-    assert parse!("1") == 1
-    assert parse!("-0") == 0
-    assert parse!("-1") == -1
-    assert parse!("0.1") == 0.1
-    assert parse!("-0.1") == -0.1
-    assert parse!("0e0") == 0
-    assert parse!("0E0") == 0
-    assert parse!("1e0") == 1
-    assert parse!("1E0") == 1
-    assert parse!("1.0e0") == 1.0
-    assert parse!("1e+0") == 1
-    assert parse!("1.0e+0") == 1.0
-    assert parse!("0.1e1") == 0.1e1
-    assert parse!("0.1e-1") == 0.1e-1
-    assert parse!("99.99e99") == 99.99e99
+    assert parse!("0") === 0
+    assert parse!("1") === 1
+    assert parse!("-0") === 0
+    assert parse!("-1") === -1
+    assert parse!("0.1") === 0.1
+    assert parse!("-0.1") === -0.1
+    assert parse!("0e0") === 0
+    assert parse!("0E0") === 0
+    assert parse!("1e0") === 1
+    assert parse!("1E0") === 1
+    assert parse!("1.0e0") === 1.0
+    assert parse!("1e+0") === 1
+    assert parse!("1.0e+0") === 1.0
+    assert parse!("0.1e1") === 1
+    assert parse!("0.1e-1") === 0.1e-1
+    assert parse!("99.99e99") === 99.99e99
 
     # credo:disable-for-next-line Credo.Check.Readability.LargeNumbers
-    assert parse!("123456789.123456789e123") == 1.234567891234568e131
+    assert parse!("123456789.123456789e123") === 1.234567891234568e131
 
     assert parse!("0", %{decimal: true}) == Decimal.new("0")
     assert parse!("-0", %{decimal: true}) == Decimal.new("-0")
@@ -69,7 +69,7 @@ defmodule Poison.ParserTest do
 
   property "number" do
     check all(int <- integer()) do
-      assert parse!(Integer.to_string(int)) == int
+      assert parse!(Integer.to_string(int)) === int
     end
 
     check all(value <- float()) do
@@ -244,12 +244,12 @@ defmodule Poison.ParserTest do
   end
 
   test "atom keys" do
-    hash = :erlang.phash2(:crypto.strong_rand_bytes(8))
+    uint = :erlang.unique_integer([:positive])
 
     assert_raise ParseError,
-                 ~s(cannot parse value at position 2: "key#{hash}"),
+                 ~s(cannot parse value at position 2: "key#{uint}"),
                  fn ->
-                   parse!(~s({"key#{hash}": null}), %{keys: :atoms!})
+                   parse!(~s({"key#{uint}": null}), %{keys: :atoms!})
                  end
 
     assert parse!(~s({"foo": "bar"}), %{keys: :atoms!}) == %{foo: "bar"}

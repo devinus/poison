@@ -1,13 +1,16 @@
 defmodule Bench do
-  alias Benchee.Formatters.{Console, HTML}
+  alias Benchee.Formatters.{Console, HTML, Markdown}
 
   def run_decode do
     Benchee.run(decode_jobs(),
-      parallel: 8,
+      title: "Decode",
+      parallel: 4,
       warmup: 1,
       time: 10,
       memory_time: 1,
+      reduction_time: 1,
       pre_check: true,
+      measure_function_call_overhead: true,
       load: Path.join(__DIR__, "decode.benchee"),
       save: [path: Path.join(__DIR__, "decode.benchee")],
       inputs:
@@ -16,21 +19,24 @@ defmodule Bench do
           |> read_data()
           |> (&{name, &1}).()
         end,
-      before_each: fn input -> :binary.copy(input) end,
       formatters: [
         {Console, extended_statistics: true},
-        {HTML, extended_statistics: true, file: Path.expand("output/decode.html", __DIR__)}
+        {Markdown, file: Path.expand("output/decode.md", __DIR__)},
+        {HTML, auto_open: false, file: Path.expand("output/decode.html", __DIR__)}
       ]
     )
   end
 
   def run_encode do
     Benchee.run(encode_jobs(),
-      parallel: 8,
+      title: "Encode",
+      parallel: 4,
       warmup: 1,
       time: 10,
       memory_time: 1,
+      reduction_time: 1,
       pre_check: true,
+      measure_function_call_overhead: true,
       load: Path.join(__DIR__, "encode.benchee"),
       save: [path: Path.join(__DIR__, "encode.benchee")],
       inputs:
@@ -42,7 +48,8 @@ defmodule Bench do
         end,
       formatters: [
         {Console, extended_statistics: true},
-        {HTML, extended_statistics: true, file: Path.expand("output/encode.html", __DIR__)}
+        {Markdown, file: Path.expand("output/encode.md", __DIR__)},
+        {HTML, auto_open: false, file: Path.expand("output/encode.html", __DIR__)}
       ]
     )
   end
@@ -58,27 +65,39 @@ defmodule Bench do
   end
 
   defp decode_jobs do
-    %{
+    jobs = %{
       "Jason" => &Jason.decode!/1,
       "jiffy" => &:jiffy.decode(&1, [:return_maps, :use_nil]),
-      "JSON" => &JSON.decode!/1,
-      "jsone" => &:jsone.decode/1,
+      "jsone" => &:jsone.decode(&1, [:reject_invalid_utf8, duplicate_map_keys: :last]),
       "JSX" => &JSX.decode!(&1, [:strict]),
       "Poison" => &Poison.Parser.parse!/1,
-      "Tiny" => &Tiny.decode!/1
+      "Tiny" => &Tiny.decode!/1,
+      "Thoas" => &:thoas.decode/1
     }
+
+    if Code.ensure_loaded?(:json) do
+      Map.put(jobs, "json", &:json.decode/1)
+    else
+      jobs
+    end
   end
 
   defp encode_jobs do
-    %{
-      "Jason" => &Jason.encode!/1,
+    jobs = %{
+      "Jason" => &Jason.encode_to_iodata!/1,
       "jiffy" => &:jiffy.encode(&1, [:use_nil]),
-      "JSON" => &JSON.encode!/1,
       "jsone" => &:jsone.encode/1,
-      "JSX" => &JSX.encode!/1,
-      "Poison" => &Poison.encode!/1,
-      "Tiny" => &Tiny.encode!/1
+      "JSX" => &JSX.encode!(&1, [:strict]),
+      "Poison" => &Poison.encode_to_iodata!/1,
+      "Tiny" => &Tiny.encode_to_iodata!/1,
+      "Thoas" => &:thoas.encode_to_iodata/1
     }
+
+    if Code.ensure_loaded?(:json) do
+      Map.put(jobs, "json", &:json.encode/1)
+    else
+      jobs
+    end
   end
 
   defp decode_inputs do

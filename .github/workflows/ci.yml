@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - develop
   pull_request:
     branches:
       - master
@@ -18,30 +19,32 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
-          - windows-latest
+          - ubuntu-22.04
           - windows-2022
-          - macos-11
         otp:
-          - '24.1'
-          - '24.0'
-          - '23.3'
-          - '23.2'
-          - '23.1'
-          - '23.0'
+          - "26.2.2"
+          - "25.3.2"
+          - "24.3.4"
         elixir:
-          - '1.12.3'
-          - '1.12.2'
-          - '1.12.1'
-          - '1.12.0'
-          - '1.11.4'
-          - '1.11.3'
-          - '1.11.2'
-          - '1.11.1'
-          - '1.11.0'
+          - "1.16.3"
+          - "1.15.7"
+          - "1.14.5"
+          - "1.13.4"
+          - "1.12.3"
+        exclude:
+          - otp: "26.2.2"
+            elixir: "1.14.5"
+          - otp: "26.2.2"
+            elixir: "1.13.4"
+          - otp: "26.2.2"
+            elixir: "1.12.3"
+          - otp: "25.3.2"
+            elixir: "1.13.4"
+          - otp: "25.3.2"
+            elixir: "1.12.3"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: true
@@ -51,8 +54,8 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
 
-      - uses: actions/cache@v2
-        id: mix-cache
+      - uses: actions/cache@v4
+        id: cache
         with:
           path: |
             _build
@@ -60,7 +63,7 @@ jobs:
             vendor
           key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
 
-      - if: steps.mix-cache.outputs.cache-hit != 'true'
+      - if: steps.cache.outputs.cache-hit != 'true'
         run: mix deps.get
 
       - run: mix coveralls.github

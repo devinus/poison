@@ -71,8 +71,15 @@ defmodule Poison.Parser do
     @type t :: scalar | [t] | %{optional(String.t()) => t}
   end
 
+  @mask_atoms! 1 <<< 0
+  @mask_atoms 1 <<< 1
+  @mask_decimal 1 <<< 2
+  @mask_keys @mask_atoms! ||| @mask_atoms
+
   whitespace = ~c"\s\t\n\r"
   digits = ?0..?9
+
+  defguardp is_flag_set(flags, mask) when (flags &&& mask) != 0
 
   defmacrop syntax_error(skip) do
     quote do
@@ -84,8 +91,28 @@ defmodule Poison.Parser do
   def parse!(value, options \\ %{})
 
   def parse!(data, options) when is_bitstring(data) do
-    [value | skip] =
-      value(data, data, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil), 0)
+    flags =
+      case options do
+        %{keys: :atoms!} ->
+          @mask_atoms!
+
+        %{keys: :atoms} ->
+          @mask_atoms
+
+        _options ->
+          0
+      end
+
+    flags =
+      case options do
+        %{decimal: true} ->
+          flags ||| @mask_decimal
+
+        _options ->
+          flags
+      end
+
+    [value | skip] = value(data, data, flags, 0)
 
     <<_skip::binary-size(skip), rest::bits>> = data
     skip_whitespace(rest, skip, value)
@@ -100,185 +127,190 @@ defmodule Poison.Parser do
     iodata |> IO.iodata_to_binary() |> parse!(options)
   end
 
-  @compile {:inline, value: 5}
+  @compile {:inline, value: 4}
 
-  defp value(<<"null", _rest::bits>>, _data, _keys, _decimal, skip) do
+  defp value(<<"null", _rest::bits>>, _data, _flags, skip) do
     [nil | skip + 4]
   end
 
-  defp value(<<"true", _rest::bits>>, _data, _keys, _decimal, skip) do
+  defp value(<<"true", _rest::bits>>, _data, _flags, skip) do
     [true | skip + 4]
   end
 
-  defp value(<<"false", _rest::bits>>, _data, _keys, _decimal, skip) do
+  defp value(<<"false", _rest::bits>>, _data, _flags, skip) do
     [false | skip + 5]
   end
 
-  defp value(<<?-, rest::bits>>, _data, _keys, decimal, skip) do
-    number_neg(rest, decimal, skip + 1)
+  defp value(<<?-, rest::bits>>, _data, flags, skip) do
+    number_neg(rest, flags, skip + 1)
   end
 
-  defp value(<<?0, rest::bits>>, _data, _keys, decimal, skip) do
-    number_frac(rest, decimal, skip + 1, 1, 0, 0)
+  defp value(<<?0, rest::bits>>, _data, flags, skip) do
+    number_frac(rest, flags, skip + 1, 1, 0, 0)
   end
 
   for digit <- ?1..?9 do
     coef = digit - ?0
 
-    defp value(<<unquote(digit), rest::bits>>, _data, _keys, decimal, skip) do
-      number_int(rest, decimal, skip + 1, 1, unquote(coef), 0)
+    defp value(<<unquote(digit), rest::bits>>, _data, flags, skip) do
+      number_int(rest, flags, skip + 1, 1, unquote(coef), 0)
     end
   end
 
-  defp value(<<?", rest::bits>>, data, _keys, _decimal, skip) do
+  defp value(<<?", rest::bits>>, data, _flags, skip) do
     string_continue(rest, data, skip + 1)
   end
 
-  defp value(<<?[, rest::bits>>, data, keys, decimal, skip) do
-    array_values(rest, data, keys, decimal, skip + 1, [])
+  defp value(<<?[, rest::bits>>, data, flags, skip) do
+    array_values(rest, data, flags, skip + 1, [])
   end
 
-  defp value(<<?{, rest::bits>>, data, keys, decimal, skip) do
-    object_pairs(rest, data, keys, decimal, skip + 1, [])
+  defp value(<<?{, rest::bits>>, data, flags, skip) do
+    object_pairs(rest, data, flags, skip + 1, [])
   end
 
   for char <- whitespace do
-    defp value(<<unquote(char), rest::bits>>, data, keys, decimal, skip) do
-      value(rest, data, keys, decimal, skip + 1)
+    defp value(<<unquote(char), rest::bits>>, data, flags, skip) do
+      value(rest, data, flags, skip + 1)
     end
   end
 
-  defp value(_rest, _data, _keys, _decimal, skip) do
+  defp value(_rest, _data, _flags, skip) do
     syntax_error(skip)
   end
 
   ## Objects
 
-  defmacrop object_name(keys, skip, name) do
-    quote bind_quoted: [keys: keys, skip: skip, name: name] do
-      case keys do
-        :atoms! ->
-          try do
-            String.to_existing_atom(name)
-          rescue
-            ArgumentError ->
-              reraise ParseError, [skip: skip, value: name], __STACKTRACE__
-          end
+  @compile {:inline, object_pairs: 5}
 
-        :atoms ->
-          # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-          String.to_atom(name)
-
-        _keys ->
-          name
-      end
-    end
-  end
-
-  @compile {:inline, object_pairs: 6}
-
-  defp object_pairs(<<?", rest::bits>>, data, keys, decimal, skip, acc) do
+  defp object_pairs(<<?", rest::bits>>, data, flags, skip, acc) do
     start = skip + 1
     [name | skip] = string_continue(rest, data, start)
     <<_skip::binary-size(skip), rest::bits>> = data
 
-    [value | skip] = object_value(rest, data, keys, decimal, skip)
+    [value | skip] = object_value(rest, data, flags, skip)
     <<_skip::binary-size(skip), rest::bits>> = data
 
-    object_pairs_continue(rest, data, keys, decimal, skip, [
-      {object_name(keys, start, name), value} | acc
+    object_pairs_continue(rest, data, flags, skip, [
+      {object_name(flags, start, name), value} | acc
     ])
   end
 
-  defp object_pairs(<<?}, _rest::bits>>, _data, _keys, _decimal, skip, []) do
+  defp object_pairs(<<?}, _rest::bits>>, _data, _flags, skip, []) do
     [%{} | skip + 1]
   end
 
   for char <- whitespace do
-    defp object_pairs(<<unquote(char), rest::bits>>, data, keys, decimal, skip, acc) do
-      object_pairs(rest, data, keys, decimal, skip + 1, acc)
+    defp object_pairs(
+           <<unquote(char), rest::bits>>,
+           data,
+           flags,
+           skip,
+           acc
+         ) do
+      object_pairs(rest, data, flags, skip + 1, acc)
     end
   end
 
-  defp object_pairs(_rest, _data, _keys, _decimal, skip, _acc) do
+  defp object_pairs(_rest, _data, _flags, skip, _acc) do
     syntax_error(skip)
   end
 
-  @compile {:inline, object_pairs_continue: 6}
+  @compile {:inline, object_pairs_continue: 5}
 
-  defp object_pairs_continue(<<?,, rest::bits>>, data, keys, decimal, skip, acc) do
-    object_pairs(rest, data, keys, decimal, skip + 1, acc)
+  defp object_pairs_continue(<<?,, rest::bits>>, data, flags, skip, acc) do
+    object_pairs(rest, data, flags, skip + 1, acc)
   end
 
-  defp object_pairs_continue(<<?}, _rest::bits>>, _data, _keys, _decimal, skip, acc) do
+  defp object_pairs_continue(<<?}, _rest::bits>>, _data, _flags, skip, acc) do
     [:maps.from_list(acc) | skip + 1]
   end
 
   for char <- whitespace do
-    defp object_pairs_continue(<<unquote(char), rest::bits>>, data, keys, decimal, skip, acc) do
-      object_pairs_continue(rest, data, keys, decimal, skip + 1, acc)
+    defp object_pairs_continue(<<unquote(char), rest::bits>>, data, flags, skip, acc) do
+      object_pairs_continue(rest, data, flags, skip + 1, acc)
     end
   end
 
-  defp object_pairs_continue(_rest, _data, _keys, _decimal, skip, _acc) do
+  defp object_pairs_continue(_rest, _data, _flags, skip, _acc) do
     syntax_error(skip)
   end
 
-  @compile {:inline, object_value: 5}
+  @compile {:inline, object_name: 3}
 
-  defp object_value(<<?:, rest::bits>>, data, keys, decimal, skip) do
-    value(rest, data, keys, decimal, skip + 1)
-  end
-
-  for char <- whitespace do
-    defp object_value(<<unquote(char), rest::bits>>, data, keys, decimal, skip) do
-      object_value(rest, data, keys, decimal, skip + 1)
+  defp object_name(flags, skip, name) when is_flag_set(flags, @mask_keys) do
+    if is_flag_set(flags, @mask_atoms!) do
+      try do
+        String.to_existing_atom(name)
+      rescue
+        ArgumentError ->
+          reraise ParseError, [skip: skip, value: name], __STACKTRACE__
+      end
+    else
+      # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+      String.to_atom(name)
     end
   end
 
-  defp object_value(_rest, _data, _keys, _decimal, skip) do
+  defp object_name(_flags, _skip, name) do
+    name
+  end
+
+  @compile {:inline, object_value: 4}
+
+  defp object_value(<<?:, rest::bits>>, data, flags, skip) do
+    value(rest, data, flags, skip + 1)
+  end
+
+  for char <- whitespace do
+    defp object_value(<<unquote(char), rest::bits>>, data, flags, skip) do
+      object_value(rest, data, flags, skip + 1)
+    end
+  end
+
+  defp object_value(_rest, _data, _flags, skip) do
     syntax_error(skip)
   end
 
   ## Arrays
 
-  @compile {:inline, array_values: 6}
+  @compile {:inline, array_values: 5}
 
-  defp array_values(<<?], _rest::bits>>, _data, _keys, _decimal, skip, acc) do
+  defp array_values(<<?], _rest::bits>>, _data, _flags, skip, acc) do
     [acc | skip + 1]
   end
 
   for char <- whitespace do
-    defp array_values(<<unquote(char), rest::bits>>, data, keys, decimal, skip, acc) do
-      array_values(rest, data, keys, decimal, skip + 1, acc)
+    defp array_values(<<unquote(char), rest::bits>>, data, flags, skip, acc) do
+      array_values(rest, data, flags, skip + 1, acc)
     end
   end
 
-  defp array_values(rest, data, keys, decimal, skip, acc) do
-    [value | skip] = value(rest, data, keys, decimal, skip)
+  defp array_values(rest, data, flags, skip, acc) do
+    [value | skip] = value(rest, data, flags, skip)
     <<_skip::binary-size(skip), rest::bits>> = data
-    array_values_continue(rest, data, keys, decimal, skip, [value | acc])
+    array_values_continue(rest, data, flags, skip, [value | acc])
   end
 
-  @compile {:inline, array_values_continue: 6}
+  @compile {:inline, array_values_continue: 5}
 
-  defp array_values_continue(<<?,, rest::bits>>, data, keys, decimal, skip, acc) do
-    [value | skip] = value(rest, data, keys, decimal, skip + 1)
+  defp array_values_continue(<<?,, rest::bits>>, data, flags, skip, acc) do
+    [value | skip] = value(rest, data, flags, skip + 1)
     <<_skip::binary-size(skip), rest::bits>> = data
-    array_values_continue(rest, data, keys, decimal, skip, [value | acc])
+    array_values_continue(rest, data, flags, skip, [value | acc])
   end
 
-  defp array_values_continue(<<?], _rest::bits>>, _data, _keys, _decimal, skip, acc) do
+  defp array_values_continue(<<?], _rest::bits>>, _data, _flags, skip, acc) do
     [:lists.reverse(acc) | skip + 1]
   end
 
   for char <- whitespace do
-    defp array_values_continue(<<unquote(char), rest::bits>>, data, keys, decimal, skip, acc) do
-      array_values_continue(rest, data, keys, decimal, skip + 1, acc)
+    defp array_values_continue(<<unquote(char), rest::bits>>, data, flags, skip, acc) do
+      array_values_continue(rest, data, flags, skip + 1, acc)
     end
   end
 
-  defp array_values_continue(_rest, _data, _keys, _decimal, skip, _acc) do
+  defp array_values_continue(_rest, _data, _flags, skip, _acc) do
     syntax_error(skip)
   end
 
@@ -286,40 +318,40 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_neg: 3}
 
-  defp number_neg(<<?0, rest::bits>>, decimal, skip) do
-    number_frac(rest, decimal, skip + 1, -1, 0, 0)
+  defp number_neg(<<?0, rest::bits>>, flags, skip) do
+    number_frac(rest, flags, skip + 1, -1, 0, 0)
   end
 
   for char <- ?1..?9 do
-    defp number_neg(<<unquote(char), rest::bits>>, decimal, skip) do
-      number_int(rest, decimal, skip + 1, -1, unquote(char - ?0), 0)
+    defp number_neg(<<unquote(char), rest::bits>>, flags, skip) do
+      number_int(rest, flags, skip + 1, -1, unquote(char - ?0), 0)
     end
   end
 
-  defp number_neg(_rest, _decimal, skip) do
+  defp number_neg(_rest, _flags, skip) do
     syntax_error(skip)
   end
 
   @compile {:inline, number_int: 6}
 
   for char <- digits do
-    defp number_int(<<unquote(char), rest::bits>>, decimal, skip, sign, coef, exp) do
-      number_int(rest, decimal, skip + 1, sign, coef * 10 + unquote(char - ?0), exp)
+    defp number_int(<<unquote(char), rest::bits>>, flags, skip, sign, coef, exp) do
+      number_int(rest, flags, skip + 1, sign, coef * 10 + unquote(char - ?0), exp)
     end
   end
 
-  defp number_int(rest, decimal, skip, sign, coef, exp) do
-    number_frac(rest, decimal, skip, sign, coef, exp)
+  defp number_int(rest, flags, skip, sign, coef, exp) do
+    number_frac(rest, flags, skip, sign, coef, exp)
   end
 
   @compile {:inline, number_frac: 6}
 
-  defp number_frac(<<?., rest::bits>>, decimal, skip, sign, coef, exp) do
-    number_frac_continue(rest, decimal, skip + 1, sign, coef, exp)
+  defp number_frac(<<?., rest::bits>>, flags, skip, sign, coef, exp) do
+    number_frac_continue(rest, flags, skip + 1, sign, coef, exp)
   end
 
-  defp number_frac(rest, decimal, skip, sign, coef, exp) do
-    number_exp(rest, decimal, skip, sign, coef, exp)
+  defp number_frac(rest, flags, skip, sign, coef, exp) do
+    number_exp(rest, flags, skip, sign, coef, exp)
   end
 
   @compile {:inline, number_frac_continue: 6}
@@ -330,25 +362,25 @@ defmodule Poison.Parser do
     end
   end
 
-  defp number_frac_continue(_rest, _decimal, skip, _sign, _coef, 0) do
+  defp number_frac_continue(_rest, _flags, skip, _sign, _coef, 0) do
     syntax_error(skip)
   end
 
-  defp number_frac_continue(rest, decimal, skip, sign, coef, exp) do
-    number_exp(rest, decimal, skip, sign, coef, exp)
+  defp number_frac_continue(rest, flags, skip, sign, coef, exp) do
+    number_exp(rest, flags, skip, sign, coef, exp)
   end
 
   @compile {:inline, number_exp: 6}
 
   for e <- ~c(eE) do
-    defp number_exp(<<unquote(e), rest::bits>>, decimal, skip, sign, coef, exp) do
+    defp number_exp(<<unquote(e), rest::bits>>, flags, skip, sign, coef, exp) do
       [value | skip] = number_exp_continue(rest, skip + 1)
-      number_complete(decimal, skip, sign, coef, exp + value)
+      number_complete(flags, skip, sign, coef, exp + value)
     end
   end
 
-  defp number_exp(_rest, decimal, skip, sign, coef, exp) do
-    number_complete(decimal, skip, sign, coef, exp)
+  defp number_exp(_rest, flags, skip, sign, coef, exp) do
+    number_complete(flags, skip, sign, coef, exp)
   end
 
   @compile {:inline, number_exp_continue: 2}
@@ -378,7 +410,9 @@ defmodule Poison.Parser do
     end
   end
 
-  defp number_exp_digits(<<>>, skip), do: syntax_error(skip)
+  defp number_exp_digits(<<>>, skip) do
+    syntax_error(skip)
+  end
 
   @compile {:inline, number_digits: 3}
 
@@ -395,23 +429,24 @@ defmodule Poison.Parser do
   @compile {:inline, number_complete: 5}
 
   if Code.ensure_loaded?(Decimal) do
-    defp number_complete(true, skip, sign, coef, exp) do
+    defp number_complete(flags, skip, sign, coef, exp) when is_flag_set(flags, @mask_decimal) do
       [%Decimal{sign: sign, coef: coef, exp: exp} | skip]
     end
   else
-    defp number_complete(true, _skip, _sign, _coef, _exp) do
+    defp number_complete(flags, _skip, _sign, _coef, _exp)
+         when is_flag_set(flags, @mask_decimal) do
       raise Poison.MissingDependencyError, name: "Decimal"
     end
   end
 
-  defp number_complete(_decimal, skip, sign, coef, 0) do
+  defp number_complete(_flags, skip, sign, coef, 0) do
     [coef * sign | skip]
   end
 
   max_sig = 1 <<< 53
 
   # See: https://arxiv.org/pdf/2101.11408.pdf
-  defp number_complete(_decimal, skip, sign, coef, exp)
+  defp number_complete(_flags, skip, sign, coef, exp)
        when exp in -22..22 and coef <= unquote(max_sig) do
     if exp < 0 do
       [coef / pow10(-exp) * sign | skip]
@@ -420,7 +455,7 @@ defmodule Poison.Parser do
     end
   end
 
-  defp number_complete(_decimal, skip, sign, coef, exp) do
+  defp number_complete(_flags, skip, sign, coef, exp) do
     [
       String.to_float(
         <<Integer.to_string(coef * sign)::bits, ".0e"::bits, Integer.to_string(exp)::bits>>
@@ -516,7 +551,9 @@ defmodule Poison.Parser do
     end
   end
 
-  defp string_escape(_rest, _data, skip, _unicode, _acc), do: syntax_error(skip)
+  defp string_escape(_rest, _data, skip, _unicode, _acc) do
+    syntax_error(skip)
+  end
 
   # https://www.ietf.org/rfc/rfc2781.txt
   # https://perldoc.perl.org/Encode::Unicode#Surrogate-Pairs
@@ -550,7 +587,9 @@ defmodule Poison.Parser do
     end
   end
 
-  defp string_escape_unicode(_rest, _data, skip, _acc), do: syntax_error(skip + 1)
+  defp string_escape_unicode(_rest, _data, skip, _acc) do
+    syntax_error(skip + 1)
+  end
 
   @compile {:inline, string_escape_surrogate_pair: 6}
 

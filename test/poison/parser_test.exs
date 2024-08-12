@@ -54,10 +54,11 @@ defmodule Poison.ParserTest do
     # credo:disable-for-next-line Credo.Check.Readability.LargeNumbers
     assert parse!("123456789.123456789e123") === 1.234567891234568e131
 
-    assert parse!("0", %{decimal: true}) == Decimal.new("0")
-    assert parse!("-0", %{decimal: true}) == Decimal.new("-0")
-    assert parse!("99", %{decimal: true}) == Decimal.new("99")
-    assert parse!("-99", %{decimal: true}) == Decimal.new("-99")
+    assert parse!("0", %{decimal: true}) == 0
+    assert parse!("-0", %{decimal: true}) == -0
+    assert parse!("99", %{decimal: true}) == 99
+    assert parse!("-99", %{decimal: true}) == -99
+
     assert parse!("99.99", %{decimal: true}) == Decimal.new("99.99")
     assert parse!("-99.99", %{decimal: true}) == Decimal.new("-99.99")
     assert parse!("99.99e99", %{decimal: true}) == Decimal.new("99.99e99")

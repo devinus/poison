@@ -394,6 +394,10 @@ defmodule Poison.Parser do
 
   @compile {:inline, number_complete: 5}
 
+  defp number_complete(_decimal, skip, sign, coef, 0) do
+    [coef * sign | skip]
+  end
+
   if Code.ensure_loaded?(Decimal) do
     defp number_complete(true, skip, sign, coef, exp) do
       [%Decimal{sign: sign, coef: coef, exp: exp} | skip]
@@ -402,10 +406,6 @@ defmodule Poison.Parser do
     defp number_complete(true, _skip, _sign, _coef, _exp) do
       raise Poison.MissingDependencyError, name: "Decimal"
     end
-  end
-
-  defp number_complete(_decimal, skip, sign, coef, 0) do
-    [coef * sign | skip]
   end
 
   max_sig = 1 <<< 53

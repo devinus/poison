@@ -19,29 +19,27 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-22.04
-          - windows-2022
+          - ubuntu-24.04
+          - windows-2025
         otp:
-          - "26.2.2"
-          - "25.3.2"
-          - "24.3.4"
+          - "27"
+          - "26"
+          - "25"
         elixir:
+          - "1.20.1"
+          - "1.19.5"
+          - "1.18.4"
+          - "1.17.3"
           - "1.16.3"
-          - "1.15.7"
-          - "1.14.5"
-          - "1.13.4"
-          - "1.12.3"
         exclude:
-          - otp: "26.2.2"
-            elixir: "1.14.5"
-          - otp: "26.2.2"
-            elixir: "1.13.4"
-          - otp: "26.2.2"
-            elixir: "1.12.3"
-          - otp: "25.3.2"
-            elixir: "1.13.4"
-          - otp: "25.3.2"
-            elixir: "1.12.3"
+          - elixir: "1.20.1"
+            otp: "26"
+          - elixir: "1.20.1"
+            otp: "25"
+          - elixir: "1.19.5"
+            otp: "25"
+          - elixir: "1.16.3"
+            otp: "27"
 
     steps:
       - uses: actions/checkout@v4

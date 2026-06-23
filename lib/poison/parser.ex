@@ -17,13 +17,13 @@ defmodule Poison.ParseError do
   defexception data: "", skip: 0, value: nil
 
   def message(%{data: data, skip: skip, value: value}) when value != nil do
-    <<head::binary-size(skip), _rest::bits>> = data
+    <<head::binary-size(^skip), _rest::bits>> = data
     pos = String.length(head)
     "cannot parse value at position #{pos}: #{inspect(value)}"
   end
 
   def message(%{data: data, skip: skip}) when is_bitstring(data) do
-    <<head::binary-size(skip), rest::bits>> = data
+    <<head::binary-size(^skip), rest::bits>> = data
     pos = String.length(head)
 
     case rest do
@@ -87,7 +87,7 @@ defmodule Poison.Parser do
     [value | skip] =
       value(data, data, :maps.get(:keys, options, nil), :maps.get(:decimal, options, nil), 0)
 
-    <<_skip::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(^skip), rest::bits>> = data
     skip_whitespace(rest, skip, value)
   rescue
     exception in ParseError ->
@@ -180,10 +180,10 @@ defmodule Poison.Parser do
   defp object_pairs(<<?", rest::bits>>, data, keys, decimal, skip, acc) do
     start = skip + 1
     [name | skip] = string_continue(rest, data, start)
-    <<_skip::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(^skip), rest::bits>> = data
 
     [value | skip] = object_value(rest, data, keys, decimal, skip)
-    <<_skip::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(^skip), rest::bits>> = data
 
     object_pairs_continue(rest, data, keys, decimal, skip, [
       {object_name(keys, start, name), value} | acc
@@ -256,7 +256,7 @@ defmodule Poison.Parser do
 
   defp array_values(rest, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip)
-    <<_skip::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(^skip), rest::bits>> = data
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -264,7 +264,7 @@ defmodule Poison.Parser do
 
   defp array_values_continue(<<?,, rest::bits>>, data, keys, decimal, skip, acc) do
     [value | skip] = value(rest, data, keys, decimal, skip + 1)
-    <<_skip::binary-size(skip), rest::bits>> = data
+    <<_skip::binary-size(^skip), rest::bits>> = data
     array_values_continue(rest, data, keys, decimal, skip, [value | acc])
   end
 
@@ -377,8 +377,6 @@ defmodule Poison.Parser do
         other
     end
   end
-
-  defp number_exp_digits(<<>>, skip), do: syntax_error(skip)
 
   @compile {:inline, number_digits: 3}
 

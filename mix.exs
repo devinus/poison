@@ -11,7 +11,7 @@ defmodule Poison.Mixfile do
       app: :poison,
       name: "Poison",
       version: @version,
-      elixir: "~> 1.12",
+      elixir: "~> 1.16",
       description: "An incredibly fast, pure Elixir JSON library",
       source_url: "https://github.com/devinus/poison",
       start_permanent: Mix.env() == :prod,
@@ -21,7 +21,7 @@ defmodule Poison.Mixfile do
       docs: docs(),
       package: package(),
       aliases: aliases(),
-      xref: [exclude: [Decimal]],
+      elixirc_options: [no_warn_undefined: [Decimal]],
       dialyzer: [
         plt_add_apps: [:decimal],
         flags: [
@@ -32,8 +32,13 @@ defmodule Poison.Mixfile do
           :underspecs
         ]
       ],
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
+      test_coverage: [tool: ExCoveralls]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.html": :test,
@@ -69,12 +74,12 @@ defmodule Poison.Mixfile do
       {:benchee, "~> 1.3", only: :bench, runtime: false},
       {:castore, "~> 1.0", only: :test, runtime: false},
       {:credo, "~> 1.7.7-rc", only: [:dev, :test], runtime: false},
-      {:decimal, "~> 2.1", optional: true},
+      {:decimal, "~> 3.0", optional: true},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:exjsx, "~> 4.0", only: [:bench, :profile], runtime: false},
-      {:jason, "~> 1.5.0-alpha", only: [:dev, :test, :bench, :profile], runtime: false},
+      {:jason, "~> 1.4", only: [:dev, :test, :bench, :profile], runtime: false},
       {:jiffy, "~> 1.1", only: [:bench, :profile], runtime: false},
       {:jsone, "~> 1.8", only: [:bench, :profile], runtime: false},
       {:junit_formatter, "~> 3.4", only: :test, runtime: false},

@@ -63,8 +63,10 @@ defmodule Poison.ParserTest do
     assert parse!("99.99e99", %{decimal: true}) == Decimal.new("99.99e99")
     assert parse!("-99.99e99", %{decimal: true}) == Decimal.new("-99.99e99")
 
-    assert parse!("-9.9999999999e9999999999", %{decimal: true}) ==
-             Decimal.new("-9.9999999999e9999999999")
+    {decimal, ""} =
+      Decimal.parse("-9.9999999999e9999999999", max_digits: :infinity, max_exponent: :infinity)
+
+    assert parse!("-9.9999999999e9999999999", %{decimal: true}) == decimal
   end
 
   property "number" do

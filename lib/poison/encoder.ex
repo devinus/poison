@@ -192,7 +192,7 @@ defimpl Poison.Encoder, for: BitString do
 
   defp escape(string, mode) do
     skip = chunk_size(string, mode, 0)
-    <<chunk::binary-size(skip), rest::bits>> = string
+    <<chunk::binary-size(^skip), rest::bits>> = string
     [chunk | escape(rest, mode)]
   end
 

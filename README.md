@@ -89,6 +89,16 @@ for more info:
 > removed. The emulator will terminate if the limit for the number of atoms
 > (1048576 by default) is reached.
 
+Integers (and the coefficient and exponent when decoding with
+`decimal: true`) are limited to 1024 digits; longer literals raise
+`Poison.ParseError`. The limit can be changed at compile time:
+
+```elixir
+config :poison, decoding_integer_digit_limit: 4096
+```
+
+Floats are not affected by the limit.
+
 ## Encoder
 
 ```iex

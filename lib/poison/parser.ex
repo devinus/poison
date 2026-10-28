@@ -114,19 +114,17 @@ defmodule Poison.Parser do
     [false | skip + 5]
   end
 
-  defp value(<<?-, rest::bits>>, _data, _keys, decimal, skip) do
-    number_neg(rest, decimal, skip + 1)
+  defp value(<<?-, rest::bits>>, data, _keys, decimal, skip) do
+    number_neg(rest, data, decimal, skip + 1)
   end
 
-  defp value(<<?0, rest::bits>>, _data, _keys, decimal, skip) do
-    number_frac(rest, decimal, skip + 1, 1, 0, 0)
+  defp value(<<?0, rest::bits>>, data, _keys, decimal, skip) do
+    number_frac(rest, data, decimal, skip + 1, skip, 1)
   end
 
   for digit <- ?1..?9 do
-    coef = digit - ?0
-
-    defp value(<<unquote(digit), rest::bits>>, _data, _keys, decimal, skip) do
-      number_int(rest, decimal, skip + 1, 1, unquote(coef), 0)
+    defp value(<<unquote(digit), rest::bits>>, data, _keys, decimal, skip) do
+      number_int(rest, data, decimal, skip + 1, skip, 1)
     end
   end
 
@@ -284,135 +282,208 @@ defmodule Poison.Parser do
 
   ## Numbers
 
-  @compile {:inline, number_neg: 3}
+  # Digits are scanned without accumulating a value: only the positions of
+  # the integer, fraction and exponent digit runs are tracked and each slice is
+  # converted once at the end. Folding digit by digit into an arbitrary
+  # precision integer costs O(n^2) for an n-digit literal, which lets a single
+  # long numeric literal pin a scheduler.
+  #
+  # Integers (and the coefficient and exponent of a Decimal) still have to be
+  # converted into an arbitrary precision integer, so their digit count is
+  # limited (default 1024 digits). Floats are never limited.
+  @integer_digit_limit Application.compile_env(
+                         :poison,
+                         :decoding_integer_digit_limit,
+                         1024
+                       )
 
-  defp number_neg(<<?0, rest::bits>>, decimal, skip) do
-    number_frac(rest, decimal, skip + 1, -1, 0, 0)
+  @compile {:inline, number_neg: 4}
+
+  defp number_neg(<<?0, rest::bits>>, data, decimal, skip) do
+    number_frac(rest, data, decimal, skip + 1, skip, -1)
   end
 
   for char <- ?1..?9 do
-    defp number_neg(<<unquote(char), rest::bits>>, decimal, skip) do
-      number_int(rest, decimal, skip + 1, -1, unquote(char - ?0), 0)
+    defp number_neg(<<unquote(char), rest::bits>>, data, decimal, skip) do
+      number_int(rest, data, decimal, skip + 1, skip, -1)
     end
   end
 
-  defp number_neg(_rest, _decimal, skip) do
+  defp number_neg(_rest, _data, _decimal, skip) do
     syntax_error(skip)
   end
 
   @compile {:inline, number_int: 6}
 
   for char <- digits do
-    defp number_int(<<unquote(char), rest::bits>>, decimal, skip, sign, coef, exp) do
-      number_int(rest, decimal, skip + 1, sign, coef * 10 + unquote(char - ?0), exp)
+    defp number_int(<<unquote(char), rest::bits>>, data, decimal, skip, start, sign) do
+      number_int(rest, data, decimal, skip + 1, start, sign)
     end
   end
 
-  defp number_int(rest, decimal, skip, sign, coef, exp) do
-    number_frac(rest, decimal, skip, sign, coef, exp)
+  defp number_int(rest, data, decimal, skip, start, sign) do
+    number_frac(rest, data, decimal, skip, start, sign)
   end
 
   @compile {:inline, number_frac: 6}
 
-  defp number_frac(<<?., rest::bits>>, decimal, skip, sign, coef, exp) do
-    number_frac_continue(rest, decimal, skip + 1, sign, coef, exp)
+  defp number_frac(<<?., rest::bits>>, data, decimal, skip, start, sign) do
+    number_frac_continue(rest, data, decimal, skip + 1, start, sign, skip - start)
   end
 
-  defp number_frac(rest, decimal, skip, sign, coef, exp) do
-    number_exp(rest, decimal, skip, sign, coef, exp)
+  defp number_frac(rest, data, decimal, skip, start, sign) do
+    number_exp(rest, data, decimal, skip, start, sign, skip - start, 0)
   end
 
-  @compile {:inline, number_frac_continue: 6}
+  @compile {:inline, number_frac_continue: 7}
 
   for char <- digits do
-    defp number_frac_continue(<<unquote(char), rest::bits>>, decimal, skip, sign, coef, exp) do
-      number_frac_continue(rest, decimal, skip + 1, sign, coef * 10 + unquote(char - ?0), exp - 1)
+    defp number_frac_continue(
+           <<unquote(char), rest::bits>>,
+           data,
+           decimal,
+           skip,
+           start,
+           sign,
+           int_len
+         ) do
+      number_frac_continue(rest, data, decimal, skip + 1, start, sign, int_len)
     end
   end
 
-  defp number_frac_continue(_rest, _decimal, skip, _sign, _coef, 0) do
+  defp number_frac_continue(rest, data, decimal, skip, start, sign, int_len) do
+    case skip - (start + int_len + 1) do
+      0 -> syntax_error(skip)
+      frac_len -> number_exp(rest, data, decimal, skip, start, sign, int_len, frac_len)
+    end
+  end
+
+  @compile {:inline, number_exp: 8}
+
+  for e <- ~c(eE) do
+    defp number_exp(
+           <<unquote(e), rest::bits>>,
+           data,
+           decimal,
+           skip,
+           start,
+           sign,
+           int_len,
+           frac_len
+         ) do
+      [exp | skip] = number_exp_continue(rest, data, skip + 1)
+      number_complete(data, decimal, skip, start, sign, int_len, frac_len, exp)
+    end
+  end
+
+  defp number_exp(_rest, data, decimal, skip, start, sign, int_len, frac_len) do
+    number_complete(data, decimal, skip, start, sign, int_len, frac_len, 0)
+  end
+
+  @compile {:inline, number_exp_continue: 3}
+
+  defp number_exp_continue(<<?-, rest::bits>>, data, skip) do
+    case number_exp_digits(rest, data, skip + 1) do
+      [exp | skip] when is_integer(exp) -> [-exp | skip]
+      overflow -> overflow
+    end
+  end
+
+  defp number_exp_continue(<<?+, rest::bits>>, data, skip) do
+    number_exp_digits(rest, data, skip + 1)
+  end
+
+  defp number_exp_continue(rest, data, skip) do
+    number_exp_digits(rest, data, skip)
+  end
+
+  @compile {:inline, number_exp_digits: 3}
+
+  for char <- digits do
+    defp number_exp_digits(<<unquote(char), rest::bits>>, data, skip) do
+      number_exp_digits_continue(rest, data, skip + 1, skip)
+    end
+  end
+
+  defp number_exp_digits(_rest, _data, skip) do
     syntax_error(skip)
   end
 
-  defp number_frac_continue(rest, decimal, skip, sign, coef, exp) do
-    number_exp(rest, decimal, skip, sign, coef, exp)
-  end
-
-  @compile {:inline, number_exp: 6}
-
-  for e <- ~c(eE) do
-    defp number_exp(<<unquote(e), rest::bits>>, decimal, skip, sign, coef, exp) do
-      [value | skip] = number_exp_continue(rest, skip + 1)
-      number_complete(decimal, skip, sign, coef, exp + value)
-    end
-  end
-
-  defp number_exp(_rest, decimal, skip, sign, coef, exp) do
-    number_complete(decimal, skip, sign, coef, exp)
-  end
-
-  @compile {:inline, number_exp_continue: 2}
-
-  defp number_exp_continue(<<?-, rest::bits>>, skip) do
-    [exp | skip] = number_exp_digits(rest, skip + 1)
-    [-exp | skip]
-  end
-
-  defp number_exp_continue(<<?+, rest::bits>>, skip) do
-    number_exp_digits(rest, skip + 1)
-  end
-
-  defp number_exp_continue(rest, skip) do
-    number_exp_digits(rest, skip)
-  end
-
-  @compile {:inline, number_exp_digits: 2}
-
-  defp number_exp_digits(<<rest::bits>>, skip) do
-    case number_digits(rest, skip, 0) do
-      [_exp | ^skip] ->
-        syntax_error(skip)
-
-      other ->
-        other
-    end
-  end
-
-  defp number_exp_digits(<<>>, skip), do: syntax_error(skip)
-
-  @compile {:inline, number_digits: 3}
+  @compile {:inline, number_exp_digits_continue: 4}
 
   for char <- digits do
-    defp number_digits(<<unquote(char), rest::bits>>, skip, acc) do
-      number_digits(rest, skip + 1, acc * 10 + unquote(char - ?0))
+    defp number_exp_digits_continue(<<unquote(char), rest::bits>>, data, skip, start) do
+      number_exp_digits_continue(rest, data, skip + 1, start)
     end
   end
 
-  defp number_digits(_rest, skip, acc) do
-    [acc | skip]
+  # An exponent with more digits than the limit is never turned into an
+  # integer: the literal can only be a float (handled by the float conversion
+  # below, which works on the digits directly) or an error.
+  defp number_exp_digits_continue(_rest, _data, skip, start)
+       when skip - start > @integer_digit_limit do
+    [:overflow | skip]
   end
 
-  @compile {:inline, number_complete: 5}
+  defp number_exp_digits_continue(_rest, data, skip, start) do
+    [:erlang.binary_to_integer(binary_part(data, start, skip - start)) | skip]
+  end
+
+  @compile {:inline, number_complete: 8}
+
+  @spec number_complete(
+          binary,
+          term,
+          non_neg_integer,
+          non_neg_integer,
+          1 | -1,
+          non_neg_integer,
+          non_neg_integer,
+          integer | :overflow
+        ) :: nonempty_improper_list(t, non_neg_integer)
 
   if Code.ensure_loaded?(Decimal) do
-    defp number_complete(true, skip, sign, coef, exp) do
-      [%Decimal{sign: sign, coef: coef, exp: exp} | skip]
+    defp number_complete(data, true, skip, start, sign, int_len, frac_len, exp)
+         when is_integer(exp) do
+      coef = number_coef(data, skip, start, sign, int_len, frac_len)
+      [%Decimal{sign: sign, coef: coef, exp: exp - frac_len} | skip]
+    end
+
+    defp number_complete(data, true, skip, start, sign, _int_len, _frac_len, :overflow) do
+      number_error(data, skip, start, sign)
     end
   else
-    defp number_complete(true, _skip, _sign, _coef, _exp) do
+    defp number_complete(_data, true, _skip, _start, _sign, _int_len, _frac_len, _exp) do
       raise Poison.MissingDependencyError, name: "Decimal"
     end
   end
 
-  defp number_complete(_decimal, skip, sign, coef, 0) do
-    [coef * sign | skip]
+  # The exponent cancels out the fraction (or there is neither), so the
+  # literal is an integer.
+  defp number_complete(data, _decimal, skip, start, sign, int_len, frac_len, exp)
+       when exp === frac_len do
+    [number_coef(data, skip, start, sign, int_len, frac_len) * sign | skip]
   end
 
   max_sig = 1 <<< 53
 
   # See: https://arxiv.org/pdf/2101.11408.pdf
-  defp number_complete(_decimal, skip, sign, coef, exp)
-       when exp in -22..22 and coef <= unquote(max_sig) do
+  # With at most 16 digits the coefficient may still fit in 53 bits.
+  defp number_complete(data, _decimal, skip, start, sign, int_len, frac_len, exp)
+       when is_integer(exp) and int_len + frac_len <= 16 and exp - frac_len >= -22 and
+              exp - frac_len <= 22 do
+    coef = number_coef(data, skip, start, sign, int_len, frac_len)
+    number_fast_float(data, skip, start, sign, int_len, frac_len, coef, exp - frac_len)
+  end
+
+  defp number_complete(data, _decimal, skip, start, sign, int_len, frac_len, _exp) do
+    number_float(data, skip, start, sign, int_len, frac_len)
+  end
+
+  @compile {:inline, number_fast_float: 8}
+
+  defp number_fast_float(_data, skip, _start, sign, _int_len, _frac_len, coef, exp)
+       when coef <= unquote(max_sig) do
     if exp < 0 do
       [coef / pow10(-exp) * sign | skip]
     else
@@ -420,16 +491,63 @@ defmodule Poison.Parser do
     end
   end
 
-  defp number_complete(_decimal, skip, sign, coef, exp) do
-    [
-      String.to_float(
-        <<Integer.to_string(coef * sign)::bits, ".0e"::bits, Integer.to_string(exp)::bits>>
-      )
-      | skip
-    ]
+  defp number_fast_float(data, skip, start, sign, int_len, frac_len, _coef, _exp) do
+    number_float(data, skip, start, sign, int_len, frac_len)
+  end
+
+  @compile {:inline, number_coef: 6}
+
+  defp number_coef(data, skip, start, sign, int_len, frac_len)
+       when int_len + frac_len > @integer_digit_limit do
+    number_error(data, skip, start, sign)
+  end
+
+  defp number_coef(data, _skip, start, _sign, int_len, 0) do
+    :erlang.binary_to_integer(binary_part(data, start, int_len))
+  end
+
+  defp number_coef(data, _skip, start, _sign, int_len, frac_len) do
+    :erlang.binary_to_integer(
+      <<binary_part(data, start, int_len)::bits,
+        binary_part(data, start + int_len + 1, frac_len)::bits>>
+    )
+  end
+
+  @compile {:inline, number_float: 6}
+
+  # :erlang.binary_to_float/1 requires a fraction, so "1e5" becomes "1.0e5".
+  defp number_float(data, skip, start, sign, int_len, 0) do
+    int_end = start + int_len
+
+    number_float(
+      <<binary_part(data, start, int_len)::bits, ".0",
+        binary_part(data, int_end, skip - int_end)::bits>>,
+      data,
+      skip,
+      start,
+      sign
+    )
+  end
+
+  defp number_float(data, skip, start, sign, _int_len, _frac_len) do
+    number_float(binary_part(data, start, skip - start), data, skip, start, sign)
+  end
+
+  @compile {:inline, number_float: 5}
+
+  defp number_float(string, data, skip, start, sign) do
+    [:erlang.binary_to_float(string) * sign | skip]
   rescue
     ArgumentError ->
-      reraise ParseError, [skip: skip, value: "#{coef * sign}e#{exp}"], __STACKTRACE__
+      number_error(data, skip, start, sign)
+  end
+
+  @compile {:inline, number_error: 4}
+
+  @spec number_error(binary, non_neg_integer, non_neg_integer, 1 | -1) :: no_return
+  defp number_error(data, skip, start, sign) do
+    start = if sign < 0, do: start - 1, else: start
+    raise ParseError, skip: start, value: binary_part(data, start, skip - start)
   end
 
   @compile {:inline, pow10: 1}

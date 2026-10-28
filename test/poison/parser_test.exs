@@ -67,6 +67,35 @@ defmodule Poison.ParserTest do
              Decimal.new("-9.9999999999e9999999999")
   end
 
+  test "numbers with many digits" do
+    # Integers are limited to :decoding_integer_digit_limit digits (1024 by
+    # default) to keep the arbitrary precision conversion cheap.
+    digits = String.duplicate("9", 1024)
+    assert parse!(digits) === String.to_integer(digits)
+    assert parse!("-" <> digits) === -String.to_integer(digits)
+    assert parse!("9." <> String.duplicate("9", 1023) <> "e1023") === String.to_integer(digits)
+    assert parse!(digits, %{decimal: true}) == Decimal.new(digits)
+
+    error = assert_raise ParseError, fn -> parse!("1" <> digits) end
+    assert %ParseError{skip: 0, value: "1" <> ^digits} = error
+
+    error = assert_raise ParseError, fn -> parse!("[-1" <> digits <> "]") end
+    assert %ParseError{skip: 1, value: "-1" <> ^digits} = error
+
+    assert_raise ParseError, fn -> parse!("1." <> digits <> "e1024") end
+    assert_raise ParseError, fn -> parse!("1" <> digits, %{decimal: true}) end
+
+    # Floats are not limited and are converted in linear time.
+    assert parse!("0." <> digits) === 1.0
+    assert parse!("-1." <> digits <> "e300") === -2.0e300
+    assert parse!("0." <> String.duplicate("1", 1_000_000)) === 0.1111111111111111
+    assert parse!("0." <> String.duplicate("0", 1_000_000) <> "1") === 0.0
+
+    assert_raise ParseError, fn -> parse!(String.duplicate("1", 1_000_000)) end
+    assert_raise ParseError, fn -> parse!("1e" <> String.duplicate("1", 1_000_000)) end
+    assert parse!("1e-" <> String.duplicate("1", 1_000_000)) === 0.0
+  end
+
   property "number" do
     check all(int <- integer()) do
       assert parse!(Integer.to_string(int)) === int

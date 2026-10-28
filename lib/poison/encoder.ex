@@ -146,10 +146,6 @@ defimpl Poison.Encoder, for: BitString do
     [seq(char) | escape(rest, mode)]
   end
 
-  defp escape(<<char::utf8, rest::bits>>, mode) when char in 0xD800..0xDFFF do
-    [seq(char) | escape(rest, mode)]
-  end
-
   defp escape(<<char::utf8, rest::bits>>, :unicode) when char in 0xA0..0xFFFF do
     [seq(char) | escape(rest, :unicode)]
   end
@@ -199,7 +195,7 @@ defimpl Poison.Encoder, for: BitString do
   @compile {:inline, chunk_size: 3}
 
   defp chunk_size(<<char, _rest::bits>>, _mode, acc)
-       when char <= 0x1F or char in ~c("\\) do
+       when char <= 0x1F or char == 0x7F or char in ~c("\\) do
     acc
   end
 
@@ -207,8 +203,15 @@ defimpl Poison.Encoder, for: BitString do
     acc
   end
 
-  defp chunk_size(<<char, rest::bits>>, mode, acc) when char >= 0x20 do
+  # Only ASCII can be copied byte by byte. Anything else has to be matched as
+  # a code point so that the clauses below see it and invalid UTF-8 falls
+  # through to the last clause.
+  defp chunk_size(<<char, rest::bits>>, mode, acc) when char < 0x80 do
     chunk_size(rest, mode, acc + 1)
+  end
+
+  defp chunk_size(<<char::utf8, _rest::bits>>, _mode, acc) when char in 0x80..0x9F do
+    acc
   end
 
   defp chunk_size(<<_codepoint::utf8, _rest::bits>>, :unicode, acc) do

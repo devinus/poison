@@ -71,11 +71,44 @@ defmodule Poison.EncoderTest do
     assert encode!("one & two", escape: :html_safe) == ~s("one \\u0026 two")
 
     assert encode!("áéíóúàèìòùâêîôûãẽĩõũ") == ~s("áéíóúàèìòùâêîôûãẽĩõũ")
+
+    # Characters that need escaping must be found anywhere in the string, not
+    # only at the start of a chunk.
+    assert encode!("a☃b", escape: :unicode) == ~s("a\\u2603b")
+    assert encode!("a𝄞b", escape: :unicode) == ~s("a\\uD834\\uDD1Eb")
+    assert encode!("a\u2028b\u2029c", escape: :javascript) == ~s("a\\u2028b\\u2029c")
+    assert encode!("a\u2028b\u2029c", escape: :html_safe) == ~s("a\\u2028b\\u2029c")
+    assert encode!("a\u2028b", escape: :unicode) == ~s("a\\u2028b")
+    assert encode!("a\u0085b") == ~s("a\\u0085b")
+    assert encode!("a\x7Fb") == ~s("a\\u007Fb")
+    assert encode!("a\u2028b") == ~s("a\u2028b")
+
+    assert_raise EncodeError, fn -> encode!(<<?a, 0xFF>>) end
+    assert_raise EncodeError, fn -> encode!(<<?a, 0xC3>>) end
+    assert_raise EncodeError, fn -> encode!(<<?a, 0xED, 0xA0, 0x80>>) end
+    assert_raise EncodeError, fn -> encode!(<<0xFF>>, escape: :unicode) end
+    assert_raise EncodeError, fn -> encode!(<<?a, 0xFF>>, escape: :javascript) end
+    assert_raise EncodeError, fn -> encode!(<<?a, 0xFF>>, escape: :html_safe) end
   end
 
   property "BitString" do
     check all(value <- json_string(min_length: 1)) do
       assert encode!(value) == inspect(value)
+    end
+
+    check all(value <- json_string(min_length: 1)) do
+      encoded = encode!(value, escape: :unicode)
+      assert encoded == for(<<char <- encoded>>, char < 0x80, into: "", do: <<char>>)
+      assert Poison.decode!(encoded) == value
+    end
+
+    check all(
+            value <- json_string(min_length: 1),
+            mode <- member_of([:javascript, :html_safe])
+          ) do
+      encoded = encode!(value, escape: mode)
+      refute String.contains?(encoded, ["\u2028", "\u2029"])
+      assert Poison.decode!(encoded) == value
     end
 
     check all(

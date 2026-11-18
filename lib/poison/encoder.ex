@@ -335,7 +335,7 @@ defimpl Poison.Encoder, for: Map do
     |> Enum.each(fn key ->
       name = encode_name(key)
 
-      if Map.has_key?(map, name) do
+      if not is_binary(key) and Map.has_key?(map, name) do
         raise EncodeError,
           value: name,
           message: "duplicate key found: #{inspect(key)}"

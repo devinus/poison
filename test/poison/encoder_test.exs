@@ -118,6 +118,10 @@ defmodule Poison.EncoderTest do
     assert encode!(multi_key_map) == ~s({"foo":"foo1","foo":"foo2"})
     error = %EncodeError{message: "duplicate key found: :foo", value: "foo"}
     assert Poison.encode(multi_key_map, strict_keys: true) == {:error, error}
+
+    assert Poison.encode(%{"foo" => "bar"}, strict_keys: true) == {:ok, ~s({"foo":"bar"})}
+
+    assert {:ok, _} = Poison.encode(%{"foo" => 1, bar: 2}, strict_keys: true)
   end
 
   property "Map" do
